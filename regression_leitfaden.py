@@ -1650,43 +1650,87 @@ if regression_type == "📊 Multiple Regression":
     Bevor wir unserem Modell vertrauen, müssen wir die **Gauss-Markov Annahmen** prüfen!
     """)
     
-    # Diagnostik-Plots
-    fig_diag, axes = plt.subplots(2, 2, figsize=(14, 10))
+    # Diagnostik-Plots using plotly subplots
+    from plotly.subplots import make_subplots
+    from scipy.stats import probplot
+    from statsmodels.stats.outliers_influence import OLSInfluence
+    
+    fig_diag = make_subplots(
+        rows=2, cols=2,
+        subplot_titles=('Residuals vs Fitted<br>(Linearität & Homoskedastizität)',
+                       'Normal Q-Q<br>(Normalität)',
+                       'Scale-Location<br>(Homoskedastizität)',
+                       'Residuals vs Leverage<br>(Einflussreiche Punkte)')
+    )
     
     # 1. Residuen vs. Fitted
-    axes[0, 0].scatter(y_pred_mult, model_mult.resid, alpha=0.6, s=50)
-    axes[0, 0].axhline(0, color='red', linestyle='--', linewidth=2)
-    axes[0, 0].set_xlabel('Fitted values', fontsize=11)
-    axes[0, 0].set_ylabel('Residuals', fontsize=11)
-    axes[0, 0].set_title('Residuals vs Fitted\n(Linearität & Homoskedastizität)', fontsize=11, fontweight='bold')
-    axes[0, 0].grid(True, alpha=0.3)
+    fig_diag.add_trace(
+        go.Scatter(x=y_pred_mult, y=model_mult.resid,
+                  mode='markers',
+                  marker=dict(size=6, opacity=0.6),
+                  showlegend=False),
+        row=1, col=1
+    )
+    fig_diag.add_hline(y=0, line_dash='dash', line_color='red', line_width=2,
+                      row=1, col=1)
     
     # 2. Q-Q Plot
-    from scipy.stats import probplot
-    probplot(model_mult.resid, dist="norm", plot=axes[0, 1])
-    axes[0, 1].set_title('Normal Q-Q\n(Normalität)', fontsize=11, fontweight='bold')
-    axes[0, 1].grid(True, alpha=0.3)
+    qq = probplot(model_mult.resid, dist="norm")
+    fig_diag.add_trace(
+        go.Scatter(x=qq[0][0], y=qq[0][1],
+                  mode='markers',
+                  marker=dict(size=6, opacity=0.6),
+                  showlegend=False),
+        row=1, col=2
+    )
+    # Add reference line
+    fig_diag.add_trace(
+        go.Scatter(x=qq[0][0], y=qq[1][1] + qq[1][0]*qq[0][0],
+                  mode='lines',
+                  line=dict(color='red', dash='dash'),
+                  showlegend=False),
+        row=1, col=2
+    )
     
     # 3. Scale-Location
     standardized_resid = model_mult.resid / np.std(model_mult.resid)
-    axes[1, 0].scatter(y_pred_mult, np.sqrt(np.abs(standardized_resid)), alpha=0.6, s=50)
-    axes[1, 0].set_xlabel('Fitted values', fontsize=11)
-    axes[1, 0].set_ylabel('√|Standardized residuals|', fontsize=11)
-    axes[1, 0].set_title('Scale-Location\n(Homoskedastizität)', fontsize=11, fontweight='bold')
-    axes[1, 0].grid(True, alpha=0.3)
+    fig_diag.add_trace(
+        go.Scatter(x=y_pred_mult, y=np.sqrt(np.abs(standardized_resid)),
+                  mode='markers',
+                  marker=dict(size=6, opacity=0.6),
+                  showlegend=False),
+        row=2, col=1
+    )
     
     # 4. Residuals vs Leverage
-    from statsmodels.stats.outliers_influence import OLSInfluence
     influence = OLSInfluence(model_mult)
     leverage = influence.hat_matrix_diag
-    axes[1, 1].scatter(leverage, standardized_resid, alpha=0.6, s=50)
-    axes[1, 1].axhline(0, color='red', linestyle='--', linewidth=2)
-    axes[1, 1].set_xlabel('Leverage', fontsize=11)
-    axes[1, 1].set_ylabel('Standardized residuals', fontsize=11)
-    axes[1, 1].set_title('Residuals vs Leverage\n(Einflussreiche Punkte)', fontsize=11, fontweight='bold')
-    axes[1, 1].grid(True, alpha=0.3)
+    fig_diag.add_trace(
+        go.Scatter(x=leverage, y=standardized_resid,
+                  mode='markers',
+                  marker=dict(size=6, opacity=0.6),
+                  showlegend=False),
+        row=2, col=2
+    )
+    fig_diag.add_hline(y=0, line_dash='dash', line_color='red', line_width=2,
+                      row=2, col=2)
     
-        st.plotly_chart(fig_diag, use_container_width=True)
+    # Update axes labels
+    fig_diag.update_xaxes(title_text="Fitted values", row=1, col=1)
+    fig_diag.update_yaxes(title_text="Residuals", row=1, col=1)
+    
+    fig_diag.update_xaxes(title_text="Theoretical Quantiles", row=1, col=2)
+    fig_diag.update_yaxes(title_text="Sample Quantiles", row=1, col=2)
+    
+    fig_diag.update_xaxes(title_text="Fitted values", row=2, col=1)
+    fig_diag.update_yaxes(title_text="√|Standardized residuals|", row=2, col=1)
+    
+    fig_diag.update_xaxes(title_text="Leverage", row=2, col=2)
+    fig_diag.update_yaxes(title_text="Standardized residuals", row=2, col=2)
+    
+    fig_diag.update_layout(height=800, template='plotly_white', showlegend=False)
+    
+    st.plotly_chart(fig_diag, use_container_width=True)
         
     col_m8_1, col_m8_2 = st.columns([1, 1])
     
@@ -1739,29 +1783,52 @@ if regression_type == "📊 Multiple Regression":
     if show_3d_resid_m8:
         st.markdown("### 🎲 3D-Visualisierung: Residuen im Prädiktorraum")
         
-        fig_3d_resid_m8 = plt.figure(figsize=(12, 8))
-        ax_3d_resid_m8 = fig_3d_resid_m8.add_subplot(111, projection='3d')
-        
-        # Scatter plot with residuals colored
-        scatter_m8 = ax_3d_resid_m8.scatter(x2_preis, x3_werbung, model_mult.resid, 
-                                            c=model_mult.resid, cmap='RdBu_r', 
-                                            s=100, alpha=0.7, edgecolor='black')
-        
-        # Zero plane
+        # Create 3D residual plot with plotly
         x1_range = np.linspace(x2_preis.min(), x2_preis.max(), 10)
         x2_range = np.linspace(x3_werbung.min(), x3_werbung.max(), 10)
         X1_mesh, X2_mesh = np.meshgrid(x1_range, x2_range)
         Z_zero = np.zeros_like(X1_mesh)
-        ax_3d_resid_m8.plot_surface(X1_mesh, X2_mesh, Z_zero, alpha=0.2, color='gray')
         
-        ax_3d_resid_m8.set_xlabel(x1_name, fontsize=10)
-        ax_3d_resid_m8.set_ylabel(x2_name, fontsize=10)
-        ax_3d_resid_m8.set_zlabel('Residuen', fontsize=10)
-        ax_3d_resid_m8.set_title('Residuen über Prädiktorraum\n(Muster → Modellverletzungen)', fontsize=12, fontweight='bold')
-        ax_3d_resid_m8.view_init(elev=20, azim=-60)
+        fig_3d_resid_m8 = go.Figure()
         
-        plt.colorbar(scatter_m8, ax=ax_3d_resid_m8, pad=0.1, label='Residuengrösse')
-                st.plotly_chart(fig_3d_resid_m8, use_container_width=True)
+        # Add zero plane
+        fig_3d_resid_m8.add_trace(go.Surface(
+            x=X1_mesh, y=X2_mesh, z=Z_zero,
+            colorscale=[[0, 'gray'], [1, 'gray']],
+            opacity=0.3,
+            showscale=False,
+            name='Zero Plane'
+        ))
+        
+        # Add scatter plot with residuals colored
+        fig_3d_resid_m8.add_trace(go.Scatter3d(
+            x=x2_preis, y=x3_werbung, z=model_mult.resid,
+            mode='markers',
+            marker=dict(
+                size=7,
+                color=model_mult.resid,
+                colorscale='RdBu_r',
+                opacity=0.8,
+                showscale=True,
+                colorbar=dict(title='Residuengrösse'),
+                line=dict(width=1, color='black')
+            ),
+            name='Residuals'
+        ))
+        
+        fig_3d_resid_m8.update_layout(
+            title='Residuen über Prädiktorraum<br>(Muster → Modellverletzungen)',
+            scene=dict(
+                xaxis_title=x1_name,
+                yaxis_title=x2_name,
+                zaxis_title='Residuen',
+                camera=dict(eye=dict(x=1.5, y=-1.5, z=1.2))
+            ),
+            template='plotly_white',
+            height=600
+        )
+        
+        st.plotly_chart(fig_3d_resid_m8, use_container_width=True)
                 
         st.info("""
         **💡 3D-Interpretation:**
