@@ -731,37 +731,42 @@ if regression_type == "📈 Einfache Regression":
                                      help="Zeige die wahre Regressionslinie (nur bei Simulation)") if has_true_line else False
 
 # ---------------------------------------------------------
-# MODELL & KENNZAHLEN BERECHNEN (Einheitlich für alle Datensätze)
+# MODELL & KENNZAHLEN BERECHNEN (nur einfache Regression)
 # ---------------------------------------------------------
-# Als DataFrame für bessere Darstellung
-df = pd.DataFrame({
-    x_label: x,
-    y_label: y
-})
+if regression_type == "📈 Einfache Regression":
+    df = pd.DataFrame({
+        x_label: x,
+        y_label: y
+    })
 
-# Modell fitten
-X = sm.add_constant(x)
-model = sm.OLS(y, X).fit()
-y_pred = model.predict(X)
-y_mean = np.mean(y)
+    X = sm.add_constant(x)
+    model = sm.OLS(y, X).fit()
+    y_pred = model.predict(X)
+    y_mean = np.mean(y)
 
-# Alle Kennzahlen berechnen
-b0, b1 = model.params[0], model.params[1]
-sse = np.sum((y - y_pred)**2)
-sst = np.sum((y - y_mean)**2)
-ssr = sst - sse
-mse = sse / (n - 2)
-msr = ssr / 1
-se_regression = np.sqrt(mse)
-sb1, sb0 = model.bse[1], model.bse[0]
-t_val = model.tvalues[1]
-f_val = model.fvalue
-df_resid = int(model.df_resid)
-x_mean, y_mean_val = np.mean(x), np.mean(y)
-cov_xy = np.sum((x - x_mean) * (y - y_mean_val)) / (n - 1)
-var_x = np.var(x, ddof=1)
-var_y = np.var(y, ddof=1)
-corr_xy = cov_xy / (np.sqrt(var_x) * np.sqrt(var_y))
+    b0, b1 = model.params[0], model.params[1]
+    sse = np.sum((y - y_pred)**2)
+    sst = np.sum((y - y_mean)**2)
+    ssr = sst - sse
+    mse = sse / (n - 2)
+    msr = ssr / 1
+    se_regression = np.sqrt(mse)
+    sb1, sb0 = model.bse[1], model.bse[0]
+    t_val = model.tvalues[1]
+    f_val = model.fvalue
+    df_resid = int(model.df_resid)
+    x_mean, y_mean_val = np.mean(x), np.mean(y)
+    cov_xy = np.sum((x - x_mean) * (y - y_mean_val)) / (n - 1)
+    var_x = np.var(x, ddof=1)
+    var_y = np.var(y, ddof=1)
+    corr_xy = cov_xy / (np.sqrt(var_x) * np.sqrt(var_y))
+else:
+    # Platzhalter, damit Variablen nicht versehentlich genutzt werden
+    df = None
+    model = None
+    y_pred = None
+    y_mean = None
+    b0 = b1 = sse = sst = ssr = mse = msr = se_regression = sb1 = sb0 = t_val = f_val = df_resid = x_mean = y_mean_val = cov_xy = var_x = var_y = corr_xy = None
 
 # =========================================================
 # HAUPTINHALT - Bedingte Anzeige basierend auf Modulauswahl
