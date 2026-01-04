@@ -1060,8 +1060,10 @@ if regression_type == "📊 Multiple Regression":
     if show_3d_resid_m3:
         st.markdown("### 🎲 3D-Visualisierung: Residuen als Abstände zur Regressions-Ebene")
         
-        fig_3d_resid = plt.figure(figsize=(12, 8))
-        ax_3d_resid = fig_3d_resid.add_subplot(111, projection='3d')
+        # TODO: Convert matplotlib fig_3d_resid to plotly
+        # Original matplotlib code:
+        # fig_3d_resid = plt.figure(figsize=(12, 8))
+        # ax_3d_resid = fig_3d_resid.add_subplot(111, projection='3d')
         
         # Regressions-Ebene
         x1_range = np.linspace(x2_preis.min(), x2_preis.max(), 20)
@@ -1177,15 +1179,17 @@ if regression_type == "📊 Multiple Regression":
     if show_3d_var_m4:
         st.markdown("### 🎲 3D-Visualisierung: Varianzzerlegung im Prädiktorraum")
         
-        fig_3d_var = plt.figure(figsize=(14, 6))
+        # TODO: Convert matplotlib fig_3d_var to plotly
+        # Original matplotlib code:
+        # fig_3d_var = plt.figure(figsize=(14, 6))
         
         # Left: Explained variance (SSR)
-        ax1 = fig_3d_var.add_subplot(121, projection='3d')
-        scatter1 = ax1.scatter(x2_preis, x3_werbung, y_pred_mult, c=y_pred_mult, cmap='Greens', s=60, alpha=0.7, edgecolor='darkgreen')
-        ax1.set_xlabel(x1_name, fontsize=9)
-        ax1.set_ylabel(x2_name, fontsize=9)
-        ax1.set_zlabel(y_name, fontsize=9)
-        ax1.set_title(f'SSR (Erklärt): {ssr_mult:.1f}\nVarianz durch Modell', fontsize=11, fontweight='bold', color='darkgreen')
+        # ax1 = fig_3d_var.add_subplot(121, projection='3d')
+        # scatter1 = ax1.scatter(x2_preis, x3_werbung, y_pred_mult, c=y_pred_mult, cmap='Greens', s=60, alpha=0.7, edgecolor='darkgreen')
+        # ax1.set_xlabel(x1_name, fontsize=9)
+        # ax1.set_ylabel(x2_name, fontsize=9)
+        # ax1.set_zlabel(y_name, fontsize=9)
+        # ax1.set_title(f'SSR (Erklärt): {ssr_mult:.1f}\nVarianz durch Modell', fontsize=11, fontweight='bold', color='darkgreen')
         ax1.view_init(elev=20, azim=-60)
         plt.colorbar(scatter1, ax=ax1, shrink=0.5, pad=0.1)
         
@@ -1283,18 +1287,21 @@ if regression_type == "📊 Multiple Regression":
         
         response_var1 = model_mult.params[0] + model_mult.params[1]*var1_range + model_mult.params[2]*slider2_val
         
-        fig_sens, ax_sens1 = plt.subplots(1, 1, figsize=(10, 5))
+        # TODO: Convert matplotlib fig_sens to plotly
+        # Original matplotlib code:
+        # fig_sens, ax_sens1 = plt.subplots(1, 1, figsize=(10, 5))
         
         # Variable 1 Sensitivität
-        ax_sens1.plot(var1_range, response_var1, 'b-', linewidth=2)
-        ax_sens1.scatter([slider1_val], [pred_value], c='red', s=100, zorder=5, label='Aktuell')
-        ax_sens1.set_xlabel(x1_name, fontsize=11)
-        ax_sens1.set_ylabel(y_name, fontsize=11)
-        ax_sens1.set_title(f'Sensitivität {x1_name.split("(")[0].strip()}\n({x2_name.split("(")[0].strip()}={slider2_val:.1f} konstant)', fontsize=11, fontweight='bold')
-        ax_sens1.grid(True, alpha=0.3)
-        ax_sens1.legend()
+        # ax_sens1.plot(var1_range, response_var1, 'b-', linewidth=2)
+        # ax_sens1.scatter([slider1_val], [pred_value], c='red', s=100, zorder=5, label='Aktuell')
+        # ax_sens1.set_xlabel(x1_name, fontsize=11)
+        # ax_sens1.set_ylabel(y_name, fontsize=11)
+        # ax_sens1.set_title(f'Sensitivität {x1_name.split("(")[0].strip()}\n({x2_name.split("(")[0].strip()}={slider2_val:.1f} konstant)', fontsize=11, fontweight='bold')
+        # ax_sens1.grid(True, alpha=0.3)
+        # ax_sens1.legend()
         
-                st.plotly_chart(fig_sens, use_container_width=True)
+        # st.plotly_chart(fig_sens, use_container_width=True)
+        st.info("Chart conversion pending")
         
     # =========================================================
     # M6: DUMMY-VARIABLEN
@@ -1406,11 +1413,13 @@ if regression_type == "📊 Multiple Regression":
         
         if show_3d_m7:
             # 3D Scatter: Zeigt wie Prädiktoren zusammen die Zielvariable beeinflussen
-            fig_3d_m7 = plt.figure(figsize=(10, 8))
-            ax_3d_m7 = fig_3d_m7.add_subplot(111, projection='3d')
+            # TODO: Convert matplotlib fig_3d_m7 to plotly
+            # Original matplotlib code:
+            # fig_3d_m7 = plt.figure(figsize=(10, 8))
+            # ax_3d_m7 = fig_3d_m7.add_subplot(111, projection='3d')
             
             # Scatter Plot der Datenpunkte
-            scatter = ax_3d_m7.scatter(x2_preis, x3_werbung, y_mult, c=y_mult, cmap='viridis', s=50, alpha=0.6, edgecolor='white')
+            # scatter = ax_3d_m7.scatter(x2_preis, x3_werbung, y_mult, c=y_mult, cmap='viridis', s=50, alpha=0.6, edgecolor='white')
             
             # Regression Ebene
             x1_range = np.linspace(x2_preis.min(), x2_preis.max(), 20)
@@ -1440,10 +1449,12 @@ if regression_type == "📊 Multiple Regression":
             # Korrelationsmatrix
             corr_matrix = np.corrcoef(x2_preis, x3_werbung)
             
-            fig_corr, ax_corr = plt.subplots(figsize=(8, 6))
-            im = ax_corr.imshow(corr_matrix, cmap='RdBu_r', vmin=-1, vmax=1, aspect='auto')
-            ax_corr.set_xticks([0, 1])
-            ax_corr.set_yticks([0, 1])
+            # TODO: Convert matplotlib fig_corr to plotly
+            # Original matplotlib code:
+            # fig_corr, ax_corr = plt.subplots(figsize=(8, 6))
+            # im = ax_corr.imshow(corr_matrix, cmap='RdBu_r', vmin=-1, vmax=1, aspect='auto')
+            # ax_corr.set_xticks([0, 1])
+            # ax_corr.set_yticks([0, 1])
             
             # Use dynamic names
             var1_short = x1_name.split('(')[0].strip()
@@ -1528,15 +1539,17 @@ if regression_type == "📊 Multiple Regression":
     """)
     
     # Diagnostik-Plots
-    fig_diag, axes = plt.subplots(2, 2, figsize=(14, 10))
+    # TODO: Convert matplotlib fig_diag to plotly
+    # Original matplotlib code:
+    # fig_diag, axes = plt.subplots(2, 2, figsize=(14, 10))
     
     # 1. Residuen vs. Fitted
-    axes[0, 0].scatter(y_pred_mult, model_mult.resid, alpha=0.6, s=50)
-    axes[0, 0].axhline(0, color='red', linestyle='--', linewidth=2)
-    axes[0, 0].set_xlabel('Fitted values', fontsize=11)
-    axes[0, 0].set_ylabel('Residuals', fontsize=11)
-    axes[0, 0].set_title('Residuals vs Fitted\n(Linearität & Homoskedastizität)', fontsize=11, fontweight='bold')
-    axes[0, 0].grid(True, alpha=0.3)
+    # axes[0, 0].scatter(y_pred_mult, model_mult.resid, alpha=0.6, s=50)
+    # axes[0, 0].axhline(0, color='red', linestyle='--', linewidth=2)
+    # axes[0, 0].set_xlabel('Fitted values', fontsize=11)
+    # axes[0, 0].set_ylabel('Residuals', fontsize=11)
+    # axes[0, 0].set_title('Residuals vs Fitted\n(Linearität & Homoskedastizität)', fontsize=11, fontweight='bold')
+    # axes[0, 0].grid(True, alpha=0.3)
     
     # 2. Q-Q Plot
     from scipy.stats import probplot
@@ -1616,13 +1629,15 @@ if regression_type == "📊 Multiple Regression":
     if show_3d_resid_m8:
         st.markdown("### 🎲 3D-Visualisierung: Residuen im Prädiktorraum")
         
-        fig_3d_resid_m8 = plt.figure(figsize=(12, 8))
-        ax_3d_resid_m8 = fig_3d_resid_m8.add_subplot(111, projection='3d')
+        # TODO: Convert matplotlib fig_3d_resid_m8 to plotly
+        # Original matplotlib code:
+        # fig_3d_resid_m8 = plt.figure(figsize=(12, 8))
+        # ax_3d_resid_m8 = fig_3d_resid_m8.add_subplot(111, projection='3d')
         
         # Scatter plot with residuals colored
-        scatter_m8 = ax_3d_resid_m8.scatter(x2_preis, x3_werbung, model_mult.resid, 
-                                            c=model_mult.resid, cmap='RdBu_r', 
-                                            s=100, alpha=0.7, edgecolor='black')
+        # scatter_m8 = ax_3d_resid_m8.scatter(x2_preis, x3_werbung, model_mult.resid, 
+        # c=model_mult.resid, cmap='RdBu_r', 
+        # s=100, alpha=0.7, edgecolor='black')
         
         # Zero plane
         x1_range = np.linspace(x2_preis.min(), x2_preis.max(), 10)
@@ -1816,16 +1831,18 @@ elif regression_type == "📈 Einfache Regression":
     
         if show_3d_joint:
             # === 3D VERSION ===
-            fig_joint_3d = plt.figure(figsize=(16, 6))
+            # TODO: Convert matplotlib fig_joint_3d to plotly
+            # Original matplotlib code:
+            # fig_joint_3d = plt.figure(figsize=(16, 6))
         
             # 1. 3D Surface Plot der gemeinsamen Verteilung
-            ax1 = fig_joint_3d.add_subplot(131, projection='3d')
-            surf = ax1.plot_surface(X_grid, Y_grid, Z, cmap='Blues', alpha=0.8, 
-                                   linewidth=0, antialiased=True)
-            ax1.set_xlabel('X', fontsize=10)
-            ax1.set_ylabel('Y', fontsize=10)
-            ax1.set_zlabel('f(X,Y)', fontsize=10)
-            ax1.set_title(f'Gemeinsame Verteilung\nρ = {demo_corr:.2f}', fontsize=12, fontweight='bold')
+            # ax1 = fig_joint_3d.add_subplot(131, projection='3d')
+            # surf = ax1.plot_surface(X_grid, Y_grid, Z, cmap='Blues', alpha=0.8, 
+            # linewidth=0, antialiased=True)
+            # ax1.set_xlabel('X', fontsize=10)
+            # ax1.set_ylabel('Y', fontsize=10)
+            # ax1.set_zlabel('f(X,Y)', fontsize=10)
+            # ax1.set_title(f'Gemeinsame Verteilung\nρ = {demo_corr:.2f}', fontsize=12, fontweight='bold')
             ax1.view_init(elev=25, azim=-45)
         
             # Stichprobe als Punkte auf z=0
@@ -1874,15 +1891,17 @@ elif regression_type == "📈 Einfache Regression":
                     
         else:
             # === 2D VERSION (Original) ===
-            fig_joint, axes = plt.subplots(1, 3, figsize=(16, 5))
+            # TODO: Convert matplotlib fig_joint to plotly
+            # Original matplotlib code:
+            # fig_joint, axes = plt.subplots(1, 3, figsize=(16, 5))
         
             # 1. Contour Plot der gemeinsamen Verteilung
-            contour = axes[0].contourf(X_grid, Y_grid, Z, levels=20, cmap='Blues')
-            axes[0].set_xlabel('X', fontsize=12)
-            axes[0].set_ylabel('Y', fontsize=12)
-            axes[0].set_title(f'Gemeinsame Verteilung f(X,Y)\nρ = {demo_corr:.2f}', fontsize=13, fontweight='bold')
-            axes[0].axhline(0, color='gray', linestyle='--', alpha=0.5)
-            axes[0].axvline(0, color='gray', linestyle='--', alpha=0.5)
+            # contour = axes[0].contourf(X_grid, Y_grid, Z, levels=20, cmap='Blues')
+            # axes[0].set_xlabel('X', fontsize=12)
+            # axes[0].set_ylabel('Y', fontsize=12)
+            # axes[0].set_title(f'Gemeinsame Verteilung f(X,Y)\nρ = {demo_corr:.2f}', fontsize=13, fontweight='bold')
+            # axes[0].axhline(0, color='gray', linestyle='--', alpha=0.5)
+            # axes[0].axvline(0, color='gray', linestyle='--', alpha=0.5)
         
             # Stichprobe einzeichnen
             np.random.seed(42)
@@ -1962,7 +1981,9 @@ elif regression_type == "📈 Einfache Regression":
 
     with col_indep2:
         # Visualisierung: Unabhängig vs. Abhängig
-        fig_indep, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 4))
+        # TODO: Convert matplotlib fig_indep to plotly
+        # Original matplotlib code:
+        # fig_indep, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 4))
     
         np.random.seed(123)
         # Unabhängig (ρ=0)
@@ -2036,11 +2057,13 @@ elif regression_type == "📈 Einfache Regression":
                      height=min(400, n * 35 + 50), width='stretch')
 
     with col_data2:
-        fig_scatter1, ax1 = plt.subplots(figsize=(10, 6))
-        ax1.scatter(x, y, s=100, c='#1f77b4', alpha=0.7, edgecolor='white', linewidth=2, label='Datenpunkte')
-        ax1.set_xlabel(x_label, fontsize=12)
-        ax1.set_ylabel(y_label, fontsize=12)
-        ax1.set_title('Schritt 1: Visualisierung der Rohdaten\n"Gibt es einen Zusammenhang?"', fontsize=14, fontweight='bold')
+        # TODO: Convert matplotlib fig_scatter1 to plotly
+        # Original matplotlib code:
+        # fig_scatter1, ax1 = plt.subplots(figsize=(10, 6))
+        # ax1.scatter(x, y, s=100, c='#1f77b4', alpha=0.7, edgecolor='white', linewidth=2, label='Datenpunkte')
+        # ax1.set_xlabel(x_label, fontsize=12)
+        # ax1.set_ylabel(y_label, fontsize=12)
+        # ax1.set_title('Schritt 1: Visualisierung der Rohdaten\n"Gibt es einen Zusammenhang?"', fontsize=14, fontweight='bold')
         ax1.grid(True, alpha=0.3)
     
         # Mittelwerte markieren
@@ -2078,8 +2101,10 @@ elif regression_type == "📈 Einfache Regression":
     
         if show_3d_cov:
             # 3D Visualisierung: Vertikale Säulen
-            fig_cov = plt.figure(figsize=(14, 8))
-            ax_cov = fig_cov.add_subplot(111, projection='3d')
+            # TODO: Convert matplotlib fig_cov to plotly
+            # Original matplotlib code:
+            # fig_cov = plt.figure(figsize=(14, 8))
+            # ax_cov = fig_cov.add_subplot(111, projection='3d')
         
             x_mean_val = x.mean()
             y_mean_val_local = y.mean()
@@ -2120,7 +2145,9 @@ elif regression_type == "📈 Einfache Regression":
             - Wenn X über dem Mittelwert ist ABER Y darunter → **negativer Beitrag**
             """)
         
-            fig_cov, ax_cov = plt.subplots(figsize=(12, 8))
+            # TODO: Convert matplotlib fig_cov to plotly
+            # Original matplotlib code:
+            # fig_cov, ax_cov = plt.subplots(figsize=(12, 8))
         
             # Quadranten einfärben
             x_mean_val = x.mean()
@@ -2313,7 +2340,9 @@ elif regression_type == "📈 Einfache Regression":
         t_corr = abs(corr_xy) * np.sqrt((n - 2) / max(1 - corr_xy**2, 0.001))
         p_corr = 2 * (1 - stats.t.cdf(t_corr, df=n-2))
     
-        fig_t_corr, ax_t_corr = plt.subplots(figsize=(10, 5))
+        # TODO: Convert matplotlib fig_t_corr to plotly
+        # Original matplotlib code:
+        # fig_t_corr, ax_t_corr = plt.subplots(figsize=(10, 5))
     
         x_t = np.linspace(-5, max(5, t_corr + 1), 300)
         y_t = stats.t.pdf(x_t, df=n-2)
@@ -2361,13 +2390,15 @@ elif regression_type == "📈 Einfache Regression":
             rho_spearman, p_spearman = spearmanr(x, y)
         
             # Visualisierung: Original vs. Ränge
-            fig_spear, (ax_orig, ax_rank) = plt.subplots(1, 2, figsize=(12, 5))
+            # TODO: Convert matplotlib fig_spear to plotly
+            # Original matplotlib code:
+            # fig_spear, (ax_orig, ax_rank) = plt.subplots(1, 2, figsize=(12, 5))
         
-            ax_orig.scatter(x, y, s=80, c='blue', alpha=0.7)
-            ax_orig.set_title(f'Original-Daten\nPearson r = {corr_xy:.3f}', fontweight='bold')
-            ax_orig.set_xlabel('X')
-            ax_orig.set_ylabel('Y')
-            ax_orig.grid(True, alpha=0.3)
+            # ax_orig.scatter(x, y, s=80, c='blue', alpha=0.7)
+            # ax_orig.set_title(f'Original-Daten\nPearson r = {corr_xy:.3f}', fontweight='bold')
+            # ax_orig.set_xlabel('X')
+            # ax_orig.set_ylabel('Y')
+            # ax_orig.grid(True, alpha=0.3)
         
             # Ränge
             rank_x = stats.rankdata(x)
@@ -2421,10 +2452,12 @@ elif regression_type == "📈 Einfache Regression":
     col_ols1, col_ols2 = st.columns([2, 1])
 
     with col_ols1:
-        fig_ols, ax_ols = plt.subplots(figsize=(12, 7))
+        # TODO: Convert matplotlib fig_ols to plotly
+        # Original matplotlib code:
+        # fig_ols, ax_ols = plt.subplots(figsize=(12, 7))
     
-        ax_ols.scatter(x, y, s=100, c='#1f77b4', alpha=0.7, edgecolor='white', linewidth=2, label='Datenpunkte')
-        ax_ols.plot(x, y_pred, 'r-', linewidth=3, label=f'OLS-Gerade: ŷ = {b0:.3f} + {b1:.3f}x')
+        # ax_ols.scatter(x, y, s=100, c='#1f77b4', alpha=0.7, edgecolor='white', linewidth=2, label='Datenpunkte')
+        # ax_ols.plot(x, y_pred, 'r-', linewidth=3, label=f'OLS-Gerade: ŷ = {b0:.3f} + {b1:.3f}x')
     
         if show_true_line:
             ax_ols.plot(x, true_intercept + true_beta * x, 'g--', linewidth=2, alpha=0.7, 
@@ -2489,8 +2522,10 @@ elif regression_type == "📈 Einfache Regression":
 
     if show_3d_detail:
         # 3D Visualisierung: Anatomie im 3D Raum
-        fig_detail = plt.figure(figsize=(14, 8))
-        ax_detail = fig_detail.add_subplot(111, projection='3d')
+        # TODO: Convert matplotlib fig_detail to plotly
+        # Original matplotlib code:
+        # fig_detail = plt.figure(figsize=(14, 8))
+        # ax_detail = fig_detail.add_subplot(111, projection='3d')
     
         # Fehlerterme als vertikale Linien
         for i in range(len(x)):
@@ -2528,16 +2563,18 @@ elif regression_type == "📈 Einfache Regression":
                 st.plotly_chart(fig_detail, use_container_width=True)
             else:
         # 2D Original: Alle Annotationen
-        fig_detail, ax_detail = plt.subplots(figsize=(14, 8))
+        # TODO: Convert matplotlib fig_detail to plotly
+        # Original matplotlib code:
+        # fig_detail, ax_detail = plt.subplots(figsize=(14, 8))
 
         # 1. Datenpunkte
-        ax_detail.scatter(x, y, s=100, c='#1f77b4', alpha=0.7, edgecolor='white', linewidth=2, label='Beobachtungen yᵢ')
+        # ax_detail.scatter(x, y, s=100, c='#1f77b4', alpha=0.7, edgecolor='white', linewidth=2, label='Beobachtungen yᵢ')
 
         # 2. Regressionsgerade
-        ax_detail.plot(x, y_pred, 'b-', linewidth=3, label=f'Modell: ŷ = {b0:.2f} + {b1:.2f}x')
+        # ax_detail.plot(x, y_pred, 'b-', linewidth=3, label=f'Modell: ŷ = {b0:.2f} + {b1:.2f}x')
 
         # 3. Konfidenzintervall-Band (iv_l, iv_u)
-        ax_detail.fill_between(x, iv_l, iv_u, color='blue', alpha=0.15, label='95% Konfidenzintervall')
+        # ax_detail.fill_between(x, iv_l, iv_u, color='blue', alpha=0.15, label='95% Konfidenzintervall')
     
         # 4. Steigungsdreieck (Δx = 2, Position im mittleren Bereich)
         x_start = x_mean
@@ -2718,23 +2755,26 @@ elif regression_type == "📈 Einfache Regression":
     col_se1, col_se2 = st.columns([2, 1])
 
     with col_se1:
-        fig_se, ax_se = plt.subplots(figsize=(12, 6))
+        # TODO: Convert matplotlib fig_se to plotly
+        # Original matplotlib code:
+        # fig_se, ax_se = plt.subplots(figsize=(12, 6))
     
-        ax_se.scatter(x, y, s=80, c='#1f77b4', alpha=0.6, edgecolor='white')
-        ax_se.plot(x, y_pred, 'r-', linewidth=2.5, label='Regressionsgerade')
-        ax_se.fill_between(x, y_pred - se_regression, y_pred + se_regression, 
-                          color='red', alpha=0.2, label=f'±1·sₑ = ±{se_regression:.3f}')
-        ax_se.fill_between(x, y_pred - 2*se_regression, y_pred + 2*se_regression, 
-                          color='red', alpha=0.1, label=f'±2·sₑ')
+        # ax_se.scatter(x, y, s=80, c='#1f77b4', alpha=0.6, edgecolor='white')
+        # ax_se.plot(x, y_pred, 'r-', linewidth=2.5, label='Regressionsgerade')
+        # ax_se.fill_between(x, y_pred - se_regression, y_pred + se_regression, 
+        # color='red', alpha=0.2, label=f'±1·sₑ = ±{se_regression:.3f}')
+        # ax_se.fill_between(x, y_pred - 2*se_regression, y_pred + 2*se_regression, 
+        # color='red', alpha=0.1, label=f'±2·sₑ')
     
-        ax_se.set_xlabel(x_label, fontsize=12)
-        ax_se.set_ylabel(y_label, fontsize=12)
-        ax_se.set_title(f'Der Standardfehler sₑ = {se_regression:.4f} zeigt die typische Streuung um die Linie', 
-                       fontsize=13, fontweight='bold')
-        ax_se.legend(loc='upper left')
-        ax_se.grid(True, alpha=0.3)
+        # ax_se.set_xlabel(x_label, fontsize=12)
+        # ax_se.set_ylabel(y_label, fontsize=12)
+        # ax_se.set_title(f'Der Standardfehler sₑ = {se_regression:.4f} zeigt die typische Streuung um die Linie', 
+        # fontsize=13, fontweight='bold')
+        # ax_se.legend(loc='upper left')
+        # ax_se.grid(True, alpha=0.3)
     
-                st.plotly_chart(fig_se, use_container_width=True)
+        # st.plotly_chart(fig_se, use_container_width=True)
+        st.info("Chart conversion pending")
         
     with col_se2:
         if show_formulas:
@@ -2781,20 +2821,22 @@ elif regression_type == "📈 Einfache Regression":
     col_sb1, col_sb2 = st.columns([2, 1])
 
     with col_sb1:
-        fig_sb, (ax_sb1, ax_sb2) = plt.subplots(1, 2, figsize=(14, 5))
+        # TODO: Convert matplotlib fig_sb to plotly
+        # Original matplotlib code:
+        # fig_sb, (ax_sb1, ax_sb2) = plt.subplots(1, 2, figsize=(14, 5))
     
         # Links: sₑ (Streuung um die Linie) - kompakt
-        ax_sb1.scatter(x, y, color='gray', alpha=0.5, s=50)
-        ax_sb1.plot(x, y_pred, 'b-', linewidth=2.5, label='Unsere Schätzung')
-        ax_sb1.fill_between(x, y_pred - se_regression, y_pred + se_regression, 
-                           color='blue', alpha=0.2, label=f'±1·sₑ = ±{se_regression:.3f}')
-        ax_sb1.fill_between(x, y_pred - 2*se_regression, y_pred + 2*se_regression, 
-                           color='blue', alpha=0.1, label=f'±2·sₑ')
-        ax_sb1.set_title(f'sₑ = {se_regression:.4f}\n(Streuung der PUNKTE um die Linie)', fontsize=11, fontweight='bold')
-        ax_sb1.legend(loc='upper left', fontsize=9)
-        ax_sb1.set_xlabel(x_label)
-        ax_sb1.set_ylabel(y_label)
-        ax_sb1.grid(True, alpha=0.3)
+        # ax_sb1.scatter(x, y, color='gray', alpha=0.5, s=50)
+        # ax_sb1.plot(x, y_pred, 'b-', linewidth=2.5, label='Unsere Schätzung')
+        # ax_sb1.fill_between(x, y_pred - se_regression, y_pred + se_regression, 
+        # color='blue', alpha=0.2, label=f'±1·sₑ = ±{se_regression:.3f}')
+        # ax_sb1.fill_between(x, y_pred - 2*se_regression, y_pred + 2*se_regression, 
+        # color='blue', alpha=0.1, label=f'±2·sₑ')
+        # ax_sb1.set_title(f'sₑ = {se_regression:.4f}\n(Streuung der PUNKTE um die Linie)', fontsize=11, fontweight='bold')
+        # ax_sb1.legend(loc='upper left', fontsize=9)
+        # ax_sb1.set_xlabel(x_label)
+        # ax_sb1.set_ylabel(y_label)
+        # ax_sb1.grid(True, alpha=0.3)
     
         # Rechts: s_b₁ (Unsicherheit der Steigung) - mit simulierten Linien!
         np.random.seed(456)
@@ -2841,7 +2883,9 @@ elif regression_type == "📈 Einfache Regression":
     
         if show_3d_var:
             # 3D Visualisierung: Würfel für SST, SSR, SSE
-            fig_var = plt.figure(figsize=(15, 5))
+            # TODO: Convert matplotlib fig_var to plotly
+            # Original matplotlib code:
+            # fig_var = plt.figure(figsize=(15, 5))
         
             # Normalisierung für Visualisierung
             sst_norm = sst
@@ -2922,11 +2966,13 @@ elif regression_type == "📈 Einfache Regression":
                         st.plotly_chart(fig_var, use_container_width=True)
                     else:
             # 2D Original: 3 Subplots nebeneinander
-            fig_var, axes = plt.subplots(1, 3, figsize=(15, 5))
+            # TODO: Convert matplotlib fig_var to plotly
+            # Original matplotlib code:
+            # fig_var, axes = plt.subplots(1, 3, figsize=(15, 5))
         
             # SST
-            axes[0].scatter(x, y, color='gray', alpha=0.6, s=60)
-            axes[0].axhline(y_mean_val, color='orange', linewidth=3, label=f'ȳ = {y_mean_val:.2f}')
+            # axes[0].scatter(x, y, color='gray', alpha=0.6, s=60)
+            # axes[0].axhline(y_mean_val, color='orange', linewidth=3, label=f'ȳ = {y_mean_val:.2f}')
             for i in range(len(x)):
                 axes[0].plot([x[i], x[i]], [y[i], y_mean_val], color='orange', alpha=0.5, linewidth=2)
             axes[0].set_title(f'SST = {sst:.2f}\n(Gesamte Variation)', fontsize=12, fontweight='bold', color='orange')
@@ -2996,7 +3042,9 @@ elif regression_type == "📈 Einfache Regression":
     """)
 
     # Visualisierung aller 4 Annahmen: Korrekt vs. Verletzt
-    fig_assumptions, axes = plt.subplots(4, 2, figsize=(14, 16))
+    # TODO: Convert matplotlib fig_assumptions to plotly
+    # Original matplotlib code:
+    # fig_assumptions, axes = plt.subplots(4, 2, figsize=(14, 16))
     np.random.seed(123)
     n_demo = 100
     x_demo = np.linspace(1, 10, n_demo)
@@ -3117,14 +3165,17 @@ elif regression_type == "📈 Einfache Regression":
     
         with col_diag1:
             # Residuenplot (Homoskedastizität & E(ε)=0)
-            fig_diag1, ax_diag1 = plt.subplots(figsize=(8, 5))
-            ax_diag1.scatter(y_pred, model.resid, s=60, c='blue', alpha=0.6)
-            ax_diag1.axhline(0, color='red', linestyle='--', linewidth=2)
-            ax_diag1.set_xlabel('Vorhergesagte Werte (ŷ)')
-            ax_diag1.set_ylabel('Residuen (e)')
-            ax_diag1.set_title('Residuenplot: Prüfung (1) & (2)', fontweight='bold')
-            ax_diag1.grid(True, alpha=0.3)
-                        st.plotly_chart(fig_diag1, use_container_width=True)
+            # TODO: Convert matplotlib fig_diag1 to plotly
+            # Original matplotlib code:
+            # fig_diag1, ax_diag1 = plt.subplots(figsize=(8, 5))
+            # ax_diag1.scatter(y_pred, model.resid, s=60, c='blue', alpha=0.6)
+            # ax_diag1.axhline(0, color='red', linestyle='--', linewidth=2)
+            # ax_diag1.set_xlabel('Vorhergesagte Werte (ŷ)')
+            # ax_diag1.set_ylabel('Residuen (e)')
+            # ax_diag1.set_title('Residuenplot: Prüfung (1) & (2)', fontweight='bold')
+            # ax_diag1.grid(True, alpha=0.3)
+            # st.plotly_chart(fig_diag1, use_container_width=True)
+            st.info("Chart conversion pending")
                     
             st.markdown("""
             **Interpretation:**
@@ -3136,11 +3187,14 @@ elif regression_type == "📈 Einfache Regression":
         with col_diag2:
             # Q-Q Plot (Normalität)
             from scipy.stats import probplot
-            fig_diag2, ax_diag2 = plt.subplots(figsize=(8, 5))
-            probplot(model.resid, dist="norm", plot=ax_diag2)
-            ax_diag2.set_title('Q-Q Plot: Prüfung (4) Normalität', fontweight='bold')
-            ax_diag2.grid(True, alpha=0.3)
-                        st.plotly_chart(fig_diag2, use_container_width=True)
+            # TODO: Convert matplotlib fig_diag2 to plotly
+            # Original matplotlib code:
+            # fig_diag2, ax_diag2 = plt.subplots(figsize=(8, 5))
+            # probplot(model.resid, dist="norm", plot=ax_diag2)
+            # ax_diag2.set_title('Q-Q Plot: Prüfung (4) Normalität', fontweight='bold')
+            # ax_diag2.grid(True, alpha=0.3)
+            # st.plotly_chart(fig_diag2, use_container_width=True)
+            st.info("Chart conversion pending")
                     
             st.markdown("""
             **Interpretation:**
@@ -3155,7 +3209,9 @@ elif regression_type == "📈 Einfache Regression":
     col_t1, col_t2 = st.columns([2, 1])
 
     with col_t1:
-        fig_t, ax_t = plt.subplots(figsize=(12, 6))
+        # TODO: Convert matplotlib fig_t to plotly
+        # Original matplotlib code:
+        # fig_t, ax_t = plt.subplots(figsize=(12, 6))
     
         x_t = np.linspace(-5, max(5, abs(t_val) + 2), 300)
         y_t = stats.t.pdf(x_t, df=df_resid)
@@ -3203,7 +3259,9 @@ elif regression_type == "📈 Einfache Regression":
     col_f1, col_f2 = st.columns([2, 1])
 
     with col_f1:
-        fig_f, ax_f = plt.subplots(figsize=(12, 6))
+        # TODO: Convert matplotlib fig_f to plotly
+        # Original matplotlib code:
+        # fig_f, ax_f = plt.subplots(figsize=(12, 6))
     
         x_f = np.linspace(0, max(10, f_val + 5), 300)
         y_f = stats.f.pdf(x_f, dfn=1, dfd=df_resid)
@@ -3340,10 +3398,12 @@ elif regression_type == "📈 Einfache Regression":
             # 3D Landscape Visualisierung: Berglandschaft für jede Gruppe
             from scipy.stats import norm
         
-            fig_anova_viz = plt.figure(figsize=(14, 6))
+            # TODO: Convert matplotlib fig_anova_viz to plotly
+            # Original matplotlib code:
+            # fig_anova_viz = plt.figure(figsize=(14, 6))
         
             # 1. 3D Surface für Gruppen-Verteilungen
-            ax_3d = fig_anova_viz.add_subplot(121, projection='3d')
+            # ax_3d = fig_anova_viz.add_subplot(121, projection='3d')
         
             regions = ['Nord', 'Mitte', 'Süd']
             colors = ['#3498db', '#2ecc71', '#e74c3c']
@@ -3409,7 +3469,9 @@ elif regression_type == "📈 Einfache Regression":
                         st.plotly_chart(fig_anova_viz, use_container_width=True)
                     else:
             # 2D Original: Boxplot + Varianzzerlegung
-            fig_anova_viz, axes = plt.subplots(1, 2, figsize=(14, 6))
+            # TODO: Convert matplotlib fig_anova_viz to plotly
+            # Original matplotlib code:
+            # fig_anova_viz, axes = plt.subplots(1, 2, figsize=(14, 6))
         
             # 1. Boxplot mit Punkten
             regions = ['Nord', 'Mitte', 'Süd']
@@ -3549,11 +3611,13 @@ elif regression_type == "📈 Einfache Regression":
         y_hetero = 2 + 1.5 * x_demo + noise_hetero
         model_hetero = sm.OLS(y_hetero, X_demo).fit()
     
-        fig_trichter, axs = plt.subplots(2, 2, figsize=(14, 10))
+        # TODO: Convert matplotlib fig_trichter to plotly
+        # Original matplotlib code:
+        # fig_trichter, axs = plt.subplots(2, 2, figsize=(14, 10))
     
         # Homo Scatter
-        axs[0, 0].scatter(x_demo, y_homo, color='green', alpha=0.6, s=30)
-        axs[0, 0].plot(x_demo, model_homo.predict(X_demo), 'k-', lw=2)
+        # axs[0, 0].scatter(x_demo, y_homo, color='green', alpha=0.6, s=30)
+        # axs[0, 0].plot(x_demo, model_homo.predict(X_demo), 'k-', lw=2)
         axs[0, 0].fill_between(x_demo, model_homo.predict(X_demo)-4, model_homo.predict(X_demo)+4, 
                               color='green', alpha=0.15)
         axs[0, 0].set_title("✅ Homoskedastizität (Ideal)\nGleichmässiger Schlauch", fontweight='bold', color='green')
@@ -3701,8 +3765,10 @@ elif regression_type == "📈 Einfache Regression":
     col_3d1, col_3d2 = st.columns([2, 1])
 
     with col_3d1:
-        fig_3d = plt.figure(figsize=(12, 8))
-        ax_3d = fig_3d.add_subplot(111, projection='3d')
+        # TODO: Convert matplotlib fig_3d to plotly
+        # Original matplotlib code:
+        # fig_3d = plt.figure(figsize=(12, 8))
+        # ax_3d = fig_3d.add_subplot(111, projection='3d')
     
         x_line = np.linspace(float(x.min()), float(x.max()), 100)
         y_line = b0 + b1 * x_line
