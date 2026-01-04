@@ -2226,20 +2226,42 @@ elif regression_type == "📈 Einfache Regression":
                      height=min(400, n * 35 + 50), width='stretch')
 
     with col_data2:
-        fig_scatter1, ax1 = plt.subplots(figsize=(10, 6))
-        ax1.scatter(x, y, s=100, c='#1f77b4', alpha=0.7, edgecolor='white', linewidth=2, label='Datenpunkte')
-        ax1.set_xlabel(x_label, fontsize=12)
-        ax1.set_ylabel(y_label, fontsize=12)
-        ax1.set_title('Schritt 1: Visualisierung der Rohdaten\n"Gibt es einen Zusammenhang?"', fontsize=14, fontweight='bold')
-        ax1.grid(True, alpha=0.3)
+        # Create scatter plot with plotly
+        fig_scatter1 = go.Figure()
+        
+        fig_scatter1.add_trace(go.Scatter(
+            x=x, y=y,
+            mode='markers',
+            marker=dict(size=12, color='#1f77b4', opacity=0.7,
+                       line=dict(width=2, color='white')),
+            name='Datenpunkte'
+        ))
+        
+        # Mean lines
+        fig_scatter1.add_hline(y=y_mean_val, line_dash='dash', line_color='orange',
+                              opacity=0.5, annotation_text=f'ȳ = {y_mean_val:.2f}',
+                              annotation_position="right")
+        fig_scatter1.add_vline(x=x_mean, line_dash='dash', line_color='green',
+                              opacity=0.5, annotation_text=f'x̄ = {x_mean:.2f}',
+                              annotation_position="top")
+        
+        # Center point
+        fig_scatter1.add_trace(go.Scatter(
+            x=[x_mean], y=[y_mean_val],
+            mode='markers',
+            marker=dict(size=18, color='red', symbol='x'),
+            name='Schwerpunkt (x̄, ȳ)'
+        ))
+        
+        fig_scatter1.update_layout(
+            title='Schritt 1: Visualisierung der Rohdaten<br>"Gibt es einen Zusammenhang?"',
+            xaxis_title=x_label,
+            yaxis_title=y_label,
+            template='plotly_white',
+            hovermode='closest'
+        )
     
-        # Mittelwerte markieren
-        ax1.axhline(y_mean_val, color='orange', linestyle='--', alpha=0.5, label=f'ȳ = {y_mean_val:.2f}')
-        ax1.axvline(x_mean, color='green', linestyle='--', alpha=0.5, label=f'x̄ = {x_mean:.2f}')
-        ax1.scatter([x_mean], [y_mean_val], s=200, c='red', marker='X', zorder=5, label='Schwerpunkt (x̄, ȳ)')
-        ax1.legend(loc='upper left')
-    
-                st.plotly_chart(fig_scatter1, use_container_width=True)
+        st.plotly_chart(fig_scatter1, use_container_width=True)
         
     st.success(f"""
     **Beobachtung:** Die Punkte scheinen einem aufsteigenden Trend zu folgen! 
