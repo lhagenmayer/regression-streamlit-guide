@@ -1060,33 +1060,56 @@ if regression_type == "📊 Multiple Regression":
     if show_3d_resid_m3:
         st.markdown("### 🎲 3D-Visualisierung: Residuen als Abstände zur Regressions-Ebene")
         
-        fig_3d_resid = plt.figure(figsize=(12, 8))
-        ax_3d_resid = fig_3d_resid.add_subplot(111, projection='3d')
-        
-        # Regressions-Ebene
+        # Create 3D residual plot with plotly
         x1_range = np.linspace(x2_preis.min(), x2_preis.max(), 20)
         x2_range = np.linspace(x3_werbung.min(), x3_werbung.max(), 20)
         X1_mesh, X2_mesh = np.meshgrid(x1_range, x2_range)
         Y_mesh = model_mult.params[0] + model_mult.params[1]*X1_mesh + model_mult.params[2]*X2_mesh
-        ax_3d_resid.plot_surface(X1_mesh, X2_mesh, Y_mesh, alpha=0.3, cmap='viridis')
         
-        # Datenpunkte
-        ax_3d_resid.scatter(x2_preis, x3_werbung, y_mult, c='red', s=50, alpha=0.7, edgecolor='white', label='Datenpunkte')
+        fig_3d_resid = go.Figure()
         
-        # Residuen als vertikale Linien
+        # Add regression surface
+        fig_3d_resid.add_trace(go.Surface(
+            x=X1_mesh, y=X2_mesh, z=Y_mesh,
+            colorscale='Viridis',
+            opacity=0.7,
+            name='Regression Plane',
+            showscale=False
+        ))
+        
+        # Add data points
+        fig_3d_resid.add_trace(go.Scatter3d(
+            x=x2_preis, y=x3_werbung, z=y_mult,
+            mode='markers',
+            marker=dict(size=5, color='red', opacity=0.8),
+            name='Datenpunkte'
+        ))
+        
+        # Add residual lines
         for i in range(len(x2_preis)):
-            ax_3d_resid.plot([x2_preis[i], x2_preis[i]], 
-                            [x3_werbung[i], x3_werbung[i]], 
-                            [y_pred_mult[i], y_mult[i]], 
-                            'k-', alpha=0.3, linewidth=0.8)
+            fig_3d_resid.add_trace(go.Scatter3d(
+                x=[x2_preis[i], x2_preis[i]],
+                y=[x3_werbung[i], x3_werbung[i]],
+                z=[y_pred_mult[i], y_mult[i]],
+                mode='lines',
+                line=dict(color='black', width=2),
+                opacity=0.3,
+                showlegend=False
+            ))
         
-        ax_3d_resid.set_xlabel(x1_name, fontsize=10)
-        ax_3d_resid.set_ylabel(x2_name, fontsize=10)
-        ax_3d_resid.set_zlabel(y_name, fontsize=10)
-        ax_3d_resid.set_title('OLS: Minimierung der Residuen-Quadratsumme\n(Vertikale Abstände zur Ebene)', fontsize=12, fontweight='bold')
-        ax_3d_resid.view_init(elev=20, azim=-60)
+        fig_3d_resid.update_layout(
+            title='OLS: Minimierung der Residuen-Quadratsumme<br>(Vertikale Abstände zur Ebene)',
+            scene=dict(
+                xaxis_title=x1_name,
+                yaxis_title=x2_name,
+                zaxis_title=y_name,
+                camera=dict(eye=dict(x=1.5, y=-1.5, z=1.2))
+            ),
+            template='plotly_white',
+            height=600
+        )
         
-                st.plotly_chart(fig_3d_resid, use_container_width=True)
+        st.plotly_chart(fig_3d_resid, use_container_width=True)
                 
         st.info("""
         **💡 3D-Interpretation:**
@@ -1177,31 +1200,84 @@ if regression_type == "📊 Multiple Regression":
     if show_3d_var_m4:
         st.markdown("### 🎲 3D-Visualisierung: Varianzzerlegung im Prädiktorraum")
         
-        fig_3d_var = plt.figure(figsize=(14, 6))
+        # Create side-by-side 3D plots using plotly subplots
+        from plotly.subplots import make_subplots
+        
+        fig_3d_var = make_subplots(
+            rows=1, cols=2,
+            specs=[[{'type': 'scatter3d'}, {'type': 'scatter3d'}]],
+            subplot_titles=(f'SSR (Erklärt): {ssr_mult:.1f}<br>Varianz durch Modell',
+                          f'SSE (Unerklärt): {sse_mult:.1f}<br>Nicht erfasste Varianz')
+        )
         
         # Left: Explained variance (SSR)
-        ax1 = fig_3d_var.add_subplot(121, projection='3d')
-        scatter1 = ax1.scatter(x2_preis, x3_werbung, y_pred_mult, c=y_pred_mult, cmap='Greens', s=60, alpha=0.7, edgecolor='darkgreen')
-        ax1.set_xlabel(x1_name, fontsize=9)
-        ax1.set_ylabel(x2_name, fontsize=9)
-        ax1.set_zlabel(y_name, fontsize=9)
-        ax1.set_title(f'SSR (Erklärt): {ssr_mult:.1f}\nVarianz durch Modell', fontsize=11, fontweight='bold', color='darkgreen')
-        ax1.view_init(elev=20, azim=-60)
-        plt.colorbar(scatter1, ax=ax1, shrink=0.5, pad=0.1)
+        fig_3d_var.add_trace(
+            go.Scatter3d(
+                x=x2_preis, y=x3_werbung, z=y_pred_mult,
+                mode='markers',
+                marker=dict(
+                    size=5,
+                    color=y_pred_mult,
+                    colorscale='Greens',
+                    opacity=0.7,
+                    showscale=True,
+                    colorbar=dict(x=0.45, len=0.5)
+                ),
+                name='Predicted'
+            ),
+            row=1, col=1
+        )
         
         # Right: Unexplained variance (SSE)
-        ax2 = fig_3d_var.add_subplot(122, projection='3d')
-        residual_sizes = np.abs(model_mult.resid) * 100  # Scale for visibility
-        scatter2 = ax2.scatter(x2_preis, x3_werbung, model_mult.resid, c=model_mult.resid, cmap='Reds', s=residual_sizes, alpha=0.7, edgecolor='darkred')
-        ax2.axplane(0, axis='z', alpha=0.2, color='gray')  # Zero plane
-        ax2.set_xlabel(x1_name, fontsize=9)
-        ax2.set_ylabel(x2_name, fontsize=9)
-        ax2.set_zlabel('Residuen', fontsize=9)
-        ax2.set_title(f'SSE (Unerklärt): {sse_mult:.1f}\nNicht erfasste Varianz', fontsize=11, fontweight='bold', color='darkred')
-        ax2.view_init(elev=20, azim=-60)
-        plt.colorbar(scatter2, ax=ax2, shrink=0.5, pad=0.1)
+        residual_sizes = 3 + np.abs(model_mult.resid) * 5  # Scale for visibility
+        fig_3d_var.add_trace(
+            go.Scatter3d(
+                x=x2_preis, y=x3_werbung, z=model_mult.resid,
+                mode='markers',
+                marker=dict(
+                    size=residual_sizes,
+                    color=model_mult.resid,
+                    colorscale='Reds',
+                    opacity=0.7,
+                    showscale=True,
+                    colorbar=dict(x=1.05, len=0.5)
+                ),
+                name='Residuals'
+            ),
+            row=1, col=2
+        )
         
-                st.plotly_chart(fig_3d_var, use_container_width=True)
+        # Add zero plane for residuals
+        x_range = [x2_preis.min(), x2_preis.max()]
+        y_range = [x3_werbung.min(), x3_werbung.max()]
+        xx, yy = np.meshgrid(x_range, y_range)
+        zz = np.zeros_like(xx)
+        
+        fig_3d_var.add_trace(
+            go.Surface(x=xx, y=yy, z=zz, opacity=0.2,
+                      colorscale=[[0, 'gray'], [1, 'gray']],
+                      showscale=False),
+            row=1, col=2
+        )
+        
+        fig_3d_var.update_layout(
+            height=600,
+            template='plotly_white',
+            scene=dict(
+                xaxis_title=x1_name,
+                yaxis_title=x2_name,
+                zaxis_title=y_name,
+                camera=dict(eye=dict(x=1.5, y=-1.5, z=1.2))
+            ),
+            scene2=dict(
+                xaxis_title=x1_name,
+                yaxis_title=x2_name,
+                zaxis_title='Residuen',
+                camera=dict(eye=dict(x=1.5, y=-1.5, z=1.2))
+            )
+        )
+        
+        st.plotly_chart(fig_3d_var, use_container_width=True)
                 
         st.info(f"""
         **💡 3D-Interpretation:**
@@ -1283,18 +1359,34 @@ if regression_type == "📊 Multiple Regression":
         
         response_var1 = model_mult.params[0] + model_mult.params[1]*var1_range + model_mult.params[2]*slider2_val
         
-        fig_sens, ax_sens1 = plt.subplots(1, 1, figsize=(10, 5))
+        # Create sensitivity plot with plotly
+        fig_sens = go.Figure()
         
-        # Variable 1 Sensitivität
-        ax_sens1.plot(var1_range, response_var1, 'b-', linewidth=2)
-        ax_sens1.scatter([slider1_val], [pred_value], c='red', s=100, zorder=5, label='Aktuell')
-        ax_sens1.set_xlabel(x1_name, fontsize=11)
-        ax_sens1.set_ylabel(y_name, fontsize=11)
-        ax_sens1.set_title(f'Sensitivität {x1_name.split("(")[0].strip()}\n({x2_name.split("(")[0].strip()}={slider2_val:.1f} konstant)', fontsize=11, fontweight='bold')
-        ax_sens1.grid(True, alpha=0.3)
-        ax_sens1.legend()
+        # Variable 1 sensitivity line
+        fig_sens.add_trace(go.Scatter(
+            x=var1_range, y=response_var1,
+            mode='lines',
+            line=dict(color='blue', width=3),
+            name='Predicted Response'
+        ))
         
-                st.plotly_chart(fig_sens, use_container_width=True)
+        # Current value point
+        fig_sens.add_trace(go.Scatter(
+            x=[slider1_val], y=[pred_value],
+            mode='markers',
+            marker=dict(size=15, color='red'),
+            name='Aktuell'
+        ))
+        
+        fig_sens.update_layout(
+            title=f'Sensitivität {x1_name.split("(")[0].strip()}<br>({x2_name.split("(")[0].strip()}={slider2_val:.1f} konstant)',
+            xaxis_title=x1_name,
+            yaxis_title=y_name,
+            template='plotly_white',
+            hovermode='x'
+        )
+        
+        st.plotly_chart(fig_sens, use_container_width=True)
         
     # =========================================================
     # M6: DUMMY-VARIABLEN
@@ -1406,27 +1498,50 @@ if regression_type == "📊 Multiple Regression":
         
         if show_3d_m7:
             # 3D Scatter: Zeigt wie Prädiktoren zusammen die Zielvariable beeinflussen
-            fig_3d_m7 = plt.figure(figsize=(10, 8))
-            ax_3d_m7 = fig_3d_m7.add_subplot(111, projection='3d')
-            
-            # Scatter Plot der Datenpunkte
-            scatter = ax_3d_m7.scatter(x2_preis, x3_werbung, y_mult, c=y_mult, cmap='viridis', s=50, alpha=0.6, edgecolor='white')
-            
-            # Regression Ebene
             x1_range = np.linspace(x2_preis.min(), x2_preis.max(), 20)
             x2_range = np.linspace(x3_werbung.min(), x3_werbung.max(), 20)
             X1_mesh, X2_mesh = np.meshgrid(x1_range, x2_range)
             Y_mesh = model_mult.params[0] + model_mult.params[1]*X1_mesh + model_mult.params[2]*X2_mesh
-            ax_3d_m7.plot_surface(X1_mesh, X2_mesh, Y_mesh, alpha=0.2, cmap='coolwarm')
             
-            ax_3d_m7.set_xlabel(x1_name, fontsize=10)
-            ax_3d_m7.set_ylabel(x2_name, fontsize=10)
-            ax_3d_m7.set_zlabel(y_name, fontsize=10)
-            ax_3d_m7.set_title('3D: Multikollinearität Visualisierung\n(Korrelation zwischen Prädiktoren sichtbar in Punktverteilung)', fontsize=11, fontweight='bold')
-            ax_3d_m7.view_init(elev=25, azim=-60)
+            fig_3d_m7 = go.Figure()
             
-            plt.colorbar(scatter, ax=ax_3d_m7, pad=0.1, label=y_name)
-                        st.plotly_chart(fig_3d_m7, use_container_width=True)
+            # Add regression surface
+            fig_3d_m7.add_trace(go.Surface(
+                x=X1_mesh, y=X2_mesh, z=Y_mesh,
+                colorscale='RdBu',
+                opacity=0.6,
+                showscale=False,
+                name='Regression Plane'
+            ))
+            
+            # Add scatter plot of data points
+            fig_3d_m7.add_trace(go.Scatter3d(
+                x=x2_preis, y=x3_werbung, z=y_mult,
+                mode='markers',
+                marker=dict(
+                    size=5,
+                    color=y_mult,
+                    colorscale='Viridis',
+                    opacity=0.7,
+                    showscale=True,
+                    colorbar=dict(title=y_name)
+                ),
+                name='Data Points'
+            ))
+            
+            fig_3d_m7.update_layout(
+                title='3D: Multikollinearität Visualisierung<br>(Korrelation zwischen Prädiktoren sichtbar in Punktverteilung)',
+                scene=dict(
+                    xaxis_title=x1_name,
+                    yaxis_title=x2_name,
+                    zaxis_title=y_name,
+                    camera=dict(eye=dict(x=1.5, y=-1.5, z=1.3))
+                ),
+                template='plotly_white',
+                height=600
+            )
+            
+            st.plotly_chart(fig_3d_m7, use_container_width=True)
                         
             st.info("""
             **💡 3D-Interpretation:**
@@ -1440,26 +1555,34 @@ if regression_type == "📊 Multiple Regression":
             # Korrelationsmatrix
             corr_matrix = np.corrcoef(x2_preis, x3_werbung)
             
-            fig_corr, ax_corr = plt.subplots(figsize=(8, 6))
-            im = ax_corr.imshow(corr_matrix, cmap='RdBu_r', vmin=-1, vmax=1, aspect='auto')
-            ax_corr.set_xticks([0, 1])
-            ax_corr.set_yticks([0, 1])
-            
             # Use dynamic names
             var1_short = x1_name.split('(')[0].strip()
             var2_short = x2_name.split('(')[0].strip()
-            ax_corr.set_xticklabels([var1_short, var2_short])
-            ax_corr.set_yticklabels([var1_short, var2_short])
             
-            # Werte einzeichnen
-            for i in range(2):
-                for j in range(2):
-                    text = ax_corr.text(j, i, f'{corr_matrix[i, j]:.3f}',
-                                       ha="center", va="center", color="black", fontsize=14, fontweight='bold')
+            # Create plotly heatmap
+            fig_corr = go.Figure(data=go.Heatmap(
+                z=corr_matrix,
+                x=[var1_short, var2_short],
+                y=[var1_short, var2_short],
+                colorscale='RdBu_r',
+                zmid=0,
+                zmin=-1,
+                zmax=1,
+                text=[[f'{corr_matrix[i, j]:.3f}' for j in range(2)] for i in range(2)],
+                texttemplate='%{text}',
+                textfont={"size": 16, "color": "black"},
+                showscale=True,
+                colorbar=dict(title="Korrelation")
+            ))
             
-            plt.colorbar(im, ax=ax_corr)
-            ax_corr.set_title('Korrelationsmatrix der Prädiktoren', fontsize=13, fontweight='bold')
-                        st.plotly_chart(fig_corr, use_container_width=True)
+            fig_corr.update_layout(
+                title='Korrelationsmatrix der Prädiktoren',
+                template='plotly_white',
+                xaxis=dict(side='bottom'),
+                height=500
+            )
+            
+            st.plotly_chart(fig_corr, use_container_width=True)
                         
             st.info(f"""
             **Korrelation(Preis, Werbung) = {corr_matrix[0,1]:.3f}**
