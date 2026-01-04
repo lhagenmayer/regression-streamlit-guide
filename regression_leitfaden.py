@@ -4166,13 +4166,16 @@ elif regression_type == "📈 Einfache Regression":
             # 3D Landscape Visualisierung: Berglandschaft für jede Gruppe
             from scipy.stats import norm
         
-            fig_anova_viz = plt.figure(figsize=(14, 6))
+            fig_anova_viz = make_subplots(
+                rows=1, cols=2,
+                specs=[[{'type': 'scatter3d'}, {'type': 'bar'}]],
+                subplot_titles=('3D Landscape: Gruppen als Verteilungshuegel',
+                              f'SST = SSTR + SSE = {sst_anova:.2f}')
+            )
         
             # 1. 3D Surface für Gruppen-Verteilungen
-            ax_3d = fig_anova_viz.add_subplot(121, projection='3d')
-        
             regions = ['Nord', 'Mitte', 'Süd']
-            colors = ['#3498db', '#2ecc71', '#e74c3c']
+            colors_list = ['#3498db', '#2ecc71', '#e74c3c']
         
             # X-Achse: Umsatz-Werte
             x_vals = np.linspace(
@@ -4181,7 +4184,7 @@ elif regression_type == "📈 Einfache Regression":
                 100
             )
         
-            for i, (region, color) in enumerate(zip(regions, colors)):
+            for i, (region, color) in enumerate(zip(regions, colors_list)):
                 data = df_anova[df_anova['Region'] == region]['Umsatz']
                 mu = data.mean()
                 sigma = data.std()
@@ -4190,106 +4193,148 @@ elif regression_type == "📈 Einfache Regression":
                 y_vals = norm.pdf(x_vals, mu, sigma)
             
                 # 3D Plot: x-Achse = Umsatz, y-Achse = Region (i), z-Achse = Dichte
-                ax_3d.plot(x_vals, np.full_like(x_vals, i), y_vals, 
-                          color=color, linewidth=3, label=f'{region}')
+                fig_anova_viz.add_trace(
+                    go.Scatter3d(x=x_vals, y=np.full_like(x_vals, i), z=y_vals,
+                               mode='lines', line=dict(color=color, width=4),
+                               name=f'{region}'),
+                    row=1, col=1
+                )
             
-                # Fläche unter Kurve
-                ax_3d.bar(x_vals[::5], np.full_like(x_vals[::5], i), y_vals[::5], 
-                         zdir='z', zs=0, width=0.3, alpha=0.3, color=color)
+                # Bars under curve (simplified as vertical lines)
+                for j in range(0, len(x_vals), 10):
+                    fig_anova_viz.add_trace(
+                        go.Scatter3d(x=[x_vals[j], x_vals[j]], y=[i, i], z=[0, y_vals[j]],
+                                   mode='lines', line=dict(color=color, width=2),
+                                   opacity=0.3, showlegend=False),
+                        row=1, col=1
+                    )
         
             # Gesamtmittelwert als Linie
             y_overall = norm.pdf(x_vals, grand_mean_anova, df_anova['Umsatz'].std())
-            ax_3d.plot(x_vals, np.full_like(x_vals, -0.5), y_overall, 
-                      color='black', linewidth=2, linestyle='--', label='Gesamtverteilung')
-        
-            ax_3d.set_xlabel(y_label, fontsize=FONT_SIZES["axis_label_3d"])
-            ax_3d.set_ylabel('Gruppen', fontsize=FONT_SIZES["axis_label_3d"])
-            ax_3d.set_zlabel('Dichte', fontsize=FONT_SIZES["axis_label_3d"])
-            ax_3d.tick_params(axis='both', labelsize=FONT_SIZES["tick_3d"])
-            ax_3d.set_yticks(range(3))
-            ax_3d.set_yticklabels(regions, fontsize=FONT_SIZES["tick_3d"])
-            ax_3d.set_title('3D Landscape: Gruppen als Verteilungshuegel', fontsize=FONT_SIZES["title_3d"], fontweight='bold')
-            ax_3d.legend(loc='upper left', fontsize=FONT_SIZES["legend"])
+            fig_anova_viz.add_trace(
+                go.Scatter3d(x=x_vals, y=np.full_like(x_vals, -0.5), z=y_overall,
+                           mode='lines', line=dict(color='black', width=3, dash='dash'),
+                           name='Gesamtverteilung'),
+                row=1, col=1
+            )
         
             # 2. Varianzzerlegung
-            ax_var = fig_anova_viz.add_subplot(122)
+            fig_anova_viz.add_trace(
+                go.Bar(y=['Varianzzerlegung'], x=[sstr_anova],
+                      orientation='h', marker_color='green', opacity=0.7,
+                      name=f'SSTR (Zwischen) = {sstr_anova:.2f}',
+                      text=f'{sstr_anova/sst_anova*100:.1f}%',
+                      textposition='inside', textfont=dict(color='white', size=12)),
+                row=1, col=2
+            )
+            fig_anova_viz.add_trace(
+                go.Bar(y=['Varianzzerlegung'], x=[sse_anova],
+                      orientation='h', marker_color='red', opacity=0.7,
+                      name=f'SSE (Innerhalb) = {sse_anova:.2f}',
+                      text=f'{sse_anova/sst_anova*100:.1f}%',
+                      textposition='inside', textfont=dict(color='white', size=12)),
+                row=1, col=2
+            )
         
-            ax_var.barh(0, sstr_anova, color='green', alpha=0.7, label=f'SSTR (Zwischen) = {sstr_anova:.2f}')
-            ax_var.barh(0, sse_anova, left=sstr_anova, color='red', alpha=0.7, label=f'SSE (Innerhalb) = {sse_anova:.2f}')
+            # Update layout
+            fig_anova_viz.update_layout(
+                height=500,
+                barmode='stack',
+                showlegend=True,
+                scene=dict(
+                    xaxis_title=y_label,
+                    yaxis_title='Gruppen',
+                    zaxis_title='Dichte',
+                    yaxis=dict(tickvals=[0, 1, 2], ticktext=regions),
+                    camera=dict(eye=dict(x=1.5, y=-1.5, z=1.2))
+                )
+            )
+            fig_anova_viz.update_xaxes(title_text='Quadratsumme', row=1, col=2)
         
-            ax_var.set_xlim(0, sst_anova * 1.1)
-            ax_var.set_yticks([0])
-            ax_var.set_yticklabels(['Varianz-\nzerlegung'])
-            ax_var.set_xlabel('Quadratsumme', fontsize=12)
-            ax_var.set_title(f'SST = SSTR + SSE = {sst_anova:.2f}', fontsize=12, fontweight='bold')
-            ax_var.legend(loc='upper right')
-        
-            # Prozentwerte
-            pct_sstr = sstr_anova / sst_anova * 100
-            pct_sse = sse_anova / sst_anova * 100
-            ax_var.annotate(f'{pct_sstr:.1f}%', xy=(sstr_anova/2, 0), fontsize=12, 
-                           ha='center', va='center', color='white', fontweight='bold')
-            ax_var.annotate(f'{pct_sse:.1f}%', xy=(sstr_anova + sse_anova/2, 0), fontsize=12, 
-                           ha='center', va='center', color='white', fontweight='bold')
-        
-                        st.plotly_chart(fig_anova_viz, use_container_width=True)
-                    else:
+            st.plotly_chart(fig_anova_viz, use_container_width=True)
+        else:
             # 2D Original: Boxplot + Varianzzerlegung
-            fig_anova_viz, axes = plt.subplots(1, 2, figsize=(14, 6))
+            fig_anova_viz = make_subplots(
+                rows=1, cols=2,
+                subplot_titles=('Gruppenvergleich: Streuung innerhalb (SSE) vs. zwischen (SSTR)',
+                              f'SST = SSTR + SSE = {sst_anova:.2f}')
+            )
         
             # 1. Boxplot mit Punkten
             regions = ['Nord', 'Mitte', 'Süd']
-            colors = ['#3498db', '#2ecc71', '#e74c3c']
+            colors_list = ['#3498db', '#2ecc71', '#e74c3c']
         
-            for i, (region, color) in enumerate(zip(regions, colors)):
+            for i, (region, color) in enumerate(zip(regions, colors_list)):
                 data = df_anova[df_anova['Region'] == region]['Umsatz']
             
                 # Jittered Scatter
+                np.random.seed(42 + i)
                 jitter = np.random.normal(0, 0.08, len(data))
-                axes[0].scatter(np.full(len(data), i) + jitter, data, 
-                               c=color, alpha=0.6, s=60, edgecolor='white')
+                fig_anova_viz.add_trace(
+                    go.Scatter(x=np.full(len(data), i) + jitter, y=data,
+                              mode='markers',
+                              marker=dict(size=10, color=color, opacity=0.6,
+                                        line=dict(color='white', width=1)),
+                              name=region, showlegend=False),
+                    row=1, col=1
+                )
             
-                # Gruppenmittelwert
-                axes[0].hlines(data.mean(), i - 0.3, i + 0.3, colors=color, linewidths=4, 
-                              label=f'{region}: μ = {data.mean():.2f}')
+                # Gruppenmittelwert horizontal line
+                group_mean = data.mean()
+                fig_anova_viz.add_shape(
+                    type='line',
+                    x0=i-0.3, x1=i+0.3, y0=group_mean, y1=group_mean,
+                    line=dict(color=color, width=4),
+                    row=1, col=1
+                )
             
-                # Linien zu Gruppenmittelwert (SSE)
-                for j, val in enumerate(data):
-                    axes[0].plot([i + jitter[j], i + jitter[j]], [val, data.mean()], 
-                                color=color, alpha=0.2, linewidth=1)
+                # Linien zu Gruppenmittelwert (SSE) - nur ein paar zeigen
+                for j in range(min(5, len(data))):
+                    fig_anova_viz.add_trace(
+                        go.Scatter(x=[i + jitter[j], i + jitter[j]],
+                                  y=[data.iloc[j], group_mean],
+                                  mode='lines', line=dict(color=color, width=1),
+                                  opacity=0.2, showlegend=False),
+                        row=1, col=1
+                    )
         
             # Gesamtmittelwert
-            axes[0].axhline(grand_mean_anova, color='black', linestyle='--', linewidth=2, 
-                           label=f'Gesamtmittel: {grand_mean_anova:.2f}')
-        
-            axes[0].set_xticks(range(3))
-            axes[0].set_xticklabels(regions)
-            axes[0].set_ylabel(y_label, fontsize=12)
-            axes[0].set_title('Gruppenvergleich: Streuung innerhalb (SSE) vs. zwischen (SSTR)', 
-                             fontsize=12, fontweight='bold')
-            axes[0].legend(loc='upper left', fontsize=9)
-            axes[0].grid(True, alpha=0.3, axis='y')
+            fig_anova_viz.add_hline(y=grand_mean_anova, line_dash="dash", line_color="black",
+                                   line_width=2, annotation_text=f'Gesamtmittel: {grand_mean_anova:.2f}',
+                                   annotation_position="right", row=1, col=1)
         
             # 2. Varianzzerlegung als gestapelter Balken
-            axes[1].barh(0, sstr_anova, color='green', alpha=0.7, label=f'SSTR (Zwischen) = {sstr_anova:.2f}')
-            axes[1].barh(0, sse_anova, left=sstr_anova, color='red', alpha=0.7, label=f'SSE (Innerhalb) = {sse_anova:.2f}')
+            fig_anova_viz.add_trace(
+                go.Bar(y=['Varianzzerlegung'], x=[sstr_anova],
+                      orientation='h', marker_color='green', opacity=0.7,
+                      name=f'SSTR (Zwischen) = {sstr_anova:.2f}',
+                      text=f'{sstr_anova/sst_anova*100:.1f}%',
+                      textposition='inside', textfont=dict(color='white', size=12)),
+                row=1, col=2
+            )
+            fig_anova_viz.add_trace(
+                go.Bar(y=['Varianzzerlegung'], x=[sse_anova],
+                      orientation='h', marker_color='red', opacity=0.7,
+                      name=f'SSE (Innerhalb) = {sse_anova:.2f}',
+                      text=f'{sse_anova/sst_anova*100:.1f}%',
+                      textposition='inside', textfont=dict(color='white', size=12)),
+                row=1, col=2
+            )
         
-            axes[1].set_xlim(0, sst_anova * 1.1)
-            axes[1].set_yticks([0])
-            axes[1].set_yticklabels(['Varianz-\nzerlegung'])
-            axes[1].set_xlabel('Quadratsumme', fontsize=12)
-            axes[1].set_title(f'SST = SSTR + SSE = {sst_anova:.2f}', fontsize=12, fontweight='bold')
-            axes[1].legend(loc='upper right')
+            # Update layout
+            fig_anova_viz.update_xaxes(title_text='Region', tickvals=[0, 1, 2],
+                                      ticktext=regions, row=1, col=1)
+            fig_anova_viz.update_yaxes(title_text=y_label, showgrid=True,
+                                      gridcolor='lightgray', row=1, col=1)
+            fig_anova_viz.update_xaxes(title_text='Quadratsumme', row=1, col=2)
+            
+            fig_anova_viz.update_layout(
+                height=500,
+                barmode='stack',
+                showlegend=True
+            )
         
-            # Prozentwerte annotieren
-            pct_sstr = sstr_anova / sst_anova * 100
-            pct_sse = sse_anova / sst_anova * 100
-            axes[1].annotate(f'{pct_sstr:.1f}%', xy=(sstr_anova/2, 0), fontsize=12, 
-                            ha='center', va='center', color='white', fontweight='bold')
-            axes[1].annotate(f'{pct_sse:.1f}%', xy=(sstr_anova + sse_anova/2, 0), fontsize=12, 
-                            ha='center', va='center', color='white', fontweight='bold')
-        
-                        st.plotly_chart(fig_anova_viz, use_container_width=True)
+            st.plotly_chart(fig_anova_viz, use_container_width=True)
             
     with col_anova2:
         if show_formulas:
@@ -4375,47 +4420,110 @@ elif regression_type == "📈 Einfache Regression":
         y_hetero = 2 + 1.5 * x_demo + noise_hetero
         model_hetero = sm.OLS(y_hetero, X_demo).fit()
     
-        fig_trichter, axs = plt.subplots(2, 2, figsize=(14, 10))
+        fig_trichter = make_subplots(
+            rows=2, cols=2,
+            subplot_titles=(
+                '✅ Homoskedastizität (Ideal)<br>Gleichmässiger Schlauch',
+                '⚠️ Heteroskedastizität (Problem)<br>Trichter-Effekt!',
+                'Residual-Plot<br>✅ Wolke ohne Muster',
+                'Residual-Plot<br>⚠️ Typische Trichterform!'
+            ),
+            vertical_spacing=0.12
+        )
     
         # Homo Scatter
-        axs[0, 0].scatter(x_demo, y_homo, color='green', alpha=0.6, s=30)
-        axs[0, 0].plot(x_demo, model_homo.predict(X_demo), 'k-', lw=2)
-        axs[0, 0].fill_between(x_demo, model_homo.predict(X_demo)-4, model_homo.predict(X_demo)+4, 
-                              color='green', alpha=0.15)
-        axs[0, 0].set_title("✅ Homoskedastizität (Ideal)\nGleichmässiger Schlauch", fontweight='bold', color='green')
-        axs[0, 0].set_ylabel("Y")
-        axs[0, 0].grid(True, alpha=0.3)
+        y_pred_homo = model_homo.predict(X_demo)
+        fig_trichter.add_trace(
+            go.Scatter(x=np.concatenate([x_demo, x_demo[::-1]]),
+                      y=np.concatenate([y_pred_homo + 4, (y_pred_homo - 4)[::-1]]),
+                      fill='toself', fillcolor='rgba(0,255,0,0.15)',
+                      line=dict(width=0), showlegend=False),
+            row=1, col=1
+        )
+        fig_trichter.add_trace(
+            go.Scatter(x=x_demo, y=y_homo, mode='markers',
+                      marker=dict(size=4, color='green', opacity=0.6),
+                      showlegend=False),
+            row=1, col=1
+        )
+        fig_trichter.add_trace(
+            go.Scatter(x=x_demo, y=y_pred_homo, mode='lines',
+                      line=dict(color='black', width=2),
+                      showlegend=False),
+            row=1, col=1
+        )
     
         # Homo Residual
-        axs[1, 0].scatter(model_homo.predict(X_demo), model_homo.resid, color='green', alpha=0.6, s=30)
-        axs[1, 0].axhline(0, color='black', linestyle='--')
-        axs[1, 0].set_title("Residual-Plot\n✅ Wolke ohne Muster", fontweight='bold', color='green')
-        axs[1, 0].set_ylabel("Residuen")
-        axs[1, 0].set_xlabel("Fitted Values")
-        axs[1, 0].grid(True, alpha=0.3)
+        fig_trichter.add_trace(
+            go.Scatter(x=y_pred_homo, y=model_homo.resid, mode='markers',
+                      marker=dict(size=4, color='green', opacity=0.6),
+                      showlegend=False),
+            row=2, col=1
+        )
+        fig_trichter.add_hline(y=0, line_dash="dash", line_color="black", row=2, col=1)
     
         # Hetero Scatter
-        axs[0, 1].scatter(x_demo, y_hetero, color='red', alpha=0.6, s=30)
-        axs[0, 1].plot(x_demo, model_hetero.predict(X_demo), 'k-', lw=2)
-        axs[0, 1].fill_between(x_demo, model_hetero.predict(X_demo) - (0.8*x_demo)*2, 
-                              model_hetero.predict(X_demo) + (0.8*x_demo)*2, color='red', alpha=0.15)
-        axs[0, 1].set_title("⚠️ Heteroskedastizität (Problem)\nTrichter-Effekt!", fontweight='bold', color='red')
-        axs[0, 1].grid(True, alpha=0.3)
+        y_pred_hetero = model_hetero.predict(X_demo)
+        fig_trichter.add_trace(
+            go.Scatter(x=np.concatenate([x_demo, x_demo[::-1]]),
+                      y=np.concatenate([y_pred_hetero + (0.8*x_demo)*2,
+                                      (y_pred_hetero - (0.8*x_demo)*2)[::-1]]),
+                      fill='toself', fillcolor='rgba(255,0,0,0.15)',
+                      line=dict(width=0), showlegend=False),
+            row=1, col=2
+        )
+        fig_trichter.add_trace(
+            go.Scatter(x=x_demo, y=y_hetero, mode='markers',
+                      marker=dict(size=4, color='red', opacity=0.6),
+                      showlegend=False),
+            row=1, col=2
+        )
+        fig_trichter.add_trace(
+            go.Scatter(x=x_demo, y=y_pred_hetero, mode='lines',
+                      line=dict(color='black', width=2),
+                      showlegend=False),
+            row=1, col=2
+        )
     
         # Hetero Residual
-        axs[1, 1].scatter(model_hetero.predict(X_demo), model_hetero.resid, color='red', alpha=0.6, s=30)
-        axs[1, 1].axhline(0, color='black', linestyle='--')
-        axs[1, 1].set_title("Residual-Plot\n⚠️ Typische Trichterform!", fontweight='bold', color='red')
-        axs[1, 1].set_ylabel("Residuen")
-        axs[1, 1].set_xlabel("Fitted Values")
-        axs[1, 1].grid(True, alpha=0.3)
-        axs[1, 1].annotate('Kleine Fehler', xy=(4, 1), xytext=(6, 8), 
-                          arrowprops=dict(facecolor='red', shrink=0.05), fontsize=10, color='red')
-        axs[1, 1].annotate('Grosse Fehler', xy=(14, 8), xytext=(12, 12), 
-                          arrowprops=dict(facecolor='red', shrink=0.05), fontsize=10, color='red')
+        fig_trichter.add_trace(
+            go.Scatter(x=y_pred_hetero, y=model_hetero.resid, mode='markers',
+                      marker=dict(size=4, color='red', opacity=0.6),
+                      showlegend=False),
+            row=2, col=2
+        )
+        fig_trichter.add_hline(y=0, line_dash="dash", line_color="black", row=2, col=2)
+        
+        # Annotations for hetero residual plot
+        fig_trichter.add_annotation(
+            x=4, y=1, text='Kleine Fehler',
+            showarrow=True, arrowhead=2, arrowsize=1, arrowcolor='red',
+            ax=6, ay=8, font=dict(size=10, color='red'),
+            row=2, col=2
+        )
+        fig_trichter.add_annotation(
+            x=14, y=8, text='Grosse Fehler',
+            showarrow=True, arrowhead=2, arrowsize=1, arrowcolor='red',
+            ax=12, ay=12, font=dict(size=10, color='red'),
+            row=2, col=2
+        )
     
-        plt.suptitle("🔍 Diagnose: Der Blick auf die Residuen", fontsize=16, fontweight='bold')
-                st.plotly_chart(fig_trichter, use_container_width=True)
+        # Update axes
+        fig_trichter.update_yaxes(title_text="Y", row=1, col=1, showgrid=True, gridcolor='lightgray')
+        fig_trichter.update_yaxes(title_text="Residuen", row=2, col=1, showgrid=True, gridcolor='lightgray')
+        fig_trichter.update_xaxes(title_text="Fitted Values", row=2, col=1, showgrid=True, gridcolor='lightgray')
+        fig_trichter.update_yaxes(row=1, col=2, showgrid=True, gridcolor='lightgray')
+        fig_trichter.update_yaxes(title_text="Residuen", row=2, col=2, showgrid=True, gridcolor='lightgray')
+        fig_trichter.update_xaxes(title_text="Fitted Values", row=2, col=2, showgrid=True, gridcolor='lightgray')
+    
+        fig_trichter.update_layout(
+            title_text='🔍 Diagnose: Der Blick auf die Residuen',
+            title_font_size=16,
+            height=800,
+            showlegend=False
+        )
+    
+        st.plotly_chart(fig_trichter, use_container_width=True)
         
     with col_hetero2:
         st.error("""
@@ -4527,15 +4635,22 @@ elif regression_type == "📈 Einfache Regression":
     col_3d1, col_3d2 = st.columns([2, 1])
 
     with col_3d1:
-        fig_3d = plt.figure(figsize=(12, 8))
-        ax_3d = fig_3d.add_subplot(111, projection='3d')
+        fig_3d = go.Figure()
     
         x_line = np.linspace(float(x.min()), float(x.max()), 100)
         y_line = b0 + b1 * x_line
-        ax_3d.plot(x_line, y_line, np.zeros_like(x_line), 'b-', linewidth=3, label='E(y|x)')
+        
+        # Regression line at z=0
+        fig_3d.add_trace(go.Scatter3d(
+            x=x_line, y=y_line, z=np.zeros_like(x_line),
+            mode='lines',
+            line=dict(color='blue', width=4),
+            name='E(y|x)'
+        ))
     
         x_points = np.linspace(float(x.min()) + 0.5, float(x.max()) - 0.5, 5)
-        colors = plt.cm.plasma(np.linspace(0.2, 0.8, 5))
+        # Create a color palette similar to plasma
+        plasma_colors = ['#0d0887', '#7e03a8', '#cc4778', '#f89540', '#f0f921']
     
         for i, x_point in enumerate(x_points):
             y_exp = b0 + b1 * x_point
@@ -4544,21 +4659,43 @@ elif regression_type == "📈 Einfache Regression":
             density = stats.norm.pdf(y_range, y_exp, sigma)
             density = density / density.max() * 1.5
         
-            ax_3d.plot(np.full_like(y_range, x_point), y_range, density, color=colors[i], linewidth=2)
-            ax_3d.scatter([x_point], [y_exp], [0], color=colors[i], s=50)
+            # Distribution curve
+            fig_3d.add_trace(go.Scatter3d(
+                x=np.full_like(y_range, x_point), y=y_range, z=density,
+                mode='lines',
+                line=dict(color=plasma_colors[i], width=3),
+                showlegend=False
+            ))
+            
+            # Point on regression line
+            fig_3d.add_trace(go.Scatter3d(
+                x=[x_point], y=[y_exp], z=[0],
+                mode='markers',
+                marker=dict(size=6, color=plasma_colors[i]),
+                showlegend=False
+            ))
     
-        ax_3d.scatter(x, y, np.zeros(len(x)), c='green', s=40, alpha=0.6, marker='^', label='Daten')
+        # Data points at z=0
+        fig_3d.add_trace(go.Scatter3d(
+            x=x, y=y, z=np.zeros(len(x)),
+            mode='markers',
+            marker=dict(size=5, color='green', opacity=0.6, symbol='diamond'),
+            name='Daten'
+        ))
     
-        ax_3d.set_xlabel(f'X ({x_label})', fontsize=FONT_SIZES["axis_label_3d"])
-        ax_3d.set_ylabel(f'Y ({y_label})', fontsize=FONT_SIZES["axis_label_3d"])
-        ax_3d.set_zlabel('f(y|x)', fontsize=FONT_SIZES["axis_label_3d"])
-        ax_3d.tick_params(axis='both', labelsize=FONT_SIZES["tick_3d"])
-        ax_3d.set_title('Bedingte Verteilung: Fuer jeden X-Wert gibt es eine\nVerteilung moeglicher Y-Werte', 
-                       fontsize=FONT_SIZES["title_3d"], fontweight='bold')
-        ax_3d.legend(fontsize=FONT_SIZES["legend"])
-        ax_3d.view_init(elev=25, azim=-60)
+        fig_3d.update_layout(
+            title='Bedingte Verteilung: Fuer jeden X-Wert gibt es eine<br>Verteilung moeglicher Y-Werte',
+            scene=dict(
+                xaxis_title=f'X ({x_label})',
+                yaxis_title=f'Y ({y_label})',
+                zaxis_title='f(y|x)',
+                camera=dict(eye=dict(x=1.5, y=-1.8, z=1.2))
+            ),
+            height=600,
+            showlegend=True
+        )
     
-                st.plotly_chart(fig_3d, use_container_width=True)
+        st.plotly_chart(fig_3d, use_container_width=True)
         
     with col_3d2:
         st.latex(r"Y_i | X_i = x \sim N(\beta_0 + \beta_1 x, \sigma^2)")
