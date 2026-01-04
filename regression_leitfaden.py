@@ -2151,29 +2151,48 @@ elif regression_type == "📈 Einfache Regression":
         """)
 
     with col_indep2:
-        # Visualisierung: Unabhängig vs. Abhängig
-        fig_indep, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 4))
-    
+        # Create 2-panel independence visualization with plotly
+        from plotly.subplots import make_subplots
+        
         np.random.seed(123)
         # Unabhängig (ρ=0)
         x_ind = np.random.normal(0, 1, 200)
         y_ind = np.random.normal(0, 1, 200)
-        ax1.scatter(x_ind, y_ind, alpha=0.5, c='gray')
-        ax1.set_title('Unabhängig (ρ = 0)\n"Keine Struktur"', fontweight='bold', color='gray')
-        ax1.set_xlabel('X')
-        ax1.set_ylabel('Y')
-        ax1.grid(True, alpha=0.3)
-    
+        
         # Abhängig (ρ=0.8)
         cov_dep = [[1, 0.8], [0.8, 1]]
         sample_dep = np.random.multivariate_normal([0, 0], cov_dep, 200)
-        ax2.scatter(sample_dep[:, 0], sample_dep[:, 1], alpha=0.5, c='blue')
-        ax2.set_title('Abhängig (ρ = 0.8)\n"Klare Struktur"', fontweight='bold', color='blue')
-        ax2.set_xlabel('X')
-        ax2.set_ylabel('Y')
-        ax2.grid(True, alpha=0.3)
+        
+        fig_indep = make_subplots(
+            rows=1, cols=2,
+            subplot_titles=('Unabhängig (ρ = 0)<br>"Keine Struktur"',
+                           'Abhängig (ρ = 0.8)<br>"Klare Struktur"')
+        )
+        
+        # Left panel: Independent
+        fig_indep.add_trace(
+            go.Scatter(x=x_ind, y=y_ind, mode='markers',
+                      marker=dict(size=5, color='gray', opacity=0.5),
+                      showlegend=False),
+            row=1, col=1
+        )
+        
+        # Right panel: Dependent
+        fig_indep.add_trace(
+            go.Scatter(x=sample_dep[:, 0], y=sample_dep[:, 1], mode='markers',
+                      marker=dict(size=5, color='blue', opacity=0.5),
+                      showlegend=False),
+            row=1, col=2
+        )
+        
+        fig_indep.update_xaxes(title_text="X", row=1, col=1)
+        fig_indep.update_yaxes(title_text="Y", row=1, col=1)
+        fig_indep.update_xaxes(title_text="X", row=1, col=2)
+        fig_indep.update_yaxes(title_text="Y", row=1, col=2)
+        
+        fig_indep.update_layout(height=400, template='plotly_white')
     
-                st.plotly_chart(fig_indep, use_container_width=True)
+        st.plotly_chart(fig_indep, use_container_width=True)
         
     st.success("""
     **Merke:** Die Regression nutzt genau diese Struktur! Wenn X und Y abhängig sind, 
@@ -3101,36 +3120,83 @@ elif regression_type == "📈 Einfache Regression":
     col_sb1, col_sb2 = st.columns([2, 1])
 
     with col_sb1:
-        fig_sb, (ax_sb1, ax_sb2) = plt.subplots(1, 2, figsize=(14, 5))
-    
-        # Links: sₑ (Streuung um die Linie) - kompakt
-        ax_sb1.scatter(x, y, color='gray', alpha=0.5, s=50)
-        ax_sb1.plot(x, y_pred, 'b-', linewidth=2.5, label='Unsere Schätzung')
-        ax_sb1.fill_between(x, y_pred - se_regression, y_pred + se_regression, 
-                           color='blue', alpha=0.2, label=f'±1·sₑ = ±{se_regression:.3f}')
-        ax_sb1.fill_between(x, y_pred - 2*se_regression, y_pred + 2*se_regression, 
-                           color='blue', alpha=0.1, label=f'±2·sₑ')
-        ax_sb1.set_title(f'sₑ = {se_regression:.4f}\n(Streuung der PUNKTE um die Linie)', fontsize=11, fontweight='bold')
-        ax_sb1.legend(loc='upper left', fontsize=9)
-        ax_sb1.set_xlabel(x_label)
-        ax_sb1.set_ylabel(y_label)
-        ax_sb1.grid(True, alpha=0.3)
-    
-        # Rechts: s_b₁ (Unsicherheit der Steigung) - mit simulierten Linien!
+        # Create 2-panel standard error comparison with plotly
+        from plotly.subplots import make_subplots
+        
+        fig_sb = make_subplots(
+            rows=1, cols=2,
+            subplot_titles=(f'sₑ = {se_regression:.4f}<br>(Streuung der PUNKTE um die Linie)',
+                           f's_b₁ = {sb1:.4f}<br>(Unsicherheit der STEIGUNG)')
+        )
+        
+        # Left panel: se (residual standard error)
+        fig_sb.add_trace(
+            go.Scatter(x=x, y=y, mode='markers',
+                      marker=dict(size=6, color='gray', opacity=0.5),
+                      showlegend=False),
+            row=1, col=1
+        )
+        
+        fig_sb.add_trace(
+            go.Scatter(x=x, y=y_pred, mode='lines',
+                      line=dict(color='blue', width=3),
+                      name='Unsere Schätzung'),
+            row=1, col=1
+        )
+        
+        # ±2 se band
+        fig_sb.add_trace(
+            go.Scatter(x=np.concatenate([x, x[::-1]]),
+                      y=np.concatenate([y_pred + 2*se_regression, (y_pred - 2*se_regression)[::-1]]),
+                      fill='toself', fillcolor='rgba(0, 0, 255, 0.1)',
+                      line=dict(width=0), name=f'±2·sₑ', showlegend=True),
+            row=1, col=1
+        )
+        
+        # ±1 se band
+        fig_sb.add_trace(
+            go.Scatter(x=np.concatenate([x, x[::-1]]),
+                      y=np.concatenate([y_pred + se_regression, (y_pred - se_regression)[::-1]]),
+                      fill='toself', fillcolor='rgba(0, 0, 255, 0.2)',
+                      line=dict(width=0), name=f'±1·sₑ = ±{se_regression:.3f}', showlegend=True),
+            row=1, col=1
+        )
+        
+        # Right panel: sb1 (standard error of slope)
+        fig_sb.add_trace(
+            go.Scatter(x=x, y=y, mode='markers',
+                      marker=dict(size=4, color='gray', opacity=0.4),
+                      showlegend=False),
+            row=1, col=2
+        )
+        
+        # Simulate multiple regression lines
         np.random.seed(456)
         x_sim = np.linspace(min(x), max(x), 100)
         for i in range(80):
             sim_slope = np.random.normal(b1, sb1)
             sim_intercept = np.random.normal(b0, sb0)
-            ax_sb2.plot(x_sim, sim_intercept + sim_slope * x_sim, color='green', alpha=0.05)
-        ax_sb2.plot(x, y_pred, 'k-', linewidth=2.5, label='Unsere Schätzung')
-        ax_sb2.scatter(x, y, color='gray', alpha=0.4, s=30)
-        ax_sb2.set_title(f's_b₁ = {sb1:.4f}\n(Unsicherheit der STEIGUNG)', fontsize=11, fontweight='bold', color='darkgreen')
-        ax_sb2.legend(loc='upper left', fontsize=9)
-        ax_sb2.set_xlabel(x_label)
-        ax_sb2.grid(True, alpha=0.3)
+            fig_sb.add_trace(
+                go.Scatter(x=x_sim, y=sim_intercept + sim_slope * x_sim,
+                          mode='lines', line=dict(color='green', width=0.5),
+                          opacity=0.05, showlegend=False),
+                row=1, col=2
+            )
+        
+        fig_sb.add_trace(
+            go.Scatter(x=x, y=y_pred, mode='lines',
+                      line=dict(color='black', width=3),
+                      name='Unsere Schätzung'),
+            row=1, col=2
+        )
+        
+        fig_sb.update_xaxes(title_text=x_label, row=1, col=1)
+        fig_sb.update_yaxes(title_text=y_label, row=1, col=1)
+        fig_sb.update_xaxes(title_text=x_label, row=1, col=2)
+        
+        fig_sb.update_layout(height=400, template='plotly_white', showlegend=True)
     
-                st.plotly_chart(fig_sb, use_container_width=True)
+        st.plotly_chart(fig_sb, use_container_width=True)
         
     with col_sb2:
         if show_formulas:
