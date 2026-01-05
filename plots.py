@@ -9,6 +9,7 @@ import numpy as np
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from scipy import stats
+import streamlit as st
 
 
 def _safe_scalar(val: Union['pd.Series', np.ndarray, float, int]) -> float:

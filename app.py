@@ -37,6 +37,21 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# ---------------------------------------------------------
+# SESSION STATE INITIALIZATION
+# ---------------------------------------------------------
+# Initialize session state for preferences and computed results
+if 'active_tab' not in st.session_state:
+    st.session_state.active_tab = 0
+if 'last_mult_params' not in st.session_state:
+    st.session_state.last_mult_params = None
+if 'last_simple_params' not in st.session_state:
+    st.session_state.last_simple_params = None
+if 'mult_model_cache' not in st.session_state:
+    st.session_state.mult_model_cache = None
+if 'simple_model_cache' not in st.session_state:
+    st.session_state.simple_model_cache = None
+
 # Custom CSS
 st.markdown("""
 <style>
@@ -144,18 +159,49 @@ with st.sidebar.expander("🎛️ Daten-Parameter (Multiple Regression)", expand
                                   help="Zufallsseed für Reproduzierbarkeit", key="seed_mult_elektro")
 
 # === MULTIPLE REGRESSION DATA PREPARATION ===
-with st.spinner("Lade Datensatz..."):
-    mult_data = generate_multiple_regression_data(dataset_choice_mult, n_mult, noise_mult_level, seed_mult)
-    x2_preis = mult_data['x2_preis']
-    x3_werbung = mult_data['x3_werbung']
-    y_mult = mult_data['y_mult']
-    x1_name = mult_data['x1_name']
-    x2_name = mult_data['x2_name']
-    y_name = mult_data['y_name']
-    
-    X_mult = sm.add_constant(np.column_stack([x2_preis, x3_werbung]))
-    model_mult = sm.OLS(y_mult, X_mult).fit()
-    y_pred_mult = model_mult.predict(X_mult)
+# Create parameter tuple for cache comparison
+mult_params = (dataset_choice_mult, n_mult, noise_mult_level, seed_mult)
+
+# Check if we need to regenerate data
+if st.session_state.last_mult_params != mult_params or st.session_state.mult_model_cache is None:
+    with st.spinner("🔄 Lade Datensatz für Multiple Regression..."):
+        mult_data = generate_multiple_regression_data(dataset_choice_mult, n_mult, noise_mult_level, seed_mult)
+        x2_preis = mult_data['x2_preis']
+        x3_werbung = mult_data['x3_werbung']
+        y_mult = mult_data['y_mult']
+        x1_name = mult_data['x1_name']
+        x2_name = mult_data['x2_name']
+        y_name = mult_data['y_name']
+        
+        X_mult = sm.add_constant(np.column_stack([x2_preis, x3_werbung]))
+        model_mult = sm.OLS(y_mult, X_mult).fit()
+        y_pred_mult = model_mult.predict(X_mult)
+        
+        # Cache the results
+        st.session_state.mult_model_cache = {
+            'x2_preis': x2_preis,
+            'x3_werbung': x3_werbung,
+            'y_mult': y_mult,
+            'x1_name': x1_name,
+            'x2_name': x2_name,
+            'y_name': y_name,
+            'X_mult': X_mult,
+            'model_mult': model_mult,
+            'y_pred_mult': y_pred_mult
+        }
+        st.session_state.last_mult_params = mult_params
+else:
+    # Use cached data
+    cached = st.session_state.mult_model_cache
+    x2_preis = cached['x2_preis']
+    x3_werbung = cached['x3_werbung']
+    y_mult = cached['y_mult']
+    x1_name = cached['x1_name']
+    x2_name = cached['x2_name']
+    y_name = cached['y_name']
+    X_mult = cached['X_mult']
+    model_mult = cached['model_mult']
+    y_pred_mult = cached['y_pred_mult']
 
     st.sidebar.markdown("---")
     with st.sidebar.expander("🔧 Anzeigeoptionen", expanded=False):
@@ -195,11 +241,33 @@ with st.sidebar.expander("🎛️ Daten-Parameter (Einfache Regression)", expand
                               help="Zufallsseed für Reproduzierbarkeit")
         
         # Simulierte Daten generieren
-        with st.spinner("Generiere Daten..."):
-            np.random.seed(int(seed))
-            x = np.linspace(2, 12, n)  # Verkaufsfläche in 100qm (200-1200qm)
-            noise = np.random.normal(0, noise_level, n)
-            y = true_intercept + true_beta * x + noise  # Umsatz in Mio. €
+        simple_params = (dataset_choice, n, true_intercept, true_beta, noise_level, seed)
+        if st.session_state.last_simple_params != simple_params:
+            with st.spinner("🔄 Generiere Daten..."):
+                np.random.seed(int(seed))
+                x = np.linspace(2, 12, n)  # Verkaufsfläche in 100qm (200-1200qm)
+                noise = np.random.normal(0, noise_level, n)
+                y = true_intercept + true_beta * x + noise  # Umsatz in Mio. €
+                st.session_state.last_simple_params = simple_params
+                # Store the generated data temporarily
+                if 'simple_data_temp' not in st.session_state:
+                    st.session_state.simple_data_temp = {}
+                st.session_state.simple_data_temp['x'] = x
+                st.session_state.simple_data_temp['y'] = y
+        else:
+            # Use cached data if params haven't changed
+            if 'simple_data_temp' in st.session_state and st.session_state.simple_data_temp:
+                x = st.session_state.simple_data_temp['x']
+                y = st.session_state.simple_data_temp['y']
+            elif st.session_state.simple_model_cache and 'x' in st.session_state.simple_model_cache:
+                x = st.session_state.simple_model_cache['x']
+                y = st.session_state.simple_model_cache['y']
+            else:
+                # Fallback: regenerate if no cache available
+                np.random.seed(int(seed))
+                x = np.linspace(2, 12, n)
+                noise = np.random.normal(0, noise_level, n)
+                y = true_intercept + true_beta * x + noise
         
         # Variablen-Namen für konsistente Anzeige
         x_label = "Verkaufsfläche (100qm)"
@@ -298,32 +366,109 @@ with st.sidebar.expander("🎛️ Daten-Parameter (Einfache Regression)", expand
 # ---------------------------------------------------------
 # MODELL & KENNZAHLEN BERECHNEN (nur einfache Regression)
 # ---------------------------------------------------------
-df = pd.DataFrame({
-    x_label: x,
-    y_label: y
-})
+# Build parameter tuple for cache validation (avoid hashing large arrays)
+# Use array shape and basic properties instead of full array content
+simple_model_key = (
+    dataset_choice, 
+    len(x) if isinstance(x, np.ndarray) else 0,
+    float(x.mean()) if isinstance(x, np.ndarray) and len(x) > 0 else 0,
+    float(y.mean()) if isinstance(y, np.ndarray) and len(y) > 0 else 0,
+)
 
-X = sm.add_constant(x)
-model = sm.OLS(y, X).fit()
-y_pred = model.predict(X)
-y_mean = np.mean(y)
+# Check if we need to recompute the model
+needs_recompute = (
+    st.session_state.simple_model_cache is None or 
+    'model_key' not in st.session_state.simple_model_cache or
+    st.session_state.simple_model_cache.get('model_key') != simple_model_key
+)
 
-b0, b1 = model.params[0], model.params[1]
-sse = np.sum((y - y_pred)**2)
-sst = np.sum((y - y_mean)**2)
-ssr = sst - sse
-mse = sse / (n - 2)
-msr = ssr / 1
-se_regression = np.sqrt(mse)
-sb1, sb0 = model.bse[1], model.bse[0]
-t_val = model.tvalues[1]
-f_val = model.fvalue
-df_resid = int(model.df_resid)
-x_mean, y_mean_val = np.mean(x), np.mean(y)
-cov_xy = np.sum((x - x_mean) * (y - y_mean_val)) / (n - 1)
-var_x = np.var(x, ddof=1)
-var_y = np.var(y, ddof=1)
-corr_xy = cov_xy / (np.sqrt(var_x) * np.sqrt(var_y))
+if needs_recompute:
+    
+    with st.spinner("📊 Berechne Regressionsmodell..."):
+        df = pd.DataFrame({
+            x_label: x,
+            y_label: y
+        })
+        
+        X = sm.add_constant(x)
+        model = sm.OLS(y, X).fit()
+        y_pred = model.predict(X)
+        y_mean = np.mean(y)
+        
+        b0, b1 = model.params[0], model.params[1]
+        sse = np.sum((y - y_pred)**2)
+        sst = np.sum((y - y_mean)**2)
+        ssr = sst - sse
+        mse = sse / (n - 2)
+        msr = ssr / 1
+        se_regression = np.sqrt(mse)
+        sb1, sb0 = model.bse[1], model.bse[0]
+        t_val = model.tvalues[1]
+        f_val = model.fvalue
+        df_resid = int(model.df_resid)
+        x_mean, y_mean_val = np.mean(x), np.mean(y)
+        cov_xy = np.sum((x - x_mean) * (y - y_mean_val)) / (n - 1)
+        var_x = np.var(x, ddof=1)
+        var_y = np.var(y, ddof=1)
+        corr_xy = cov_xy / (np.sqrt(var_x) * np.sqrt(var_y))
+        
+        # Cache all computed values
+        st.session_state.simple_model_cache = {
+            'model_key': simple_model_key,
+            'df': df,
+            'X': X,
+            'model': model,
+            'y_pred': y_pred,
+            'y_mean': y_mean,
+            'b0': b0,
+            'b1': b1,
+            'sse': sse,
+            'sst': sst,
+            'ssr': ssr,
+            'mse': mse,
+            'msr': msr,
+            'se_regression': se_regression,
+            'sb1': sb1,
+            'sb0': sb0,
+            't_val': t_val,
+            'f_val': f_val,
+            'df_resid': df_resid,
+            'x_mean': x_mean,
+            'y_mean_val': y_mean_val,
+            'cov_xy': cov_xy,
+            'var_x': var_x,
+            'var_y': var_y,
+            'corr_xy': corr_xy,
+            'x': x,
+            'y': y
+        }
+else:
+    # Use cached model results
+    cached = st.session_state.simple_model_cache
+    df = cached['df']
+    X = cached['X']
+    model = cached['model']
+    y_pred = cached['y_pred']
+    y_mean = cached['y_mean']
+    b0 = cached['b0']
+    b1 = cached['b1']
+    sse = cached['sse']
+    sst = cached['sst']
+    ssr = cached['ssr']
+    mse = cached['mse']
+    msr = cached['msr']
+    se_regression = cached['se_regression']
+    sb1 = cached['sb1']
+    sb0 = cached['sb0']
+    t_val = cached['t_val']
+    f_val = cached['f_val']
+    df_resid = cached['df_resid']
+    x_mean = cached['x_mean']
+    y_mean_val = cached['y_mean_val']
+    cov_xy = cached['cov_xy']
+    var_x = cached['var_x']
+    var_y = cached['var_y']
+    corr_xy = cached['corr_xy']
 # =========================================================
 
 # =========================================================
@@ -374,27 +519,28 @@ with col_m1_1:
     
     with col_m1_2:
         # 3D Visualisierung: Ebene statt Linie
-        # Erstelle Mesh für die Ebene using helper function
-        X1_mesh, X2_mesh, Y_mesh = create_regression_mesh(x2_preis, x3_werbung, model_mult.params)
-        
-        # Create plotly 3D surface plot
-        fig_3d_plane = create_plotly_3d_surface(
-            X1_mesh, X2_mesh, Y_mesh,
-            x2_preis, x3_werbung, y_mult,
-            x1_label=x1_name,
-            x2_label=x2_name,
-            y_label=y_name,
-            title='Multiple Regression: Ebene statt Gerade'
-        )
-        
-        fig_3d_plane.update_layout(scene=dict(
-            xaxis_title=x1_name,
-            yaxis_title=x2_name,
-            zaxis_title=y_name,
-            camera=dict(eye=dict(x=1.5, y=-1.5, z=1.2))
-        ))
-        
-        st.plotly_chart(fig_3d_plane, use_container_width=True)
+        with st.spinner("🎨 Erstelle 3D-Visualisierung..."):
+            # Erstelle Mesh für die Ebene using helper function
+            X1_mesh, X2_mesh, Y_mesh = create_regression_mesh(x2_preis, x3_werbung, model_mult.params)
+            
+            # Create plotly 3D surface plot
+            fig_3d_plane = create_plotly_3d_surface(
+                X1_mesh, X2_mesh, Y_mesh,
+                x2_preis, x3_werbung, y_mult,
+                x1_label=x1_name,
+                x2_label=x2_name,
+                y_label=y_name,
+                title='Multiple Regression: Ebene statt Gerade'
+            )
+            
+            fig_3d_plane.update_layout(scene=dict(
+                xaxis_title=x1_name,
+                yaxis_title=x2_name,
+                zaxis_title=y_name,
+                camera=dict(eye=dict(x=1.5, y=-1.5, z=1.2))
+            ))
+            
+            st.plotly_chart(fig_3d_plane, use_container_width=True)
         
     # =========================================================
     # M2: DAS GRUNDMODELL
@@ -543,54 +689,55 @@ with col_m1_1:
     # 3D Residual Visualization
     st.markdown("### 🎲 3D-Visualisierung: Residuen als Abstände zur Regressions-Ebene")
     
-    # Create 3D residual plot using helper function
-    X1_mesh, X2_mesh, Y_mesh = create_regression_mesh(x2_preis, x3_werbung, model_mult.params)
-    
-    fig_3d_resid = go.Figure()
-    
-    # Add regression surface
-    fig_3d_resid.add_trace(go.Surface(
-        x=X1_mesh, y=X2_mesh, z=Y_mesh,
-        colorscale='Viridis',
-        opacity=0.7,
-        name='Regression Plane',
-        showscale=False
-    ))
-    
-    # Add data points
-    fig_3d_resid.add_trace(go.Scatter3d(
-        x=x2_preis, y=x3_werbung, z=y_mult,
-        mode='markers',
-        marker=dict(size=5, color='red', opacity=0.8),
-        name='Datenpunkte'
-    ))
-    
-    # Add residual lines
-    for i in range(len(x2_preis)):
-        fig_3d_resid.add_trace(go.Scatter3d(
-            x=[x2_preis[i], x2_preis[i]],
-            y=[x3_werbung[i], x3_werbung[i]],
-            z=[y_pred_mult[i], y_mult[i]],
-            mode='lines',
-            line=dict(color='black', width=2),
-            opacity=0.3,
-            showlegend=False
+    with st.spinner("🎨 Erstelle 3D-Residuenplot..."):
+        # Create 3D residual plot using helper function
+        X1_mesh, X2_mesh, Y_mesh = create_regression_mesh(x2_preis, x3_werbung, model_mult.params)
+        
+        fig_3d_resid = go.Figure()
+        
+        # Add regression surface
+        fig_3d_resid.add_trace(go.Surface(
+            x=X1_mesh, y=X2_mesh, z=Y_mesh,
+            colorscale='Viridis',
+            opacity=0.7,
+            name='Regression Plane',
+            showscale=False
         ))
-    
-    fig_3d_resid.update_layout(
-        title='OLS: Minimierung der Residuen-Quadratsumme<br>(Vertikale Abstände zur Ebene)',
-        scene=dict(
-            xaxis_title=x1_name,
-            yaxis_title=x2_name,
-            zaxis_title=y_name,
-            camera=dict(eye=dict(x=1.5, y=-1.5, z=1.2))
-        ),
-        template='plotly_white',
-        height=600
-    )
-    
-    
-    st.plotly_chart(fig_3d_resid, use_container_width=True)
+        
+        # Add data points
+        fig_3d_resid.add_trace(go.Scatter3d(
+            x=x2_preis, y=x3_werbung, z=y_mult,
+            mode='markers',
+            marker=dict(size=5, color='red', opacity=0.8),
+            name='Datenpunkte'
+        ))
+        
+        # Add residual lines
+        for i in range(len(x2_preis)):
+            fig_3d_resid.add_trace(go.Scatter3d(
+                x=[x2_preis[i], x2_preis[i]],
+                y=[x3_werbung[i], x3_werbung[i]],
+                z=[y_pred_mult[i], y_mult[i]],
+                mode='lines',
+                line=dict(color='black', width=2),
+                opacity=0.3,
+                showlegend=False
+            ))
+        
+        fig_3d_resid.update_layout(
+            title='OLS: Minimierung der Residuen-Quadratsumme<br>(Vertikale Abstände zur Ebene)',
+            scene=dict(
+                xaxis_title=x1_name,
+                yaxis_title=x2_name,
+                zaxis_title=y_name,
+                camera=dict(eye=dict(x=1.5, y=-1.5, z=1.2))
+            ),
+            template='plotly_white',
+            height=600
+        )
+        
+        
+        st.plotly_chart(fig_3d_resid, use_container_width=True)
             
     st.info("""
     **💡 3D-Interpretation:**
@@ -680,83 +827,84 @@ with col_m1_1:
     # 3D Variance Decomposition
     st.markdown("### 🎲 3D-Visualisierung: Varianzzerlegung im Prädiktorraum")
     
-    # Create side-by-side 3D plots using plotly subplots
-    fig_3d_var = make_subplots(
-        rows=1, cols=2,
-        specs=[[{'type': 'scatter3d'}, {'type': 'scatter3d'}]],
-        subplot_titles=(f'SSR (Erklärt): {ssr_mult:.1f}<br>Varianz durch Modell',
-                      f'SSE (Unerklärt): {sse_mult:.1f}<br>Nicht erfasste Varianz')
-    )
-    
-    # Left: Explained variance (SSR)
-    fig_3d_var.add_trace(
-        go.Scatter3d(
-            x=x2_preis, y=x3_werbung, z=y_pred_mult,
-            mode='markers',
-            marker=dict(
-                size=5,
-                color=y_pred_mult,
-                colorscale='Greens',
-                opacity=0.7,
-                showscale=True,
-                colorbar=dict(x=0.45, len=0.5)
-            ),
-            name='Predicted'
-        ),
-        row=1, col=1
-    )
-    
-    # Right: Unexplained variance (SSE)
-    residual_sizes = 3 + np.abs(model_mult.resid) * 5  # Scale for visibility
-    fig_3d_var.add_trace(
-        go.Scatter3d(
-            x=x2_preis, y=x3_werbung, z=model_mult.resid,
-            mode='markers',
-            marker=dict(
-                size=residual_sizes,
-                color=model_mult.resid,
-                colorscale='Reds',
-                opacity=0.7,
-                showscale=True,
-                colorbar=dict(x=1.05, len=0.5)
-            ),
-            name='Residuals'
-        ),
-        row=1, col=2
-    )
-    
-    # Add zero plane for residuals
-    x_range = [x2_preis.min(), x2_preis.max()]
-    y_range = [x3_werbung.min(), x3_werbung.max()]
-    xx, yy = np.meshgrid(x_range, y_range)
-    zz = np.zeros_like(xx)
-    
-    fig_3d_var.add_trace(
-        go.Surface(x=xx, y=yy, z=zz, opacity=0.2,
-                  colorscale=[[0, 'gray'], [1, 'gray']],
-                  showscale=False),
-        row=1, col=2
-    )
-    
-    fig_3d_var.update_layout(
-        height=600,
-        template='plotly_white',
-        scene=dict(
-            xaxis_title=x1_name,
-            yaxis_title=x2_name,
-            zaxis_title=y_name,
-            camera=dict(eye=dict(x=1.5, y=-1.5, z=1.2))
-        ),
-        scene2=dict(
-            xaxis_title=x1_name,
-            yaxis_title=x2_name,
-            zaxis_title='Residuen',
-            camera=dict(eye=dict(x=1.5, y=-1.5, z=1.2))
+    with st.spinner("🎨 Erstelle Varianzzerlegungs-Visualisierung..."):
+        # Create side-by-side 3D plots using plotly subplots
+        fig_3d_var = make_subplots(
+            rows=1, cols=2,
+            specs=[[{'type': 'scatter3d'}, {'type': 'scatter3d'}]],
+            subplot_titles=(f'SSR (Erklärt): {ssr_mult:.1f}<br>Varianz durch Modell',
+                          f'SSE (Unerklärt): {sse_mult:.1f}<br>Nicht erfasste Varianz')
         )
-    )
-    
-    
-    st.plotly_chart(fig_3d_var, use_container_width=True)
+        
+        # Left: Explained variance (SSR)
+        fig_3d_var.add_trace(
+            go.Scatter3d(
+                x=x2_preis, y=x3_werbung, z=y_pred_mult,
+                mode='markers',
+                marker=dict(
+                    size=5,
+                    color=y_pred_mult,
+                    colorscale='Greens',
+                    opacity=0.7,
+                    showscale=True,
+                    colorbar=dict(x=0.45, len=0.5)
+                ),
+                name='Predicted'
+            ),
+            row=1, col=1
+        )
+        
+        # Right: Unexplained variance (SSE)
+        residual_sizes = 3 + np.abs(model_mult.resid) * 5  # Scale for visibility
+        fig_3d_var.add_trace(
+            go.Scatter3d(
+                x=x2_preis, y=x3_werbung, z=model_mult.resid,
+                mode='markers',
+                marker=dict(
+                    size=residual_sizes,
+                    color=model_mult.resid,
+                    colorscale='Reds',
+                    opacity=0.7,
+                    showscale=True,
+                    colorbar=dict(x=1.05, len=0.5)
+                ),
+                name='Residuals'
+            ),
+            row=1, col=2
+        )
+        
+        # Add zero plane for residuals
+        x_range = [x2_preis.min(), x2_preis.max()]
+        y_range = [x3_werbung.min(), x3_werbung.max()]
+        xx, yy = np.meshgrid(x_range, y_range)
+        zz = np.zeros_like(xx)
+        
+        fig_3d_var.add_trace(
+            go.Surface(x=xx, y=yy, z=zz, opacity=0.2,
+                      colorscale=[[0, 'gray'], [1, 'gray']],
+                      showscale=False),
+            row=1, col=2
+        )
+        
+        fig_3d_var.update_layout(
+            height=600,
+            template='plotly_white',
+            scene=dict(
+                xaxis_title=x1_name,
+                yaxis_title=x2_name,
+                zaxis_title=y_name,
+                camera=dict(eye=dict(x=1.5, y=-1.5, z=1.2))
+            ),
+            scene2=dict(
+                xaxis_title=x1_name,
+                yaxis_title=x2_name,
+                zaxis_title='Residuen',
+                camera=dict(eye=dict(x=1.5, y=-1.5, z=1.2))
+            )
+        )
+        
+        
+        st.plotly_chart(fig_3d_var, use_container_width=True)
             
     st.info(f"""
     **💡 3D-Interpretation:**

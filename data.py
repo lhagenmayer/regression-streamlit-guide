@@ -7,6 +7,7 @@ This module contains all data generation functions and data manipulation utiliti
 from typing import Dict, Optional, Union, Any
 import numpy as np
 import pandas as pd
+import streamlit as st
 
 
 def safe_scalar(val: Union[pd.Series, np.ndarray, float, int]) -> float:
@@ -16,6 +17,7 @@ def safe_scalar(val: Union[pd.Series, np.ndarray, float, int]) -> float:
     return float(val)
 
 
+@st.cache_data
 def generate_dataset(name: str, seed: int = 42) -> Optional[Dict[str, Any]]:
     """
     Generiert einen Datensatz basierend auf dem Namen.
@@ -71,6 +73,7 @@ def generate_dataset(name: str, seed: int = 42) -> Optional[Dict[str, Any]]:
     return None
 
 
+@st.cache_data
 def generate_multiple_regression_data(
     dataset_choice_mult: str, 
     n_mult: int, 
@@ -144,6 +147,7 @@ def generate_multiple_regression_data(
     }
 
 
+@st.cache_data
 def generate_simple_regression_data(
     dataset_choice: str, 
     x_variable: str, 
