@@ -1,29 +1,89 @@
 [flake8]
-max-line-length = 100
+# Configuration for Flake8 - Python code linting
+# Compatible with Black formatter
+
+# Basic settings
+max-line-length = 120
+max-complexity = 15
+max-doc-length = 100
+docstring-convention = google
+
+# Extend ignore list for Black compatibility and practical exceptions
 extend-ignore =
-    # E203: whitespace before ':' (conflicts with Black)
-    E203,
-    # W503: line break before binary operator (conflicts with Black)
-    W503,
-    # E501: line too long (handled by Black)
-    E501,
-    # F541: f-string without placeholders (minor issue)
-    F541,
+    # Black compatibility
+    E203,  # whitespace before ':' (conflicts with Black)
+    W503,  # line break before binary operator (conflicts with Black)
+    E501,  # line too long (handled by Black)
+
+    # Practical exceptions
+    F541,  # f-string without placeholders (minor issue)
+    S101,  # Use of assert detected (OK in tests)
+    T201,  # print found (OK in scripts)
+    T203,  # pprint found (OK in scripts)
+
+# Select specific error codes to check
+select = E,W,F,C,S,T
+extend-select =
+    # Docstring checks
+    D100,D101,D102,D103,D104,D105,D106,D107,
+    # Complexity
+    C901,
+    # Naming
+    N801,N802,N803,N804,N805,N806,N807,N811,N812,N813,N814,N815,N816,N817,N818
+
+# Exclude directories and files
 exclude =
     .git,
     __pycache__,
+    .pytest_cache,
+    .mypy_cache,
+    .tox,
     .venv,
     venv,
     env,
+    .env,
     .eggs,
     *.egg,
     build,
     dist,
     htmlcov,
-    .pytest_cache,
-    .mypy_cache,
-    .tox
+    .coverage,
+    coverage.xml,
+    .DS_Store,
+    *.pyc,
+    *.pyo,
+    *.pyd,
+    .Python,
+    .vscode,
+    .idea,
+    node_modules
+
+# Per-file ignores for specific cases
 per-file-ignores =
-    # Ignore import errors in __init__.py
+    # Tests can have asserts and prints
+    tests/*.py:S101,T201,T203
+    # __init__.py files can have unused imports
     __init__.py:F401
-max-complexity = 15
+    # Scripts can have prints and TODOs
+    scripts/*.py:T100,T201,T203
+    # Configuration files may need specific ignores
+    conftest.py:F401
+
+# Docstring settings
+docstring-convention = google
+check-docstring = true
+
+# Inline quotes (match Black)
+inline-quotes = double
+
+# Ban certain imports
+banned-modules =
+    # Use pathlib instead
+    os.path = use pathlib.Path instead
+    # Use sys.exit instead
+    exit = use sys.exit instead
+
+# Count errors and warnings
+count = true
+statistics = true
+show-source = false
