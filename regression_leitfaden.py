@@ -1924,9 +1924,6 @@ elif regression_type == "📈 Einfache Regression":
                               help="Bewege den Slider um zu sehen, wie sich die gemeinsame Verteilung verändert",
                               key="demo_corr_slider")
     
-        # Toggle für 3D-Ansicht
-        show_3d_joint = st.toggle("🎲 3D-Ansicht aktivieren", value=False, key="toggle_3d_joint")
-    
         # Bivariate Normalverteilung generieren
         from scipy.stats import multivariate_normal
     
@@ -1941,170 +1938,99 @@ elif regression_type == "📈 Einfache Regression":
         rv = multivariate_normal(mean, cov_matrix)
         Z = rv.pdf(pos)
     
-        if show_3d_joint:
-            # === 3D VERSION ===
-            fig_joint_3d = make_subplots(
-                rows=1, cols=3,
-                specs=[[{'type': 'surface'}, {'type': 'scatter3d'}, {'type': 'surface'}]],
-                subplot_titles=(
-                    f'Gemeinsame Verteilung<br>ρ = {demo_corr:.2f}',
-                    'Randverteilung f_X(x)',
-                    f'Bedingte Verteilung<br>E(Y|X=1) = {demo_corr * 1.0:.2f}'
-                )
+        # === 3D VERSION ===
+        fig_joint_3d = make_subplots(
+            rows=1, cols=3,
+            specs=[[{'type': 'surface'}, {'type': 'scatter3d'}, {'type': 'surface'}]],
+            subplot_titles=(
+                f'Gemeinsame Verteilung<br>ρ = {demo_corr:.2f}',
+                'Randverteilung f_X(x)',
+                f'Bedingte Verteilung<br>E(Y|X=1) = {demo_corr * 1.0:.2f}'
             )
+        )
+    
+        # 1. 3D Surface Plot der gemeinsamen Verteilung
+        fig_joint_3d.add_trace(
+            go.Surface(x=X_grid, y=Y_grid, z=Z, colorscale='Blues', opacity=0.8, showscale=False),
+            row=1, col=1
+        )
         
-            # 1. 3D Surface Plot der gemeinsamen Verteilung
-            fig_joint_3d.add_trace(
-                go.Surface(x=X_grid, y=Y_grid, z=Z, colorscale='Blues', opacity=0.8, showscale=False),
-                row=1, col=1
-            )
-            
-            # Stichprobe als Punkte auf z=0
-            np.random.seed(42)
-            sample = np.random.multivariate_normal(mean, cov_matrix, 100)
-            fig_joint_3d.add_trace(
-                go.Scatter3d(x=sample[:, 0], y=sample[:, 1], z=np.zeros(100),
-                           mode='markers', marker=dict(size=2, color='red', opacity=0.3),
-                           showlegend=False),
-                row=1, col=1
-            )
+        # Stichprobe als Punkte auf z=0
+        np.random.seed(42)
+        sample = np.random.multivariate_normal(mean, cov_matrix, 100)
+        fig_joint_3d.add_trace(
+            go.Scatter3d(x=sample[:, 0], y=sample[:, 1], z=np.zeros(100),
+                       mode='markers', marker=dict(size=2, color='red', opacity=0.3),
+                       showlegend=False),
+            row=1, col=1
+        )
+    
+        # 2. Randverteilung als 3D
+        x_marg = np.linspace(-3, 3, 100)
+        y_marg_pdf = stats.norm.pdf(x_marg, 0, 1)
         
-            # 2. Randverteilung als 3D
-            x_marg = np.linspace(-3, 3, 100)
-            y_marg_pdf = stats.norm.pdf(x_marg, 0, 1)
-            
-            # Main curve at z=0
+        # Main curve at z=0
+        fig_joint_3d.add_trace(
+            go.Scatter3d(x=x_marg, y=y_marg_pdf, z=np.zeros_like(x_marg),
+                       mode='lines', line=dict(color='blue', width=4),
+                       showlegend=False),
+            row=1, col=2
+        )
+        
+        # Vertical lines
+        for i in range(0, len(x_marg), 5):
             fig_joint_3d.add_trace(
-                go.Scatter3d(x=x_marg, y=y_marg_pdf, z=np.zeros_like(x_marg),
-                           mode='lines', line=dict(color='blue', width=4),
-                           showlegend=False),
+                go.Scatter3d(x=[x_marg[i], x_marg[i]], y=[0, 0], z=[0, y_marg_pdf[i]],
+                           mode='lines', line=dict(color='blue', width=1),
+                           opacity=0.3, showlegend=False),
                 row=1, col=2
             )
-            
-            # Vertical lines
-            for i in range(0, len(x_marg), 5):
-                fig_joint_3d.add_trace(
-                    go.Scatter3d(x=[x_marg[i], x_marg[i]], y=[0, 0], z=[0, y_marg_pdf[i]],
-                               mode='lines', line=dict(color='blue', width=1),
-                               opacity=0.3, showlegend=False),
-                    row=1, col=2
-                )
+    
+        # 3. Bedingte Verteilung als 3D-Schnitt
+        x_cond = 1.0
+        cond_mean = demo_corr * x_cond
+        cond_var = max(1 - demo_corr**2, 0.01)
+        cond_std = np.sqrt(cond_var)
+    
+        y_cond_grid = np.linspace(-3, 3, 100)
+        pdf_cond = stats.norm.pdf(y_cond_grid, cond_mean, cond_std)
+    
+        # Bedingte Verteilung Kurve
+        fig_joint_3d.add_trace(
+            go.Scatter3d(x=np.full_like(y_cond_grid, x_cond), y=y_cond_grid, z=pdf_cond,
+                       mode='lines', line=dict(color='green', width=4),
+                       showlegend=False),
+            row=1, col=3
+        )
         
-            # 3. Bedingte Verteilung als 3D-Schnitt
-            x_cond = 1.0
-            cond_mean = demo_corr * x_cond
-            cond_var = max(1 - demo_corr**2, 0.01)
-            cond_std = np.sqrt(cond_var)
-        
-            y_cond_grid = np.linspace(-3, 3, 100)
-            pdf_cond = stats.norm.pdf(y_cond_grid, cond_mean, cond_std)
-        
-            # Bedingte Verteilung Kurve
+        # Vertical lines
+        for i in range(0, len(y_cond_grid), 5):
             fig_joint_3d.add_trace(
-                go.Scatter3d(x=np.full_like(y_cond_grid, x_cond), y=y_cond_grid, z=pdf_cond,
-                           mode='lines', line=dict(color='green', width=4),
-                           showlegend=False),
-                row=1, col=3
-            )
-            
-            # Vertical lines
-            for i in range(0, len(y_cond_grid), 5):
-                fig_joint_3d.add_trace(
-                    go.Scatter3d(x=[x_cond, x_cond], y=[y_cond_grid[i], y_cond_grid[i]], z=[0, pdf_cond[i]],
-                               mode='lines', line=dict(color='green', width=1),
-                               opacity=0.3, showlegend=False),
-                    row=1, col=3
-                )
-            
-            # Fläche füllen
-            fig_joint_3d.add_trace(
-                go.Surface(x=X_grid, y=Y_grid, z=Z, colorscale='Blues', opacity=0.3, showscale=False),
+                go.Scatter3d(x=[x_cond, x_cond], y=[y_cond_grid[i], y_cond_grid[i]], z=[0, pdf_cond[i]],
+                           mode='lines', line=dict(color='green', width=1),
+                           opacity=0.3, showlegend=False),
                 row=1, col=3
             )
         
-            # Update layout
-            fig_joint_3d.update_layout(
-                height=500,
-                showlegend=False,
-                scene1=dict(xaxis_title='X', yaxis_title='Y', zaxis_title='f(X,Y)',
-                           camera=dict(eye=dict(x=1.5, y=-1.5, z=1.2))),
-                scene2=dict(xaxis_title='X', yaxis_title='', zaxis_title='f_X(x)',
-                           camera=dict(eye=dict(x=1.5, y=-1.8, z=1.0))),
-                scene3=dict(xaxis_title='X', yaxis_title='Y', zaxis_title='f(Y|X=1)',
-                           camera=dict(eye=dict(x=1.5, y=-1.8, z=1.0)))
-            )
-        
-            st.plotly_chart(fig_joint_3d, use_container_width=True)
-                    
-        else:
-            # === 2D VERSION (Original) ===
-            fig_joint = make_subplots(
-                rows=1, cols=3,
-                subplot_titles=(
-                    f'Gemeinsame Verteilung f(X,Y)<br>ρ = {demo_corr:.2f}',
-                    'Randverteilung f_X(x)<br>(Marginale von X)',
-                    f'Bedingte Verteilung f(Y|X=1)<br>σ² = {(1 - demo_corr**2):.2f}'
-                )
-            )
-        
-            # 1. Contour Plot der gemeinsamen Verteilung
-            fig_joint.add_trace(
-                go.Contour(x=x_grid, y=y_grid, z=Z, colorscale='Blues', showscale=False),
-                row=1, col=1
-            )
-            
-            # Grid lines
-            fig_joint.add_hline(y=0, line_dash="dash", line_color="gray", opacity=0.5, row=1, col=1)
-            fig_joint.add_vline(x=0, line_dash="dash", line_color="gray", opacity=0.5, row=1, col=1)
-        
-            # Stichprobe einzeichnen
-            np.random.seed(42)
-            sample = np.random.multivariate_normal(mean, cov_matrix, 100)
-            fig_joint.add_trace(
-                go.Scatter(x=sample[:, 0], y=sample[:, 1], mode='markers',
-                          marker=dict(size=4, color='red', opacity=0.3),
-                          name='Stichprobe', showlegend=False),
-                row=1, col=1
-            )
-        
-            # 2. Randverteilung f_X (oben projiziert)
-            x_pdf = stats.norm.pdf(x_grid, 0, 1)
-            fig_joint.add_trace(
-                go.Scatter(x=x_grid, y=x_pdf, fill='tozeroy', fillcolor='rgba(0,0,255,0.3)',
-                          line=dict(color='blue', width=2), showlegend=False),
-                row=1, col=2
-            )
-            fig_joint.add_vline(x=0, line_dash="dash", line_color="orange", annotation_text="E(X) = 0",
-                              row=1, col=2)
-        
-            # 3. Bedingte Verteilung f(Y|X=1)
-            x_cond = 1.0
-            cond_mean = demo_corr * x_cond
-            cond_var = 1 - demo_corr**2
-            cond_std = np.sqrt(max(cond_var, 0.01))
-        
-            y_cond_grid = np.linspace(-3, 3, 100)
-            pdf_cond = stats.norm.pdf(y_cond_grid, cond_mean, cond_std)
-        
-            fig_joint.add_trace(
-                go.Scatter(x=y_cond_grid, y=pdf_cond, fill='tozeroy', fillcolor='rgba(0,255,0,0.3)',
-                          line=dict(color='green', width=2), showlegend=False),
-                row=1, col=3
-            )
-            fig_joint.add_vline(x=cond_mean, line_dash="dash", line_color="red", line_width=2,
-                              annotation_text=f'E(Y|X={x_cond}) = {cond_mean:.2f}', row=1, col=3)
-        
-            # Update layout
-            fig_joint.update_xaxes(title_text="X", row=1, col=1, showgrid=True, gridcolor='lightgray')
-            fig_joint.update_yaxes(title_text="Y", row=1, col=1, showgrid=True, gridcolor='lightgray')
-            fig_joint.update_xaxes(title_text="X", row=1, col=2, showgrid=True, gridcolor='lightgray')
-            fig_joint.update_yaxes(title_text="f_X(x)", row=1, col=2, showgrid=True, gridcolor='lightgray')
-            fig_joint.update_xaxes(title_text="Y", row=1, col=3, showgrid=True, gridcolor='lightgray')
-            fig_joint.update_yaxes(title_text="f(Y|X=1)", row=1, col=3, showgrid=True, gridcolor='lightgray')
-            
-            fig_joint.update_layout(height=400, showlegend=False)
-        
-            st.plotly_chart(fig_joint, use_container_width=True)
+        # Fläche füllen
+        fig_joint_3d.add_trace(
+            go.Surface(x=X_grid, y=Y_grid, z=Z, colorscale='Blues', opacity=0.3, showscale=False),
+            row=1, col=3
+        )
+    
+        # Update layout
+        fig_joint_3d.update_layout(
+            height=500,
+            showlegend=False,
+            scene1=dict(xaxis_title='X', yaxis_title='Y', zaxis_title='f(X,Y)',
+                       camera=dict(eye=dict(x=1.5, y=-1.5, z=1.2))),
+            scene2=dict(xaxis_title='X', yaxis_title='', zaxis_title='f_X(x)',
+                       camera=dict(eye=dict(x=1.5, y=-1.8, z=1.0))),
+            scene3=dict(xaxis_title='X', yaxis_title='Y', zaxis_title='f(Y|X=1)',
+                       camera=dict(eye=dict(x=1.5, y=-1.8, z=1.0)))
+        )
+    
+        st.plotly_chart(fig_joint_3d, use_container_width=True)
             
     with col_joint2:
         if show_formulas:
@@ -2302,151 +2228,66 @@ elif regression_type == "📈 Einfache Regression":
     col_cov1, col_cov2 = st.columns([2, 1])
 
     with col_cov1:
-        show_3d_cov = st.toggle("📊 3D-Ansicht aktivieren (Kovarianz)", value=False, key="toggle_3d_cov")
+        # 3D Visualisierung: Vertikale Säulen
+        fig_cov = go.Figure()
     
-        if show_3d_cov:
-            # 3D Visualisierung: Vertikale Säulen
-            fig_cov = go.Figure()
+        x_mean_val = x.mean()
+        y_mean_val_local = y.mean()
+    
+        # Daten-Säulen als 3D bars (using mesh3d for bars)
+        for i in range(len(x)):
+            dx = x[i] - x_mean_val
+            dy = y[i] - y_mean_val_local
+            product = dx * dy
+            color = 'green' if product > 0 else 'red'
         
-            x_mean_val = x.mean()
-            y_mean_val_local = y.mean()
-        
-            # Daten-Säulen als 3D bars (using mesh3d for bars)
-            for i in range(len(x)):
-                dx = x[i] - x_mean_val
-                dy = y[i] - y_mean_val_local
-                product = dx * dy
-                color = 'green' if product > 0 else 'red'
+            # Create bar as mesh3d (simplified box)
+            bar_width = 0.3
+            if product > 0:
+                z_base = 0
+                z_height = product
+            else:
+                z_base = product
+                z_height = abs(product)
             
-                # Create bar as mesh3d (simplified box)
-                bar_width = 0.3
-                if product > 0:
-                    z_base = 0
-                    z_height = product
-                else:
-                    z_base = product
-                    z_height = abs(product)
-                
-                # Simple vertical line representation
-                fig_cov.add_trace(go.Scatter3d(
-                    x=[x[i], x[i]], y=[y[i], y[i]], z=[0, product],
-                    mode='lines',
-                    line=dict(color=color, width=8),
-                    opacity=0.7,
-                    showlegend=False
-                ))
-            
-                # Datenpunkt oben
-                fig_cov.add_trace(go.Scatter3d(
-                    x=[x[i]], y=[y[i]], z=[product],
-                    mode='markers',
-                    marker=dict(size=8, color=color, line=dict(color='white', width=1)),
-                    showlegend=False
-                ))
-        
-            # Schwerpunkt
+            # Simple vertical line representation
             fig_cov.add_trace(go.Scatter3d(
-                x=[x_mean_val], y=[y_mean_val_local], z=[0],
+                x=[x[i], x[i]], y=[y[i], y[i]], z=[0, product],
+                mode='lines',
+                line=dict(color=color, width=8),
+                opacity=0.7,
+                showlegend=False
+            ))
+        
+            # Datenpunkt oben
+            fig_cov.add_trace(go.Scatter3d(
+                x=[x[i]], y=[y[i]], z=[product],
                 mode='markers',
-                marker=dict(size=12, color='black', symbol='x', line=dict(color='white', width=2)),
-                name='Schwerpunkt',
-                showlegend=True
+                marker=dict(size=8, color=color, line=dict(color='white', width=1)),
+                showlegend=False
             ))
-        
-            fig_cov.update_layout(
-                title='3D Kovarianz-Visualisierung: Säulenhöhe = Produkt der Abweichungen',
-                scene=dict(
-                    xaxis_title=f'{x_label} (X)',
-                    yaxis_title=f'{y_label} (Y)',
-                    zaxis_title='(X - X̄)(Y - Ȳ)',
-                    camera=dict(eye=dict(x=1.5, y=-1.5, z=1.2))
-                ),
-                height=600
-            )
-        
-            st.plotly_chart(fig_cov, use_container_width=True)
-        else:
-            # 2D Original: Quadranten mit Rechtecken
-            st.markdown("""
-            Die Kovarianz misst, ob X und Y **gemeinsam** von ihren Mittelwerten abweichen:
-            - Wenn X über dem Mittelwert ist UND Y auch → **positiver Beitrag**
-            - Wenn X über dem Mittelwert ist ABER Y darunter → **negativer Beitrag**
-            """)
-        
-            fig_cov = go.Figure()
-        
-            # Quadranten einfärben
-            x_mean_val = x.mean()
-            y_mean_val_local = y.mean()
-            
-            x_min, x_max = min(x) - 0.5, max(x) + 0.5
-            y_min, y_max = min(y) - 0.5, max(y) + 0.5
-        
-            # Quadrant I (top right, positive, green)
-            fig_cov.add_shape(type="rect", x0=x_mean_val, y0=y_mean_val_local, x1=x_max, y1=y_max,
-                            fillcolor="green", opacity=0.1, line_width=0, layer="below")
-            
-            # Quadrant II (top left, negative, red)
-            fig_cov.add_shape(type="rect", x0=x_min, y0=y_mean_val_local, x1=x_mean_val, y1=y_max,
-                            fillcolor="red", opacity=0.1, line_width=0, layer="below")
-            
-            # Quadrant III (bottom left, positive, green)
-            fig_cov.add_shape(type="rect", x0=x_min, y0=y_min, x1=x_mean_val, y1=y_mean_val_local,
-                            fillcolor="green", opacity=0.1, line_width=0, layer="below")
-            
-            # Quadrant IV (bottom right, negative, red)
-            fig_cov.add_shape(type="rect", x0=x_mean_val, y0=y_min, x1=x_max, y1=y_mean_val_local,
-                            fillcolor="red", opacity=0.1, line_width=0, layer="below")
-        
-            # Mean lines
-            fig_cov.add_hline(y=y_mean_val_local, line_dash="dash", line_color="orange", line_width=2,
-                            annotation_text=f'ȳ = {y_mean_val_local:.2f}', annotation_position="right")
-            fig_cov.add_vline(x=x_mean_val, line_dash="dash", line_color="green", line_width=2,
-                            annotation_text=f'x̄ = {x_mean_val:.2f}', annotation_position="top")
-        
-            # Datenpunkte mit Rechtecken für (xi - x̄)(yi - ȳ)
-            for i in range(len(x)):
-                dx = x[i] - x_mean_val
-                dy = y[i] - y_mean_val_local
-                product = dx * dy
-                color = 'green' if product > 0 else 'red'
-            
-                # Rechteck für das Produkt
-                fig_cov.add_shape(type="rect", x0=x_mean_val, y0=y_mean_val_local,
-                                x1=x[i], y1=y[i],
-                                fillcolor=color, opacity=0.15, line=dict(color=color, width=1),
-                                layer="below")
-            
-            # Datenpunkte on top
-            for i in range(len(x)):
-                dx = x[i] - x_mean_val
-                dy = y[i] - y_mean_val_local
-                product = dx * dy
-                color = 'green' if product > 0 else 'red'
-                fig_cov.add_trace(go.Scatter(
-                    x=[x[i]], y=[y[i]], mode='markers',
-                    marker=dict(size=10, color=color, line=dict(color='white', width=2)),
-                    showlegend=False
-                ))
-        
-            # Schwerpunkt
-            fig_cov.add_trace(go.Scatter(
-                x=[x_mean_val], y=[y_mean_val_local], mode='markers',
-                marker=dict(size=15, color='black', symbol='x', line=dict(color='white', width=2)),
-                name='Schwerpunkt'
-            ))
-        
-            fig_cov.update_layout(
-                title='Kovarianz-Visualisierung: Grüne Rechtecke addieren, rote subtrahieren',
+    
+        # Schwerpunkt
+        fig_cov.add_trace(go.Scatter3d(
+            x=[x_mean_val], y=[y_mean_val_local], z=[0],
+            mode='markers',
+            marker=dict(size=12, color='black', symbol='x', line=dict(color='white', width=2)),
+            name='Schwerpunkt',
+            showlegend=True
+        ))
+    
+        fig_cov.update_layout(
+            title='3D Kovarianz-Visualisierung: Säulenhöhe = Produkt der Abweichungen',
+            scene=dict(
                 xaxis_title=f'{x_label} (X)',
                 yaxis_title=f'{y_label} (Y)',
-                showlegend=True,
-                xaxis=dict(range=[x_min, x_max], showgrid=True, gridcolor='lightgray'),
-                yaxis=dict(range=[y_min, y_max], showgrid=True, gridcolor='lightgray'),
-                height=600
-            )
-        
-            st.plotly_chart(fig_cov, use_container_width=True)
+                zaxis_title='(X - X̄)(Y - Ȳ)',
+                camera=dict(eye=dict(x=1.5, y=-1.5, z=1.2))
+            ),
+            height=600
+        )
+    
+        st.plotly_chart(fig_cov, use_container_width=True)
             
     with col_cov2:
         if show_formulas:
@@ -2834,8 +2675,6 @@ elif regression_type == "📈 Einfache Regression":
     - **Konfidenzintervall**: Die Unsicherheit der Vorhersage
     """)
 
-    show_3d_detail = st.toggle("🔍 3D-Ansicht aktivieren (Anatomie)", value=False, key="toggle_3d_detail")
-
     # Berechne Konfidenzintervall mit der stabilen get_prediction() API
     predictions = model.get_prediction(X)
     pred_frame = predictions.summary_frame(alpha=0.05)
@@ -2843,214 +2682,80 @@ elif regression_type == "📈 Einfache Regression":
     iv_u = pred_frame['obs_ci_upper'].values
     residuals = model.resid
 
-    if show_3d_detail:
-        # 3D Visualisierung: Anatomie im 3D Raum
-        fig_detail = go.Figure()
-    
-        # Fehlerterme als vertikale Linien
-        for i in range(len(x)):
-            fig_detail.add_trace(go.Scatter3d(
-                x=[x[i], x[i]], y=[y_pred[i], y_pred[i]], z=[y_pred[i], y[i]],
-                mode='lines',
-                line=dict(color='red', width=2),
-                opacity=0.3,
-                showlegend=False
-            ))
-    
-        # Regressionslinie in 3D
-        fig_detail.add_trace(go.Scatter3d(
-            x=x, y=y_pred, z=y_pred,
-            mode='lines',
-            line=dict(color='blue', width=4),
-            name='Regressionsgerade'
-        ))
-    
-        # Datenpunkte
-        fig_detail.add_trace(go.Scatter3d(
-            x=x, y=y_pred, z=y,
-            mode='markers',
-            marker=dict(size=6, color='#1f77b4', opacity=0.7, line=dict(color='white', width=1)),
-            name='Beobachtungen (y)'
-        ))
-    
-        # Konfidenzintervall als Linien
-        x_sorted_idx = np.argsort(x)
-        x_sorted = x[x_sorted_idx]
-        y_pred_sorted = y_pred[x_sorted_idx]
-        iv_u_sorted = iv_u[x_sorted_idx]
-        iv_l_sorted = iv_l[x_sorted_idx]
-    
-        fig_detail.add_trace(go.Scatter3d(
-            x=x_sorted, y=y_pred_sorted, z=iv_u_sorted,
-            mode='lines',
-            line=dict(color='blue', width=2, dash='dash'),
-            opacity=0.5,
-            name='95% KI (upper)',
-            showlegend=True
-        ))
-        fig_detail.add_trace(go.Scatter3d(
-            x=x_sorted, y=y_pred_sorted, z=iv_l_sorted,
-            mode='lines',
-            line=dict(color='blue', width=2, dash='dash'),
-            opacity=0.5,
-            name='95% KI (lower)',
-            showlegend=False
-        ))
-    
-        # Schwerpunkt
-        fig_detail.add_trace(go.Scatter3d(
-            x=[x_mean], y=[y_mean_val], z=[y_mean_val],
-            mode='markers',
-            marker=dict(size=10, color='orange', symbol='diamond', line=dict(color='black', width=2)),
-            name='Schwerpunkt'
-        ))
-    
-        fig_detail.update_layout(
-            title='3D Anatomie: Datenpunkte, Regressionslinie & Fehlerterme',
-            scene=dict(
-                xaxis_title=f'{x_label} (X)',
-                yaxis_title='ŷ (Vorhersage)',
-                zaxis_title=f'{y_label} (Y)',
-                camera=dict(eye=dict(x=1.5, y=-1.5, z=1.2))
-            ),
-            height=600,
-            showlegend=True
-        )
-    
-        st.plotly_chart(fig_detail, use_container_width=True)
-    else:
-        # 2D Original: Alle Annotationen
-        fig_detail = go.Figure()
+    # 3D Visualisierung: Anatomie im 3D Raum
+    fig_detail = go.Figure()
 
-        # 1. Konfidenzintervall-Band (iv_l, iv_u) - draw first so it's in background
-        x_sorted_idx = np.argsort(x)
-        x_sorted = x[x_sorted_idx]
-        iv_l_sorted = iv_l[x_sorted_idx]
-        iv_u_sorted = iv_u[x_sorted_idx]
-        
-        fig_detail.add_trace(go.Scatter(
-            x=np.concatenate([x_sorted, x_sorted[::-1]]),
-            y=np.concatenate([iv_u_sorted, iv_l_sorted[::-1]]),
-            fill='toself',
-            fillcolor='rgba(0,0,255,0.15)',
-            line=dict(color='rgba(255,255,255,0)'),
-            name='95% Konfidenzintervall',
-            showlegend=True
+    # Fehlerterme als vertikale Linien
+    for i in range(len(x)):
+        fig_detail.add_trace(go.Scatter3d(
+            x=[x[i], x[i]], y=[y_pred[i], y_pred[i]], z=[y_pred[i], y[i]],
+            mode='lines',
+            line=dict(color='red', width=2),
+            opacity=0.3,
+            showlegend=False
         ))
 
-        # 2. Regressionsgerade
-        fig_detail.add_trace(go.Scatter(
-            x=x, y=y_pred,
-            mode='lines',
-            line=dict(color='blue', width=3),
-            name=f'Modell: ŷ = {b0:.2f} + {b1:.2f}x'
-        ))
+    # Regressionslinie in 3D
+    fig_detail.add_trace(go.Scatter3d(
+        x=x, y=y_pred, z=y_pred,
+        mode='lines',
+        line=dict(color='blue', width=4),
+        name='Regressionsgerade'
+    ))
 
-        # 3. Datenpunkte
-        fig_detail.add_trace(go.Scatter(
-            x=x, y=y,
-            mode='markers',
-            marker=dict(size=10, color='#1f77b4', opacity=0.7, line=dict(color='white', width=2)),
-            name='Beobachtungen yᵢ'
-        ))
-    
-        # 4. Steigungsdreieck (Δx = 2, Position im mittleren Bereich)
-        x_start = x_mean
-        x_end = x_mean + 2
-        y_start = b0 + b1 * x_start
-        y_end = b0 + b1 * x_end
-    
-        # Horizontale Linie (Δx)
-        fig_detail.add_trace(go.Scatter(
-            x=[x_start, x_end], y=[y_start, y_start],
-            mode='lines',
-            line=dict(color='black', width=2, dash='dash'),
-            showlegend=False
-        ))
-        # Vertikale Linie (Δy)
-        fig_detail.add_trace(go.Scatter(
-            x=[x_end, x_end], y=[y_start, y_end],
-            mode='lines',
-            line=dict(color='black', width=2, dash='dash'),
-            showlegend=False
-        ))
-        
-        # Annotations for triangle
-        fig_detail.add_annotation(
-            x=(x_start + x_end)/2, y=y_start - 0.4,
-            text='Δx = 2',
-            showarrow=False,
-            font=dict(size=12)
-        )
-        fig_detail.add_annotation(
-            x=x_end + 0.3, y=(y_start + y_end)/2,
-            text=f'Δy = {b1*2:.2f}',
-            showarrow=False,
-            font=dict(size=12)
-        )
-        fig_detail.add_annotation(
-            x=x_end + 0.3, y=y_start + 0.3,
-            text=f'b₁ = Δy/Δx = {b1:.2f}',
-            showarrow=False,
-            font=dict(size=11),
-            bgcolor='wheat',
-            bordercolor='black',
-            borderwidth=1
-        )
-    
-        # 5. Epsilon-Annotation (ein markantes Residuum hervorheben)
-        # Finde einen Punkt mit mittlerem Residuum für gute Sichtbarkeit
-        resid_abs = np.abs(residuals)
-        idx_eps = np.argmax(resid_abs)  # Grösstes Residuum
-        if idx_eps > len(x) - 3:
-            idx_eps = len(x) // 2  # Fallback zur Mitte
-    
-        # Vertikale Linie für εᵢ
-        fig_detail.add_trace(go.Scatter(
-            x=[x[idx_eps], x[idx_eps]], y=[y[idx_eps], y_pred[idx_eps]],
-            mode='lines',
-            line=dict(color='red', width=2.5),
-            showlegend=False
-        ))
-        
-        # Annotation mit Pfeil
-        mid_y = (y[idx_eps] + y_pred[idx_eps]) / 2
-        fig_detail.add_annotation(
-            x=x[idx_eps] + 1, y=mid_y + 0.5,
-            text=f'εᵢ = {residuals[idx_eps]:.2f}',
-            ax=x[idx_eps], ay=mid_y,
-            axref='x', ayref='y',
-            arrowhead=2,
-            arrowsize=1,
-            arrowwidth=1.5,
-            arrowcolor='red',
-            font=dict(size=12, color='red'),
-            bgcolor='mistyrose',
-            bordercolor='red',
-            borderwidth=1
-        )
-    
-        # 6. Schwerpunkt markieren
-        fig_detail.add_trace(go.Scatter(
-            x=[x_mean], y=[y_mean_val],
-            mode='markers',
-            marker=dict(size=15, color='orange', symbol='star', line=dict(color='black', width=2)),
-            name=f'Schwerpunkt (x̄, ȳ) = ({x_mean:.1f}, {y_mean_val:.1f})'
-        ))
-    
-        fig_detail.update_layout(
-            title='Anatomie des Regressionsmodells: Steigung, Fehlerterm & Konfidenzintervall',
-            xaxis_title=x_label,
-            yaxis_title=y_label,
-            template='plotly_white',
-            showlegend=True,
-            legend=dict(x=0.02, y=0.98),
-            xaxis=dict(showgrid=True, gridcolor='lightgray'),
-            yaxis=dict(showgrid=True, gridcolor='lightgray'),
-            height=600
-        )
-    
-        st.plotly_chart(fig_detail, use_container_width=True)
+    # Datenpunkte
+    fig_detail.add_trace(go.Scatter3d(
+        x=x, y=y_pred, z=y,
+        mode='markers',
+        marker=dict(size=6, color='#1f77b4', opacity=0.7, line=dict(color='white', width=1)),
+        name='Beobachtungen (y)'
+    ))
+
+    # Konfidenzintervall als Linien
+    x_sorted_idx = np.argsort(x)
+    x_sorted = x[x_sorted_idx]
+    y_pred_sorted = y_pred[x_sorted_idx]
+    iv_u_sorted = iv_u[x_sorted_idx]
+    iv_l_sorted = iv_l[x_sorted_idx]
+
+    fig_detail.add_trace(go.Scatter3d(
+        x=x_sorted, y=y_pred_sorted, z=iv_u_sorted,
+        mode='lines',
+        line=dict(color='blue', width=2, dash='dash'),
+        opacity=0.5,
+        name='95% KI (upper)',
+        showlegend=True
+    ))
+    fig_detail.add_trace(go.Scatter3d(
+        x=x_sorted, y=y_pred_sorted, z=iv_l_sorted,
+        mode='lines',
+        line=dict(color='blue', width=2, dash='dash'),
+        opacity=0.5,
+        name='95% KI (lower)',
+        showlegend=False
+    ))
+
+    # Schwerpunkt
+    fig_detail.add_trace(go.Scatter3d(
+        x=[x_mean], y=[y_mean_val], z=[y_mean_val],
+        mode='markers',
+        marker=dict(size=10, color='orange', symbol='diamond', line=dict(color='black', width=2)),
+        name='Schwerpunkt'
+    ))
+
+    fig_detail.update_layout(
+        title='3D Anatomie: Datenpunkte, Regressionslinie & Fehlerterme',
+        scene=dict(
+            xaxis_title=f'{x_label} (X)',
+            yaxis_title='ŷ (Vorhersage)',
+            zaxis_title=f'{y_label} (Y)',
+            camera=dict(eye=dict(x=1.5, y=-1.5, z=1.2))
+        ),
+        height=600,
+        showlegend=True
+    )
+
+    st.plotly_chart(fig_detail, use_container_width=True)
         
     # Erklärungstext
     col_exp1, col_exp2, col_exp3 = st.columns(3)
