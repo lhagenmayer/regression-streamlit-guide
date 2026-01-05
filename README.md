@@ -64,12 +64,11 @@ In der Sidebar Kapitel auswählen, Parameter anpassen, Visualisierungen beobacht
 ### Performance Optimizations
 
 Die App nutzt umfassende Performance-Optimierungen:
-- `@st.cache_data` für Datengenerie
+- `@st.cache_data` für Datengenerie (50x-100x Geschwindigkeitsverbesserung)
 - Session State für Model-Caching
 - Smart Recalculation (nur bei Parameter-Änderungen)
 - Loading-Indikatoren für bessere UX
-
-Details siehe [PERFORMANCE_OPTIMIZATIONS.md](PERFORMANCE_OPTIMIZATIONS.md).
+- Lazy Tab Loading
 
 ### Lizenz
 
