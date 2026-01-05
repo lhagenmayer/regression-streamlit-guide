@@ -4,18 +4,19 @@ Data generation and handling for the Linear Regression Guide.
 This module contains all data generation functions and data manipulation utilities.
 """
 
+from typing import Dict, Optional, Union, Any
 import numpy as np
 import pandas as pd
 
 
-def safe_scalar(val):
+def safe_scalar(val: Union[pd.Series, np.ndarray, float, int]) -> float:
     """Konvertiert Series/ndarray zu Skalar, falls nötig."""
     if isinstance(val, (pd.Series, np.ndarray)):
         return float(val.iloc[0] if hasattr(val, 'iloc') else val[0])
     return float(val)
 
 
-def generate_dataset(name, seed=42):
+def generate_dataset(name: str, seed: int = 42) -> Optional[Dict[str, Any]]:
     """
     Generiert einen Datensatz basierend auf dem Namen.
     Gibt x, y, labels und Metadaten zurueck.
@@ -70,7 +71,12 @@ def generate_dataset(name, seed=42):
     return None
 
 
-def generate_multiple_regression_data(dataset_choice_mult, n_mult, noise_mult_level, seed_mult):
+def generate_multiple_regression_data(
+    dataset_choice_mult: str, 
+    n_mult: int, 
+    noise_mult_level: float, 
+    seed_mult: int
+) -> Dict[str, Union[np.ndarray, str]]:
     """
     Generate data for multiple regression based on dataset choice.
     
@@ -138,7 +144,12 @@ def generate_multiple_regression_data(dataset_choice_mult, n_mult, noise_mult_le
     }
 
 
-def generate_simple_regression_data(dataset_choice, x_variable, n, seed=42):
+def generate_simple_regression_data(
+    dataset_choice: str, 
+    x_variable: str, 
+    n: int, 
+    seed: int = 42
+) -> Dict[str, Union[np.ndarray, str]]:
     """
     Generate data for simple regression based on dataset choice.
     

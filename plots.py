@@ -4,13 +4,14 @@ Plotting functions for the Linear Regression Guide.
 This module contains all visualization functions using plotly.
 """
 
+from typing import Optional, Union, List, Callable, Tuple, Any
 import numpy as np
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from scipy import stats
 
 
-def _safe_scalar(val):
+def _safe_scalar(val: Union['pd.Series', np.ndarray, float, int]) -> float:
     """Helper: Konvertiert Series/ndarray zu Skalar, falls nötig."""
     import pandas as pd
     if isinstance(val, (pd.Series, np.ndarray)):
@@ -18,7 +19,7 @@ def _safe_scalar(val):
     return float(val)
 
 
-def get_signif_stars(p):
+def get_signif_stars(p: float) -> str:
     """Signifikanz-Codes wie in R"""
     if p < 0.001: return '***'
     if p < 0.01:  return '**'
@@ -27,7 +28,7 @@ def get_signif_stars(p):
     return ' '
 
 
-def get_signif_color(p):
+def get_signif_color(p: float) -> str:
     """Farbe basierend auf Signifikanz"""
     if p < 0.001: return '#006400'
     if p < 0.01:  return '#228B22'
@@ -39,7 +40,12 @@ def get_signif_color(p):
 # ---------------------------------------------------------
 # 3D VISUALIZATION HELPER FUNCTIONS
 # ---------------------------------------------------------
-def create_regression_mesh(x1, x2, model_params, n_points=20):
+def create_regression_mesh(
+    x1: np.ndarray, 
+    x2: np.ndarray, 
+    model_params: Union[List[float], np.ndarray], 
+    n_points: int = 20
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Create mesh grid for regression surface visualization.
     
     Args:
@@ -58,7 +64,12 @@ def create_regression_mesh(x1, x2, model_params, n_points=20):
     return X1_mesh, X2_mesh, Y_mesh
 
 
-def get_3d_layout_config(x_title, y_title, z_title, height=600):
+def get_3d_layout_config(
+    x_title: str, 
+    y_title: str, 
+    z_title: str, 
+    height: int = 600
+) -> dict:
     """Return standard 3D layout configuration.
     
     Args:
@@ -80,7 +91,10 @@ def get_3d_layout_config(x_title, y_title, z_title, height=600):
     )
 
 
-def create_zero_plane(x_range, y_range):
+def create_zero_plane(
+    x_range: List[float], 
+    y_range: List[float]
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Create a zero reference plane for 3D residual plots.
     
     Args:
@@ -98,8 +112,16 @@ def create_zero_plane(x_range, y_range):
 # ---------------------------------------------------------
 # PLOTLY HELPER FUNCTIONS FOR COMMON PLOT TYPES
 # ---------------------------------------------------------
-def create_plotly_scatter(x, y, x_label='X', y_label='Y', title='', 
-                         marker_color='blue', marker_size=8, show_legend=True):
+def create_plotly_scatter(
+    x: np.ndarray, 
+    y: np.ndarray, 
+    x_label: str = 'X', 
+    y_label: str = 'Y', 
+    title: str = '', 
+    marker_color: str = 'blue', 
+    marker_size: int = 8, 
+    show_legend: bool = True
+) -> go.Figure:
     """Create a basic plotly scatter plot"""
     fig = go.Figure()
     fig.add_trace(go.Scatter(
@@ -119,7 +141,14 @@ def create_plotly_scatter(x, y, x_label='X', y_label='Y', title='',
     return fig
 
 
-def create_plotly_scatter_with_line(x, y, y_pred, x_label='X', y_label='Y', title=''):
+def create_plotly_scatter_with_line(
+    x: np.ndarray, 
+    y: np.ndarray, 
+    y_pred: np.ndarray, 
+    x_label: str = 'X', 
+    y_label: str = 'Y', 
+    title: str = ''
+) -> go.Figure:
     """Create scatter plot with regression line"""
     fig = go.Figure()
     
@@ -149,8 +178,16 @@ def create_plotly_scatter_with_line(x, y, y_pred, x_label='X', y_label='Y', titl
     return fig
 
 
-def create_plotly_3d_scatter(x1, x2, y, x1_label='X1', x2_label='X2', y_label='Y', 
-                            title='', marker_color='red'):
+def create_plotly_3d_scatter(
+    x1: np.ndarray, 
+    x2: np.ndarray, 
+    y: np.ndarray, 
+    x1_label: str = 'X1', 
+    x2_label: str = 'X2', 
+    y_label: str = 'Y', 
+    title: str = '', 
+    marker_color: Union[str, np.ndarray] = 'red'
+) -> go.Figure:
     """Create 3D scatter plot"""
     fig = go.Figure(data=[go.Scatter3d(
         x=x1, y=x2, z=y,
@@ -177,8 +214,18 @@ def create_plotly_3d_scatter(x1, x2, y, x1_label='X1', x2_label='X2', y_label='Y
     return fig
 
 
-def create_plotly_3d_surface(X1_mesh, X2_mesh, Y_mesh, x1, x2, y,
-                             x1_label='X1', x2_label='X2', y_label='Y', title=''):
+def create_plotly_3d_surface(
+    X1_mesh: np.ndarray, 
+    X2_mesh: np.ndarray, 
+    Y_mesh: np.ndarray, 
+    x1: np.ndarray, 
+    x2: np.ndarray, 
+    y: np.ndarray,
+    x1_label: str = 'X1', 
+    x2_label: str = 'X2', 
+    y_label: str = 'Y', 
+    title: str = ''
+) -> go.Figure:
     """Create 3D surface plot with data points"""
     fig = go.Figure()
     
@@ -212,7 +259,11 @@ def create_plotly_3d_surface(X1_mesh, X2_mesh, Y_mesh, x1, x2, y,
     return fig
 
 
-def create_plotly_residual_plot(y_pred, residuals, title='Residual Plot'):
+def create_plotly_residual_plot(
+    y_pred: np.ndarray, 
+    residuals: np.ndarray, 
+    title: str = 'Residual Plot'
+) -> go.Figure:
     """Create residual plot"""
     fig = go.Figure()
     
@@ -235,8 +286,14 @@ def create_plotly_residual_plot(y_pred, residuals, title='Residual Plot'):
     return fig
 
 
-def create_plotly_bar(categories, values, title='', x_label='', y_label='',
-                     colors=None):
+def create_plotly_bar(
+    categories: List[str], 
+    values: List[float], 
+    title: str = '', 
+    x_label: str = '', 
+    y_label: str = '',
+    colors: Optional[List[str]] = None
+) -> go.Figure:
     """Create bar chart"""
     fig = go.Figure()
     
@@ -258,7 +315,13 @@ def create_plotly_bar(categories, values, title='', x_label='', y_label='',
     return fig
 
 
-def create_plotly_distribution(x_vals, y_vals, title='', x_label='', fill_area=None):
+def create_plotly_distribution(
+    x_vals: np.ndarray, 
+    y_vals: np.ndarray, 
+    title: str = '', 
+    x_label: str = '', 
+    fill_area: Optional[Callable[[np.ndarray], np.ndarray]] = None
+) -> go.Figure:
     """Create distribution plot"""
     fig = go.Figure()
     
@@ -292,7 +355,7 @@ def create_plotly_distribution(x_vals, y_vals, title='', x_label='', fill_area=N
 # ---------------------------------------------------------
 # R-OUTPUT DISPLAY (Simplified text-based display)
 # ---------------------------------------------------------
-def create_r_output_display(model, feature_name="X"):
+def create_r_output_display(model: Any, feature_name: str = "X") -> str:
     """
     Creates a structured display of R-style output using Streamlit components
     instead of matplotlib figure. This provides better interactivity.
@@ -307,14 +370,6 @@ def create_r_output_display(model, feature_name="X"):
     rse = np.sqrt(model.mse_resid)
     df_resid = int(model.df_resid)
     df_model = int(model.df_model)
-    
-    def get_signif_stars(p):
-        """Signifikanz-Codes wie in R"""
-        if p < 0.001: return '***'
-        if p < 0.01:  return '**'
-        if p < 0.05:  return '*'
-        if p < 0.1:   return '.'
-        return ' '
     
     # Create formatted text output
     output_text = f"""
@@ -339,7 +394,11 @@ F-statistic: {model.fvalue:.1f} on {df_model} and {df_resid} DF,  p-value: {mode
     return output_text
 
 
-def create_r_output_figure(model, feature_name="X", figsize=(18, 13)):
+def create_r_output_figure(
+    model: Any, 
+    feature_name: str = "X", 
+    figsize: Tuple[int, int] = (18, 13)
+) -> go.Figure:
     """
     Create an annotated figure showing R-style output.
     This returns a plotly figure with text annotations.
