@@ -4,7 +4,7 @@
 Ein didaktisches Tool zum Verstehen der einfachen linearen Regression.
 Alle Konzepte auf einer Seite mit logischem roten Faden.
 
-Starten mit: streamlit run regression_leitfaden.py
+Starten mit: streamlit run app.py
 """
 
 import numpy as np
@@ -17,12 +17,14 @@ import plotly.graph_objects as go
 import plotly.express as px
 from plotly.subplots import make_subplots
 
-# --- Hilfsfunktion für typ-sichere Pandas-Zugriffe ---
-def safe_scalar(val):
-    """Konvertiert Series/ndarray zu Skalar, falls nötig."""
-    if isinstance(val, (pd.Series, np.ndarray)):
-        return float(val.iloc[0] if hasattr(val, 'iloc') else val[0])
-    return float(val)
+# Import from our modules
+from data import safe_scalar, generate_dataset, generate_multiple_regression_data, generate_simple_regression_data
+from plots import (
+    create_regression_mesh, get_3d_layout_config, create_zero_plane,
+    create_plotly_scatter, create_plotly_scatter_with_line, create_plotly_3d_scatter,
+    create_plotly_3d_surface, create_plotly_residual_plot, create_plotly_bar,
+    create_plotly_distribution, create_r_output_display, create_r_output_figure
+)
 
 # ---------------------------------------------------------
 # ZENTRALE KONFIGURATION: Farben & Schriftgroessen
@@ -49,63 +51,6 @@ FONT_SIZES = {
     "tick_3d": 11,
     "legend": 10,
 }
-
-# ---------------------------------------------------------
-# DATENSATZ-GENERIERUNG (zentralisiert)
-# ---------------------------------------------------------
-def generate_dataset(name, seed=42):
-    """
-    Generiert einen Datensatz basierend auf dem Namen.
-    Gibt x, y, labels und Metadaten zurueck.
-    """
-    np.random.seed(seed)
-    
-    if name == "elektronikmarkt":
-        # Default-Werte, werden durch Slider ueberschrieben
-        return None  # Handled separately due to sliders
-    
-    elif name == "staedte":
-        n = 75
-        x2_preis = np.random.normal(5.69, 0.52, n)
-        x2_preis = np.clip(x2_preis, 4.83, 6.49)
-        x3_werbung = np.random.normal(1.84, 0.83, n)
-        x3_werbung = np.clip(x3_werbung, 0.50, 3.10)
-        y_base = 100 - 5 * x2_preis + 8 * x3_werbung
-        noise = np.random.normal(0, 3.5, n)
-        y = y_base + noise
-        y = np.clip(y, 62.4, 91.2)
-        y = (y - np.mean(y)) / np.std(y) * 6.49 + 77.37
-        return {
-            "x_preis": x2_preis,
-            "x_werbung": x3_werbung,
-            "y": y,
-            "n": n,
-            "x1_name": "Preis (CHF)",
-            "x2_name": "Werbung (CHF1000)",
-            "y_name": "Umsatz (1000 CHF)",
-        }
-    
-    elif name == "haeuser":
-        n = 1000
-        x_wohnflaeche = np.random.normal(25.21, 2.92, n)
-        x_wohnflaeche = np.clip(x_wohnflaeche, 20.03, 30.00)
-        x_pool = np.random.binomial(1, 0.204, n).astype(float)
-        y_base = 50 + 7.5 * x_wohnflaeche + 35 * x_pool
-        noise = np.random.normal(0, 20, n)
-        y = y_base + noise
-        y = np.clip(y, 134.32, 345.20)
-        y = (y - np.mean(y)) / np.std(y) * 42.19 + 247.66
-        return {
-            "x_wohnflaeche": x_wohnflaeche,
-            "x_pool": x_pool,
-            "y": y,
-            "n": n,
-            "x1_name": "Wohnflaeche (sqft/10)",
-            "x2_name": "Pool (0/1)",
-            "y_name": "Preis (USD)",
-        }
-    
-    return None
 
 # ---------------------------------------------------------
 # PAGE CONFIG
@@ -186,290 +131,6 @@ def get_signif_color(p):
 
 
 # ---------------------------------------------------------
-# 3D VISUALIZATION HELPER FUNCTIONS
-# ---------------------------------------------------------
-def create_regression_mesh(x1, x2, model_params, n_points=20):
-    """Create mesh grid for regression surface visualization.
-    
-    Args:
-        x1: First predictor values
-        x2: Second predictor values
-        model_params: Model parameters [intercept, beta1, beta2]
-        n_points: Number of grid points
-    
-    Returns:
-        X1_mesh, X2_mesh, Y_mesh: Mesh grids for surface plotting
-    """
-    x1_range = np.linspace(x1.min(), x1.max(), n_points)
-    x2_range = np.linspace(x2.min(), x2.max(), n_points)
-    X1_mesh, X2_mesh = np.meshgrid(x1_range, x2_range)
-    Y_mesh = model_params[0] + model_params[1]*X1_mesh + model_params[2]*X2_mesh
-    return X1_mesh, X2_mesh, Y_mesh
-
-def get_3d_layout_config(x_title, y_title, z_title, height=600):
-    """Return standard 3D layout configuration.
-    
-    Args:
-        x_title, y_title, z_title: Axis titles
-        height: Plot height in pixels
-    
-    Returns:
-        dict: Layout configuration for plotly 3D plots
-    """
-    return dict(
-        template='plotly_white',
-        height=height,
-        scene=dict(
-            xaxis_title=x_title,
-            yaxis_title=y_title,
-            zaxis_title=z_title,
-            camera=dict(eye=dict(x=1.5, y=-1.5, z=1.2))
-        )
-    )
-
-def create_zero_plane(x_range, y_range):
-    """Create a zero reference plane for 3D residual plots.
-    
-    Args:
-        x_range: [min, max] for x axis
-        y_range: [min, max] for y axis
-    
-    Returns:
-        xx, yy, zz: Mesh grids for zero plane
-    """
-    xx, yy = np.meshgrid(x_range, y_range)
-    zz = np.zeros_like(xx)
-    return xx, yy, zz
-
-# ---------------------------------------------------------
-# PLOTLY HELPER FUNCTIONS FOR COMMON PLOT TYPES
-# ---------------------------------------------------------
-def create_plotly_scatter(x, y, x_label='X', y_label='Y', title='', 
-                         marker_color='blue', marker_size=8, show_legend=True):
-    """Create a basic plotly scatter plot"""
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(
-        x=x, y=y, mode='markers',
-        marker=dict(size=marker_size, color=marker_color, opacity=0.7,
-                   line=dict(width=1, color='white')),
-        name='Data Points' if show_legend else None,
-        showlegend=show_legend
-    ))
-    fig.update_layout(
-        title=title,
-        xaxis_title=x_label,
-        yaxis_title=y_label,
-        template='plotly_white',
-        hovermode='closest'
-    )
-    return fig
-
-def create_plotly_scatter_with_line(x, y, y_pred, x_label='X', y_label='Y', title=''):
-    """Create scatter plot with regression line"""
-    fig = go.Figure()
-    
-    # Data points
-    fig.add_trace(go.Scatter(
-        x=x, y=y, mode='markers',
-        marker=dict(size=10, color='#1f77b4', opacity=0.7,
-                   line=dict(width=2, color='white')),
-        name='Datenpunkte'
-    ))
-    
-    # Regression line
-    fig.add_trace(go.Scatter(
-        x=x, y=y_pred, mode='lines',
-        line=dict(color='#e74c3c', width=3),
-        name='Regressionslinie'
-    ))
-    
-    fig.update_layout(
-        title=title,
-        xaxis_title=x_label,
-        yaxis_title=y_label,
-        template='plotly_white',
-        hovermode='closest',
-        showlegend=True
-    )
-    return fig
-
-def create_plotly_3d_scatter(x1, x2, y, x1_label='X1', x2_label='X2', y_label='Y', 
-                            title='', marker_color='red'):
-    """Create 3D scatter plot"""
-    fig = go.Figure(data=[go.Scatter3d(
-        x=x1, y=x2, z=y,
-        mode='markers',
-        marker=dict(
-            size=5,
-            color=marker_color if isinstance(marker_color, str) else y,
-            colorscale='Viridis' if not isinstance(marker_color, str) else None,
-            opacity=0.7,
-            colorbar=dict(title=y_label) if not isinstance(marker_color, str) else None
-        ),
-        name='Data Points'
-    )])
-    
-    fig.update_layout(
-        title=title,
-        scene=dict(
-            xaxis_title=x1_label,
-            yaxis_title=x2_label,
-            zaxis_title=y_label
-        ),
-        template='plotly_white'
-    )
-    return fig
-
-def create_plotly_3d_surface(X1_mesh, X2_mesh, Y_mesh, x1, x2, y,
-                             x1_label='X1', x2_label='X2', y_label='Y', title=''):
-    """Create 3D surface plot with data points"""
-    fig = go.Figure()
-    
-    # Surface
-    fig.add_trace(go.Surface(
-        x=X1_mesh, y=X2_mesh, z=Y_mesh,
-        colorscale='Viridis',
-        opacity=0.7,
-        name='Regression Plane',
-        showscale=False
-    ))
-    
-    # Data points
-    fig.add_trace(go.Scatter3d(
-        x=x1, y=x2, z=y,
-        mode='markers',
-        marker=dict(size=4, color='red', opacity=0.8),
-        name='Data Points'
-    ))
-    
-    fig.update_layout(
-        title=title,
-        scene=dict(
-            xaxis_title=x1_label,
-            yaxis_title=x2_label,
-            zaxis_title=y_label,
-            camera=dict(eye=dict(x=1.5, y=-1.5, z=1.2))
-        ),
-        template='plotly_white'
-    )
-    return fig
-
-def create_plotly_residual_plot(y_pred, residuals, title='Residual Plot'):
-    """Create residual plot"""
-    fig = go.Figure()
-    
-    fig.add_trace(go.Scatter(
-        x=y_pred, y=residuals,
-        mode='markers',
-        marker=dict(size=8, color='blue', opacity=0.6),
-        name='Residuals'
-    ))
-    
-    fig.add_hline(y=0, line_dash='dash', line_color='red', line_width=2)
-    
-    fig.update_layout(
-        title=title,
-        xaxis_title='Fitted Values',
-        yaxis_title='Residuals',
-        template='plotly_white',
-        hovermode='closest'
-    )
-    return fig
-
-def create_plotly_bar(categories, values, title='', x_label='', y_label='',
-                     colors=None):
-    """Create bar chart"""
-    fig = go.Figure()
-    
-    fig.add_trace(go.Bar(
-        x=categories,
-        y=values,
-        marker_color=colors if colors else 'blue',
-        opacity=0.7,
-        text=[f'{v:.2f}' for v in values],
-        textposition='outside'
-    ))
-    
-    fig.update_layout(
-        title=title,
-        xaxis_title=x_label,
-        yaxis_title=y_label,
-        template='plotly_white'
-    )
-    return fig
-
-def create_plotly_distribution(x_vals, y_vals, title='', x_label='', fill_area=None):
-    """Create distribution plot"""
-    fig = go.Figure()
-    
-    fig.add_trace(go.Scatter(
-        x=x_vals, y=y_vals,
-        mode='lines',
-        line=dict(color='black', width=2),
-        name='Distribution'
-    ))
-    
-    if fill_area is not None:
-        mask = fill_area(x_vals)
-        fig.add_trace(go.Scatter(
-            x=x_vals[mask], y=y_vals[mask],
-            fill='tozeroy',
-            fillcolor='rgba(255, 0, 0, 0.3)',
-            line=dict(width=0),
-            showlegend=False
-        ))
-    
-    fig.update_layout(
-        title=title,
-        xaxis_title=x_label,
-        yaxis_title='Density',
-        template='plotly_white',
-        hovermode='x'
-    )
-    return fig
-
-# ---------------------------------------------------------
-# R-OUTPUT DISPLAY (Simplified text-based display)
-# ---------------------------------------------------------
-def create_r_output_display(model, feature_name="X"):
-    """
-    Creates a structured display of R-style output using Streamlit components
-    instead of matplotlib figure. This provides better interactivity.
-    """
-    # Extract all values
-    resid = model.resid
-    q = np.percentile(resid, [0, 25, 50, 75, 100])
-    params = model.params
-    bse = model.bse
-    tvals = model.tvalues
-    pvals = model.pvalues
-    rse = np.sqrt(model.mse_resid)
-    df_resid = int(model.df_resid)
-    df_model = int(model.df_model)
-    
-    # Create formatted text output
-    output_text = f"""
-Python Replikation des R-Outputs: summary(lm_model)
-===================================================
-
-Residuals:
-    Min      1Q  Median      3Q     Max
-{q[0]:7.4f} {q[1]:7.4f} {q[2]:7.4f} {q[3]:7.4f} {q[4]:7.4f}
-
-Coefficients:
-             Estimate Std.Err  t val  Pr(>|t|)    
-(Intercept)  {params[0]:9.4f} {bse[0]:8.4f} {tvals[0]:7.2f} {pvals[0]:10.4g} {get_signif_stars(pvals[0])}
-{feature_name:<13}{params[1]:9.4f} {bse[1]:8.4f} {tvals[1]:7.2f} {pvals[1]:10.4g} {get_signif_stars(pvals[1])}
----
-Signif. codes: 0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-
-Residual standard error: {rse:.4f} on {df_resid} degrees of freedom
-Multiple R-squared:  {model.rsquared:.4f},    Adjusted R-squared:  {model.rsquared_adj:.4f}
-F-statistic: {model.fvalue:.1f} on {df_model} and {df_resid} DF,  p-value: {model.f_pvalue:.4g}
-"""
-    return output_text
-
-# ---------------------------------------------------------
 # SIDEBAR - INTERAKTIVE PARAMETER
 # ---------------------------------------------------------
 st.sidebar.markdown("# 🎛️ Parameter")
@@ -529,62 +190,17 @@ with st.sidebar.expander("🎛️ Daten-Parameter (Multiple Regression)", expand
 
 # === MULTIPLE REGRESSION DATA PREPARATION ===
 with st.spinner("Lade Datensatz..."):
-    np.random.seed(int(seed_mult))
-
-    if dataset_choice_mult == "🏙️ Städte-Umsatzstudie (75 Städte)":
-        x2_preis = np.random.normal(5.69, 0.52, n_mult)
-        x2_preis = np.clip(x2_preis, 4.83, 6.49)
-        x3_werbung = np.random.normal(1.84, 0.83, n_mult)
-        x3_werbung = np.clip(x3_werbung, 0.50, 3.10)
-        y_base_mult = 100 - 5 * x2_preis + 8 * x3_werbung
-        noise_mult = np.random.normal(0, noise_mult_level, n_mult)
-        y_mult = y_base_mult + noise_mult
-        y_mult = np.clip(y_mult, 62.4, 91.2)
-        y_mult = (y_mult - np.mean(y_mult)) / np.std(y_mult) * 6.49 + 77.37
-
-        X_mult = sm.add_constant(np.column_stack([x2_preis, x3_werbung]))
-        model_mult = sm.OLS(y_mult, X_mult).fit()
-        y_pred_mult = model_mult.predict(X_mult)
-
-        x1_name, x2_name, y_name = "Preis (CHF)", "Werbung (CHF1000)", "Umsatz (1000 CHF)"
-
-    elif dataset_choice_mult == "🏠 Häuserpreise mit Pool (1000 Häuser)":
-        x2_wohnflaeche = np.random.normal(25.21, 2.92, n_mult)
-        x2_wohnflaeche = np.clip(x2_wohnflaeche, 20.03, 30.00)
-
-        x3_pool = np.random.binomial(1, 0.204, n_mult).astype(float)
-
-        y_base_mult = 50 + 7.5 * x2_wohnflaeche + 35 * x3_pool
-        noise_mult = np.random.normal(0, noise_mult_level, n_mult)
-        y_mult = y_base_mult + noise_mult
-        y_mult = np.clip(y_mult, 134.32, 345.20)
-        y_mult = (y_mult - np.mean(y_mult)) / np.std(y_mult) * 42.19 + 247.66
-
-        x2_preis = x2_wohnflaeche
-        x3_werbung = x3_pool
-
-        X_mult = sm.add_constant(np.column_stack([x2_preis, x3_werbung]))
-        model_mult = sm.OLS(y_mult, X_mult).fit()
-        y_pred_mult = model_mult.predict(X_mult)
-
-        x1_name, x2_name, y_name = "Wohnfläche (sqft/10)", "Pool (0/1)", "Preis (USD)"
-
-    else:  # Elektronikmarkt (erweitert)
-        x2_flaeche = np.random.uniform(2, 12, n_mult)
-        x3_marketing = np.random.uniform(0.5, 5.0, n_mult)
-
-        y_base_mult = 0.6 + 0.48 * x2_flaeche + 0.15 * x3_marketing
-        noise_mult = np.random.normal(0, noise_mult_level, n_mult)
-        y_mult = y_base_mult + noise_mult
-
-        x2_preis = x2_flaeche
-        x3_werbung = x3_marketing
-
-        X_mult = sm.add_constant(np.column_stack([x2_preis, x3_werbung]))
-        model_mult = sm.OLS(y_mult, X_mult).fit()
-        y_pred_mult = model_mult.predict(X_mult)
-
-        x1_name, x2_name, y_name = "Verkaufsfläche (100qm)", "Marketing (10k€)", "Umsatz (Mio. €)"
+    mult_data = generate_multiple_regression_data(dataset_choice_mult, n_mult, noise_mult_level, seed_mult)
+    x2_preis = mult_data['x2_preis']
+    x3_werbung = mult_data['x3_werbung']
+    y_mult = mult_data['y_mult']
+    x1_name = mult_data['x1_name']
+    x2_name = mult_data['x2_name']
+    y_name = mult_data['y_name']
+    
+    X_mult = sm.add_constant(np.column_stack([x2_preis, x3_werbung]))
+    model_mult = sm.OLS(y_mult, X_mult).fit()
+    y_pred_mult = model_mult.predict(X_mult)
 
     st.sidebar.markdown("---")
     with st.sidebar.expander("🔧 Anzeigeoptionen", expanded=False):
@@ -671,162 +287,56 @@ with st.sidebar.expander("🎛️ Daten-Parameter (Einfache Regression)", expand
     st.sidebar.markdown("**Stichproben-Info:**")
     
     if dataset_choice == "🏠 Häuserpreise mit Pool (1000 Häuser)":
-    st.sidebar.info("n = 1000 Häuser (fixiert)")
-    n = 1000
+        st.sidebar.info("n = 1000 Häuser (fixiert)")
+        n = 1000
     elif dataset_choice == "🏙️ Städte-Umsatzstudie (75 Städte)":
-    st.sidebar.info("n = 75 Städte (fixiert)")
-    n = 75
+        st.sidebar.info("n = 75 Städte (fixiert)")
+        n = 75
     
     # Datensatz-spezifische Generierung
-    if dataset_choice == "🏠 Häuserpreise mit Pool (1000 Häuser)":
-    # Häuserpreise-Datensatz generieren (basierend auf gegebenen Statistiken)
-    np.random.seed(42)
-    
-    # Wohnfläche in sqft/10 (20.03 bis 30.00, Mittelwert 25.21, SD 2.92)
-    x_wohnflaeche = np.random.normal(25.21, 2.92, n)
-    x_wohnflaeche = np.clip(x_wohnflaeche, 20.03, 30.00)
-    
-    # Pool Dummy-Variable (20.4% haben Pool)
-    x_pool = np.random.binomial(1, 0.204, n)
-    
-    # Preis als Funktion von Wohnfläche und Pool
-    # Basierend auf: Preis Mittelwert 247.66, SD 42.19, Min 134.32, Max 345.20
-    y_base = 50 + 7.5 * x_wohnflaeche + 35 * x_pool
-    noise = np.random.normal(0, 20, n)
-    y = y_base + noise
-    y = np.clip(y, 134.32, 345.20)
-    
-    # Skaliere auf gewünschte Statistiken
-    y = (y - np.mean(y)) / np.std(y) * 42.19 + 247.66
-    
-    if x_variable == "Wohnfläche (sqft/10)":
-        x = x_wohnflaeche
-        x_label = "Wohnfläche (sqft/10)"
-        y_label = "Preis (USD)"
-        x_unit = "sqft/10"
-        y_unit = "USD"
-        context_description = """
-        Eine Studie von **1000 Hausverkäufen** in einer Universitätsstadt:
-        - **X** = Wohnfläche (in sqft/10, d.h. 20.03 = 200.3 sqft)
-        - **Y** = Hauspreis (in USD)
-        
-        **Erwartung:** Grössere Wohnfläche → höherer Preis?
-        
-        ⚠️ **Didaktisch:** Nur EIN Prädiktor → grosser Fehlerterm 
-        (Pool-Ausstattung fehlt als Erklärungsvariable!)
-        """
-    else:  # Pool
-        x = x_pool.astype(float)
-        x_label = "Pool (0/1)"
-        y_label = "Preis (USD)"
-        x_unit = "0/1"
-        y_unit = "USD"
-        context_description = """
-        Eine Studie von **1000 Hausverkäufen** in einer Universitätsstadt:
-        - **X** = Pool-Vorhandensein (0 = kein Pool, 1 = Pool vorhanden)
-        - **Y** = Hauspreis (in USD)
-        
-        **Erwartung:** Pool → höherer Preis? (Dummy-Variable!)
-        
-        ⚠️ **Didaktisch:** Dies zeigt den Effekt einer **kategorischen Variable** (Pool ja/nein).
-        Nur 20.4% der Häuser haben einen Pool.
-        
-        💡 **Interpretation der Steigung β₁:**
-        β₁ = durchschnittlicher Preisunterschied zwischen Häusern MIT Pool vs. OHNE Pool
-        """
-    
-    context_title = "Häuserpreise-Studie"
-    has_true_line = False
-    true_intercept = 0
-    true_beta = 0
-    seed = 42
-    
-    elif dataset_choice == "🏙️ Städte-Umsatzstudie (75 Städte)":
-    np.random.seed(42)
-    
-    # Generiere korrelierte Daten basierend auf den deskriptiven Statistiken
-    x2_preis = np.random.normal(5.69, 0.52, n)
-    x2_preis = np.clip(x2_preis, 4.83, 6.49)
-    
-    x3_werbung = np.random.normal(1.84, 0.83, n)
-    x3_werbung = np.clip(x3_werbung, 0.50, 3.10)
-    
-    # y = f(preis, werbung) + noise
-    y_base = 100 - 5 * x2_preis + 8 * x3_werbung
-    noise = np.random.normal(0, 3.5, n)
-    y = y_base + noise
-    y = np.clip(y, 62.4, 91.2)
-    
-    # Skaliere auf gewünschte Statistiken
-    y = (y - np.mean(y)) / np.std(y) * 6.49 + 77.37
-    
-    if x_variable == "Preis (CHF)":
-        x = x2_preis
-        x_label = "Preis (CHF)"
-        y_label = "Umsatz (1'000 CHF)"
-        x_unit = "CHF"
-        y_unit = "1'000 CHF"
-        context_description = """
-        Eine Handelskette untersucht in **75 Städten**:
-        - **X** = Produktpreis (in CHF)
-        - **Y** = Umsatz (in 1'000 CHF)
-        
-        **Erwartung:** Höherer Preis → niedrigerer Umsatz?
-        
-        ⚠️ **Didaktisch:** Nur EIN Prädiktor → grosser Fehlerterm 
-        (Werbung fehlt als Erklärungsvariable!)
-        """
-    else:  # Werbung
-        x = x3_werbung
-        x_label = "Werbung (CHF1000)"
-        y_label = "Umsatz (1'000 CHF)"
-        x_unit = "CHF1000"
-        y_unit = "1'000 CHF"
-        context_description = """
-        Eine Handelskette untersucht in **75 Städten**:
-        - **X** = Werbeausgaben (in 1'000 CHF)
-        - **Y** = Umsatz (in 1'000 CHF)
-        
-        **Erwartung:** Mehr Werbung → höherer Umsatz?
-        
-        ⚠️ **Didaktisch:** Nur EIN Prädiktor → grosser Fehlerterm 
-        (Preis fehlt als Erklärungsvariable!)
-        """
-    
-    context_title = "Städte-Umsatzstudie"
-    has_true_line = False
-    true_intercept = 0  # Nicht bekannt bei echten Daten
-    true_beta = 0
-    seed = 42  # Fester Seed für konsistente ANOVA-Daten
+    if dataset_choice != "🏪 Elektronikmarkt (simuliert)" and x_variable:
+        simple_data = generate_simple_regression_data(dataset_choice, x_variable, n, seed=42)
+        x = simple_data['x']
+        y = simple_data['y']
+        x_label = simple_data['x_label']
+        y_label = simple_data['y_label']
+        x_unit = simple_data['x_unit']
+        y_unit = simple_data['y_unit']
+        context_title = simple_data['context_title']
+        context_description = simple_data['context_description']
+        has_true_line = False
+        true_intercept = 0
+        true_beta = 0
+        seed = 42
 
     st.sidebar.markdown("---")
     with st.sidebar.expander("🔧 Anzeigeoptionen", expanded=False):
-    show_formulas = st.checkbox("Formeln anzeigen", value=True,
-                                help="Zeige mathematische Formeln in der Anleitung")
-    show_true_line = st.checkbox("Wahre Linie zeigen", value=has_true_line,
-                                 help="Zeige die wahre Regressionslinie (nur bei Simulation)") if has_true_line else False
+        show_formulas = st.checkbox("Formeln anzeigen", value=True,
+                                    help="Zeige mathematische Formeln in der Anleitung")
+        show_true_line = st.checkbox("Wahre Linie zeigen", value=has_true_line,
+                                     help="Zeige die wahre Regressionslinie (nur bei Simulation)") if has_true_line else False
     
     # Ensure all required variables are defined (fallback initialization)
     if 'x_label' not in locals() or 'y_label' not in locals():
-    x_label = "X"
-    y_label = "Y"
+        x_label = "X"
+        y_label = "Y"
     if 'x' not in locals() or 'y' not in locals():
-    # Fallback: create minimal dataset
-    np.random.seed(42)
-    n = 12
-    x = np.linspace(2, 12, n)
-    y = 0.6 + 0.52 * x + np.random.normal(0, 0.4, n)
-    x_label = "Verkaufsfläche (100qm)"
-    y_label = "Umsatz (Mio. €)"
-    x_unit = "100 qm"
-    y_unit = "Mio. €"
-    context_title = "Elektronikfachmärkte"
-    context_description = "Standarddatensatz"
-    has_true_line = False
-    true_intercept = 0
-    true_beta = 0
+        # Fallback: create minimal dataset
+        np.random.seed(42)
+        n = 12
+        x = np.linspace(2, 12, n)
+        y = 0.6 + 0.52 * x + np.random.normal(0, 0.4, n)
+        x_label = "Verkaufsfläche (100qm)"
+        y_label = "Umsatz (Mio. €)"
+        x_unit = "100 qm"
+        y_unit = "Mio. €"
+        context_title = "Elektronikfachmärkte"
+        context_description = "Standarddatensatz"
+        has_true_line = False
+        true_intercept = 0
+        true_beta = 0
     if 'n' not in locals():
-    n = len(x) if 'x' in locals() else 12
+        n = len(x) if 'x' in locals() else 12
 
 # ---------------------------------------------------------
 # MODELL & KENNZAHLEN BERECHNEN (nur einfache Regression)
