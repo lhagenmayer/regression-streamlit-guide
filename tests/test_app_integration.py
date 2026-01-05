@@ -91,7 +91,6 @@ class TestSidebarWidgets:
         if len(at.slider) > 0:
             # Get first slider and change its value
             slider = at.slider[0]
-            slider.value
 
             # Set to a different value within range
             if slider.max > slider.min:

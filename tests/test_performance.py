@@ -132,12 +132,14 @@ class TestCachingEffectiveness:
     @pytest.mark.performance
     def test_multiple_cache_entries(self):
         """Test that multiple different parameter sets are cached separately."""
-        # Generate three different datasets
+        # Generate three different datasets (to populate cache)
         result1 = generate_multiple_regression_data(
             "🏙️ Städte-Umsatzstudie (75 Städte)", 75, 3.5, 42
         )
-        generate_multiple_regression_data("🏠 Häuserpreise mit Pool (1000 Häuser)", 1000, 20.0, 42)
-        generate_multiple_regression_data("🏪 Elektronikmarkt (erweitert)", 50, 0.35, 42)
+        _ = generate_multiple_regression_data(
+            "🏠 Häuserpreise mit Pool (1000 Häuser)", 1000, 20.0, 42
+        )
+        _ = generate_multiple_regression_data("🏪 Elektronikmarkt (erweitert)", 50, 0.35, 42)
 
         # Re-access first dataset - should be cached
         start = time.time()
@@ -244,8 +246,8 @@ class TestScalability:
         time_ratio_1 = times[1] / times[0]
         size_ratio_1 = sizes[1] / sizes[0]
 
-        times[2] / times[1]
-        sizes[2] / sizes[1]
+        # We only use the first ratio for the assertion
+        # (the second ratio is for reference but not strictly needed for the test)
 
         # Time ratio should not be much larger than size ratio
         # Allow factor of 2 for variability
