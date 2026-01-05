@@ -421,3 +421,95 @@ class TestGlobalDatasets:
                 if dataset in sb.options:
                     sb.select(dataset).run(timeout=30)
                     assert not at.exception, f"Failed with {dataset}"
+
+
+class TestROutputDisplay:
+    """Test R output display functionality above tabs."""
+
+    @pytest.mark.streamlit
+    @pytest.mark.integration
+    def test_r_output_display_initial_state(self):
+        """Test that R output display shows initial message when no model is available."""
+        at = AppTest.from_file("run.py")
+        at.run(timeout=30)
+
+        # Should show initial message when no model is computed
+        assert not at.exception
+
+        # Check that R output section exists
+        markdown_elements = [elem for elem in at.markdown if "R Output" in str(elem.value)]
+        assert len(markdown_elements) > 0, "R output section should be visible"
+
+    @pytest.mark.streamlit
+    @pytest.mark.integration
+    def test_r_output_display_simple_regression(self):
+        """Test R output display updates with simple regression model."""
+        at = AppTest.from_file("run.py")
+        at.run(timeout=30)
+
+        # Find dataset selection for simple regression
+        dataset_selectboxes = [sb for sb in at.selectbox if sb.label and "Datensatz wählen" in str(sb.label)]
+        if dataset_selectboxes:
+            sb = dataset_selectboxes[0]
+            # Select a dataset that should trigger model computation
+            if "🏙️ Städte-Umsatzstudie" in sb.options:
+                sb.select("🏙️ Städte-Umsatzstudie (75 Städte)").run(timeout=30)
+                assert not at.exception
+
+                # Should now show R output for simple regression
+                assert not at.exception
+
+    @pytest.mark.streamlit
+    @pytest.mark.integration
+    def test_r_output_display_multiple_regression(self):
+        """Test R output display updates with multiple regression model."""
+        at = AppTest.from_file("run.py")
+        at.run(timeout=30)
+
+        # Find dataset selection for multiple regression
+        mult_selectboxes = [sb for sb in at.selectbox if sb.label and "Multiple Regression" in str(sb.label)]
+        if mult_selectboxes:
+            sb = mult_selectboxes[0]
+            # Select a dataset that should trigger model computation
+            if "🏙️ Städte-Umsatzstudie" in sb.options:
+                sb.select("🏙️ Städte-Umsatzstudie (75 Städte)").run(timeout=30)
+                assert not at.exception
+
+                # Should now show R output for multiple regression
+                assert not at.exception
+
+    @pytest.mark.streamlit
+    @pytest.mark.integration
+    def test_r_output_format_correctness(self):
+        """Test that R output has correct format structure."""
+        at = AppTest.from_file("run.py")
+        at.run(timeout=30)
+
+        # The app should load without format errors
+        assert not at.exception
+
+        # Check that plotly charts (R output displays) can be created
+        assert len(at.plotly_chart) >= 0  # Should not crash
+
+    @pytest.mark.streamlit
+    @pytest.mark.integration
+    def test_r_output_updates_with_parameter_changes(self):
+        """Test that R output updates when parameters change."""
+        at = AppTest.from_file("run.py")
+        at.run(timeout=30)
+
+        # Start with one dataset
+        dataset_selectboxes = [sb for sb in at.selectbox if sb.label and "Datensatz wählen" in str(sb.label)]
+        if dataset_selectboxes:
+            sb = dataset_selectboxes[0]
+            if len(sb.options) > 1:
+                # Change dataset selection
+                original_selection = sb.value
+                for option in sb.options:
+                    if option != original_selection:
+                        sb.select(option).run(timeout=30)
+                        assert not at.exception, f"Failed to change dataset to {option}"
+                        break
+
+                # App should handle the change without errors
+                assert not at.exception

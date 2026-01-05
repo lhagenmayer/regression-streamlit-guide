@@ -477,4 +477,41 @@ class TestCachingPerformance:
         assert len(result) == 3
         assert benchmark.stats['mean'] < 2.0
 
+    def test_r_output_display_caching(self):
+        """Test that R output display creation is cached."""
+        from src.plots import create_r_output_display
+        from src.data import generate_multiple_regression_data, fit_ols_model
+        import numpy as np
+        import statsmodels.api as sm
+        import time
+
+        # Generate test data
+        mult_data = generate_multiple_regression_data('🏙️ Städte-Umsatzstudie (75 Städte)', 30, 0.5, 123)
+        X_mult = sm.add_constant(np.column_stack([mult_data['x2_preis'], mult_data['x3_werbung']]))
+        y_mult = mult_data['y_mult']
+        model_mult, _ = fit_ols_model(X_mult, y_mult)
+
+        # Time first R output creation
+        start = time.time()
+        r_output1 = create_r_output_display(model_mult, ['hp', 'drat', 'wt'])
+        first_call = time.time() - start
+
+        # Time second R output creation (should be cached)
+        start = time.time()
+        r_output2 = create_r_output_display(model_mult, ['hp', 'drat', 'wt'])
+        second_call = time.time() - start
+
+        # Results should be identical
+        assert r_output1 == r_output2
+
+        # Second call should be significantly faster
+        speedup = first_call / max(second_call, 0.001)
+        assert speedup > 5, f"R output caching speedup {speedup:.1f}x is less than expected 5x"
+
+        # Verify R output contains expected elements
+        assert 'Call:' in r_output1
+        assert 'lm(formula = mpg ~ hp + drat + wt, data = mtcars)' in r_output1
+        assert 'Coefficients:' in r_output1
+        assert 'hp' in r_output1 and 'drat' in r_output1 and 'wt' in r_output1
+
 
