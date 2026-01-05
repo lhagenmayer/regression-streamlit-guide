@@ -5,7 +5,7 @@ This module contains all data generation functions and data manipulation utiliti
 including synthetic data generation and integration with Swiss open government data APIs.
 """
 
-from typing import Dict, Optional, Union, Any
+from typing import Dict, Optional, Union, Any, List
 import numpy as np
 import pandas as pd
 import streamlit as st
