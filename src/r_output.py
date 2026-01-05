@@ -46,7 +46,7 @@ def render_r_output_section(
                     feature_names=feature_names, 
                     figsize=figsize
                 )
-                st.plotly_chart(fig_r, width='stretch')
+                st.plotly_chart(fig_r, key="r_output_figure", width='stretch')
             else:
                 st.info("ℹ️ Wählen Sie einen Datensatz und Parameter aus, um das R Output zu sehen.")
         except Exception as e:

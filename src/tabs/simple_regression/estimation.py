@@ -109,4 +109,4 @@ def render_estimation(params: dict) -> None:
             height=400
         )
 
-        st.plotly_chart(fig_ols, width='stretch')
+        st.plotly_chart(fig_ols, key="ols_estimation_plot", width='stretch')

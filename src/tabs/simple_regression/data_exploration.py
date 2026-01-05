@@ -38,7 +38,7 @@ def render_data_exploration(params: dict) -> None:
     with col1:
         st.markdown("### 📊 Streudiagramm")
         fig = create_scatter_plot(data['x'], data['y'])
-        st.plotly_chart(fig, width='stretch')
+        st.plotly_chart(fig, key="data_exploration_scatter", width='stretch')
 
     with col2:
         st.markdown("### 📈 Datenübersicht")

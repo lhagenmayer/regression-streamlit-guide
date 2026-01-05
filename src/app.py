@@ -828,7 +828,7 @@ with col_m1_1:
                 )
             )
 
-            st.plotly_chart(fig_3d_plane, use_container_width=True)
+            st.plotly_chart(fig_3d_plane, key="multiple_regression_3d_plane", use_container_width=True)
 
     # =========================================================
     # M2: DAS GRUNDMODELL
@@ -975,7 +975,7 @@ with col_m1_1:
         fig_resid = create_plotly_residual_plot(
             y_pred_mult, mult_diagnostics["resid"], title="Residual Plot"
         )
-        st.plotly_chart(fig_resid, use_container_width=True)
+        st.plotly_chart(fig_resid, key="residual_plot_m3", use_container_width=True)
 
     with col_m3_2:
         st.markdown("### 📊 Unsere Schätzungen")
@@ -1072,7 +1072,7 @@ with col_m1_1:
             height=600,
         )
 
-        st.plotly_chart(fig_3d_resid, use_container_width=True)
+        st.plotly_chart(fig_3d_resid, key="3d_residual_plot", use_container_width=True)
 
     st.info(
         """
@@ -1135,7 +1135,7 @@ with col_m1_1:
             colors=["gray", "green", "red"],
             title=f"Varianzzerlegung: R² = {mult_summary['rsquared']:.4f}",
         )
-        st.plotly_chart(fig_var_mult, use_container_width=True)
+        st.plotly_chart(fig_var_mult, key="variance_decomposition_mult", use_container_width=True)
 
     with col_m4_2:
         if show_formulas:
@@ -1268,7 +1268,7 @@ with col_m1_1:
             ),
         )
 
-        st.plotly_chart(fig_3d_var, use_container_width=True)
+        st.plotly_chart(fig_3d_var, key="3d_variance_plot", use_container_width=True)
 
     st.info(
         f"""
@@ -1423,7 +1423,7 @@ with col_m1_1:
             hovermode="x",
         )
 
-        st.plotly_chart(fig_sens, use_container_width=True)
+        st.plotly_chart(fig_sens, key="sensitivity_plot", use_container_width=True)
 
     # =========================================================
     # M6: DUMMY-VARIABLEN
@@ -1601,7 +1601,7 @@ with col_m1_1:
             height=600,
         )
 
-        st.plotly_chart(fig_3d_m7, use_container_width=True)
+        st.plotly_chart(fig_3d_m7, key="3d_m7_multicollinearity", use_container_width=True)
 
         st.info(
             """
@@ -1778,7 +1778,7 @@ with col_m1_1:
 
     fig_diag.update_layout(height=800, template="plotly_white", showlegend=False)
 
-    st.plotly_chart(fig_diag, use_container_width=True)
+    st.plotly_chart(fig_diag, key="diagnostic_plots_m8", use_container_width=True)
 
     col_m8_1, col_m8_2 = st.columns([1, 1])
 
@@ -1890,7 +1890,7 @@ with col_m1_1:
         height=600,
     )
 
-    st.plotly_chart(fig_3d_resid_m8, use_container_width=True)
+    st.plotly_chart(fig_3d_resid_m8, key="3d_residual_plot_m8", use_container_width=True)
 
     st.info(
         """
@@ -1929,7 +1929,7 @@ with col_m1_1:
     st.markdown("#### 📊 R-Style Output")
     # Use the specification example variable names for consistency
     fig_r_mult = create_r_output_figure(model_mult, feature_names=["hp", "drat", "wt"], figsize=(18, 13))
-    st.plotly_chart(fig_r_mult, use_container_width=True)
+    st.plotly_chart(fig_r_mult, key="r_output_mult_regression", use_container_width=True)
 
     # Raw text output
     with st.expander("📜 Raw R-Style Output (zum Kopieren)"):
@@ -2253,7 +2253,7 @@ with tab1:
 
         fig_joint_3d.update_layout()
 
-        st.plotly_chart(fig_joint_3d, use_container_width=True)
+        st.plotly_chart(fig_joint_3d, key="joint_3d_distribution", use_container_width=True)
 
     with col_joint2:
         if show_formulas:
@@ -2358,7 +2358,7 @@ with tab1:
 
         fig_indep.update_layout(height=400, template="plotly_white")
 
-        st.plotly_chart(fig_indep, use_container_width=True)
+        st.plotly_chart(fig_indep, key="independence_plot", use_container_width=True)
 
     st.success(
         """
@@ -2480,7 +2480,7 @@ with tab1:
             hovermode="closest",
         )
 
-        st.plotly_chart(fig_scatter1, use_container_width=True)
+        st.plotly_chart(fig_scatter1, key="correlation_scatter_plot", use_container_width=True)
 
     st.success(
         f"""
@@ -2586,7 +2586,7 @@ with tab1:
             height=600,
         )
 
-        st.plotly_chart(fig_cov, use_container_width=True)
+        st.plotly_chart(fig_cov, key="covariance_3d_plot", use_container_width=True)
 
     with col_cov2:
         if show_formulas:
@@ -2700,7 +2700,7 @@ with tab1:
             template="plotly_white",
         )
 
-        st.plotly_chart(fig_corr_examples, use_container_width=True)
+        st.plotly_chart(fig_corr_examples, key="correlation_examples_plot", use_container_width=True)
 
     with col_corr2:
         if show_formulas:
@@ -2808,7 +2808,7 @@ with tab1:
             hovermode="x",
         )
 
-        st.plotly_chart(fig_t_corr, use_container_width=True)
+        st.plotly_chart(fig_t_corr, key="t_test_correlation_plot", use_container_width=True)
 
     with col_ttest_corr2:
         if show_formulas:
@@ -2883,7 +2883,7 @@ with tab1:
 
             fig_spear.update_layout(height=400, template="plotly_white")
 
-            st.plotly_chart(fig_spear, use_container_width=True)
+            st.plotly_chart(fig_spear, key="spearman_correlation_plot", use_container_width=True)
 
         with col_sp2:
             st.latex(r"r_s = 1 - \frac{6 \sum d_i^2}{n(n^2-1)}")
@@ -3011,7 +3011,7 @@ with tab1:
             hovermode="closest",
         )
 
-        st.plotly_chart(fig_ols, use_container_width=True)
+        st.plotly_chart(fig_ols, key="ols_regression_plot", use_container_width=True)
 
     with col_ols2:
         if show_formulas:
@@ -3154,7 +3154,7 @@ with tab1:
         showlegend=True,
     )
 
-    st.plotly_chart(fig_detail, use_container_width=True)
+    st.plotly_chart(fig_detail, key="detailed_ols_plot", use_container_width=True)
 
     # Erklärungstext
     col_exp1, col_exp2, col_exp3 = st.columns(3)
