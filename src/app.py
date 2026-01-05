@@ -84,6 +84,7 @@ from .content import (  # noqa: F401
 )
 from .logger import get_logger
 from .accessibility import inject_accessibility_styles
+from .r_output import render_r_output_section
 
 # Initialize logger for the app
 logger = get_logger(__name__)
@@ -733,54 +734,12 @@ else:
 # =========================================================
 # R OUTPUT DISPLAY - Always visible above tabs
 # =========================================================
-st.markdown("---")
-
-# Create two columns: R output on left, explanation on right
-col_r_output, col_r_explanation = st.columns([3, 2])
-
-with col_r_output:
-    st.markdown("### 📊 R Output (Automatisch aktualisiert)")
-
-    # Display R output based on current session state
-    try:
-        if 'current_model' in st.session_state and 'current_feature_names' in st.session_state:
-            model = st.session_state.current_model
-            feature_names = st.session_state.current_feature_names
-
-            if model is not None:
-                fig_r = create_r_output_figure(model, feature_names=feature_names, figsize=(18, 13))
-                st.plotly_chart(fig_r, use_container_width=True)
-            else:
-                st.info("ℹ️ Wählen Sie einen Datensatz und Parameter aus, um das R Output zu sehen.")
-        else:
-            st.info("ℹ️ Wählen Sie einen Datensatz und Parameter aus, um das R Output zu sehen.")
-    except Exception as e:
-        st.warning(f"R Output konnte nicht geladen werden: {str(e)}")
-
-with col_r_explanation:
-    with st.expander("📖 Erklärung der R Output Abschnitte", expanded=False):
-        st.markdown("""
-        #### Erklärung der Abschnitte (kurz, präzise)
-        • **Call**: zeigt die verwendete Modellformel und das Datenset; nützlich zur Reproduzierbarkeit.
-
-        • **Residuals**: fünf‑Zahlen‑Zusammenfassung der Residuen (Min, 1Q, Median, 3Q, Max) zur schnellen Beurteilung von Schiefe/Ausreißern.
-
-        • **Coefficients**: vier Spalten: Estimate, Std. Error, t value, Pr(>|t|); jede Zeile ist ein Prädiktor (Intercept inklusive). Signifikanzsterne werden darunter erklärt.
-
-        • **Residual standard error und degrees of freedom**: Schätzung der Fehlerstreuung und Freiheitsgrade für Tests.
-
-        • **Multiple R-squared / Adjusted R-squared**: erklärte Varianz und bereinigte Version (bestraft unnötige Prädiktoren).
-
-        • **F-statistic**: globaler Test, ob mindestens ein Prädiktor das Modell signifikant verbessert; p‑value dazu wird angezeigt.
-
-        ---
-        #### Wichtige Hinweise, Entscheidungen und Risiken
-        • **Interpretation der Koeffizienten**: Ein Estimate ist die geschätzte Änderung in der Zielvariable pro Einheitenänderung des Prädiktors bei konstanten anderen Variablen; Pr(>|t|) gibt die zweiseitige p‑Wert‑Signifikanz an.
-
-        • **Achtung bei Multikollinearität**: hohe Standardfehler oder aliasing können Koeffizienten unzuverlässig machen; summary() zeigt aliased coefficients nicht, Details in summary.lm‑Dokumentation.
-        """)
-
-st.markdown("---")
+# Use the centralized R output rendering function which includes interpretation
+render_r_output_section(
+    model=st.session_state.get("current_model"),
+    feature_names=st.session_state.get("current_feature_names"),
+    figsize=(18, 13)
+)
 
 # Create three tabs
 tab1, tab2, tab3 = st.tabs(["📈 Einfache Regression", "📊 Multiple Regression", "📚 Datensätze"])
