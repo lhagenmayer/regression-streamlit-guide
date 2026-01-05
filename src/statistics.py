@@ -104,7 +104,7 @@ def compute_regression_statistics(
 
 @st.cache_data(ttl=300)  # Cache for 5 minutes
 def compute_simple_regression_stats(
-    model: sm.regression.linear_model.RegressionResultsWrapper,
+    _model: sm.regression.linear_model.RegressionResultsWrapper,
     X: np.ndarray,
     y: np.ndarray,
     n: int
@@ -113,7 +113,7 @@ def compute_simple_regression_stats(
     Compute comprehensive statistics for simple linear regression.
 
     Args:
-        model: Fitted OLS model
+        _model: Fitted OLS model (underscore prefix to skip hashing)
         X: Design matrix
         y: Response variable
         n: Sample size
@@ -121,6 +121,7 @@ def compute_simple_regression_stats(
     Returns:
         Dictionary with all computed statistics
     """
+    model = _model  # Use local variable for clarity
     y_pred = model.predict(X)
     y_mean = np.mean(y)
 
@@ -174,7 +175,7 @@ def compute_simple_regression_stats(
 
 @st.cache_data(ttl=300)  # Cache for 5 minutes
 def compute_multiple_regression_stats(
-    model: sm.regression.linear_model.RegressionResultsWrapper,
+    _model: sm.regression.linear_model.RegressionResultsWrapper,
     X: np.ndarray,
     y: np.ndarray
 ) -> Dict[str, Any]:
@@ -182,13 +183,14 @@ def compute_multiple_regression_stats(
     Compute comprehensive statistics for multiple linear regression.
 
     Args:
-        model: Fitted OLS model
+        _model: Fitted OLS model (underscore prefix to skip hashing)
         X: Design matrix
         y: Response variable
 
     Returns:
         Dictionary with all computed statistics
     """
+    model = _model  # Use local variable for clarity
     y_pred = model.predict(X)
     y_mean = np.mean(y)
 
@@ -392,7 +394,7 @@ def get_model_diagnostics(model: sm.regression.linear_model.RegressionResultsWra
     """
     return {
         "resid": model.resid,
-        "resid_response": model.resid_response,
+        "resid_pearson": model.resid_pearson,
         "fittedvalues": model.fittedvalues,
         "mse_resid": model.mse_resid,
         "ssr": model.ssr,

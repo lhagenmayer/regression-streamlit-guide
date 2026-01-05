@@ -17,3 +17,6 @@ scipy>=1.11.0,<2.0.0
 
 # HTTP requests for external data (Swiss Open Government Data API)
 requests>=2.31.0,<3.0.0
+
+# Perplexity API for LLM-based interpretation
+openai>=1.0.0,<2.0.0  # Perplexity API is OpenAI-compatible
