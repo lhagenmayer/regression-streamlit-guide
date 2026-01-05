@@ -109,50 +109,18 @@ def reset_random_seed():
     np.random.seed(42)
 
 
-# Pytest hooks for custom behavior
+# Pytest hooks for basic markers
 def pytest_configure(config):
-    """Configure pytest with custom markers and settings."""
+    """Configure pytest with simple markers for unit and integration tests."""
     config.addinivalue_line("markers", "unit: Unit tests for individual functions")
     config.addinivalue_line("markers", "integration: Integration tests for workflows")
     config.addinivalue_line("markers", "streamlit: Tests using Streamlit AppTest framework")
-    config.addinivalue_line("markers", "performance: Performance and regression tests")
-    config.addinivalue_line("markers", "slow: Slow running tests")
-    config.addinivalue_line("markers", "visual: Visual regression tests for plots")
 
 
 def pytest_collection_modifyitems(config, items):
-    """Modify test collection to add markers based on file paths."""
+    """Tag integration tests based on file path."""
     for item in items:
-        # Add markers based on test file location
         if "integration" in str(item.fspath):
             item.add_marker(pytest.mark.integration)
-        elif "performance" in str(item.fspath):
-            item.add_marker(pytest.mark.performance)
-
-        # Mark slow tests
-        if "slow" in item.keywords or "performance" in item.keywords:
-            item.add_marker(pytest.mark.slow)
-
-
-def pytest_runtest_setup(item):
-    """Setup before each test runs."""
-    # Skip slow tests unless explicitly requested
-    if item.get_closest_marker("slow") and not item.config.getoption("--runslow"):
-        pytest.skip("Slow test - use --runslow to run")
-
-
-# Custom command line options
-def pytest_addoption(parser):
-    """Add custom command line options."""
-    parser.addoption(
-        "--runslow",
-        action="store_true",
-        default=False,
-        help="Run slow tests"
-    )
-    parser.addoption(
-        "--visual-baseline",
-        action="store_true",
-        default=False,
-        help="Update visual test baselines"
-    )
+        else:
+            item.add_marker(pytest.mark.unit)
