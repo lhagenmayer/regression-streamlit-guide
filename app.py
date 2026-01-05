@@ -22,7 +22,10 @@ from config import (
     CITIES_DATASET, HOUSES_DATASET, ELECTRONICS_DATASET, SIMPLE_REGRESSION,
     VISUALIZATION_3D, COLUMN_LAYOUTS, CAMERA_PRESETS, CSS_STYLES, UI_DEFAULTS
 )
-from data import safe_scalar, generate_dataset, generate_multiple_regression_data, generate_simple_regression_data
+from data import (
+    safe_scalar, generate_dataset, generate_multiple_regression_data, generate_simple_regression_data,
+    generate_swiss_canton_regression_data, generate_swiss_weather_regression_data, get_available_swiss_datasets
+)
 from plots import (
     create_regression_mesh, get_3d_layout_config, create_zero_plane,
     create_plotly_scatter, create_plotly_scatter_with_line, create_plotly_3d_scatter,
@@ -114,13 +117,15 @@ st.sidebar.markdown("---")
 with st.sidebar.expander("📊 Datensatz", expanded=True):
     dataset_choice = st.selectbox(
         "Datensatz wählen (Einfache Regression):",
-        ["🏪 Elektronikmarkt (simuliert)", "🏙️ Städte-Umsatzstudie (75 Städte)", "🏠 Häuserpreise mit Pool (1000 Häuser)"],
+        ["🏪 Elektronikmarkt (simuliert)", "🏙️ Städte-Umsatzstudie (75 Städte)", "🏠 Häuserpreise mit Pool (1000 Häuser)",
+         "🇨🇭 Schweizer Kantone (sozioökonomisch)", "🌤️ Schweizer Wetterstationen"],
         index=0,
-        help="Wählen Sie zwischen einem simulierten Datensatz, Städtedaten oder Häuserpreisen mit Dummy-Variable (Pool)."
+        help="Wählen Sie zwischen simulierten Datensätzen, echten Schweizer Daten oder API-basierten Datensätzen."
     )
     dataset_choice_mult = st.selectbox(
         "Datensatz wählen (Multiple Regression):",
-        ["🏙️ Städte-Umsatzstudie (75 Städte)", "🏠 Häuserpreise mit Pool (1000 Häuser)", "🏪 Elektronikmarkt (erweitert)"],
+        ["🏙️ Städte-Umsatzstudie (75 Städte)", "🏠 Häuserpreise mit Pool (1000 Häuser)", "🏪 Elektronikmarkt (erweitert)",
+         "🇨🇭 Schweizer Kantone (sozioökonomisch)", "🌤️ Schweizer Wetterstationen"],
         index=0,
         help="Wählen Sie einen Datensatz für multiple Regression (2+ Prädiktoren).",
             key="mult_dataset"
