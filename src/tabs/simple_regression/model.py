@@ -7,10 +7,10 @@ and the mathematical model.
 
 import streamlit as st
 import numpy as np
-from ...ui_config import CSS_STYLES
-from ...plots import create_scatter_plot, create_regression_line_plot
-from ...data import generate_simple_regression_data
-from ...logger import get_logger
+from ui_config import CSS_STYLES
+from plots import create_scatter_plot, create_regression_line_plot
+from data import generate_simple_regression_data
+from logger import get_logger
 
 logger = get_logger(__name__)
 

@@ -6,8 +6,8 @@ explaining the basic problem and motivation.
 """
 
 import streamlit as st
-from ...ui_config import CSS_STYLES
-from ...logger import get_logger
+from ui_config import CSS_STYLES
+from logger import get_logger
 
 logger = get_logger(__name__)
 

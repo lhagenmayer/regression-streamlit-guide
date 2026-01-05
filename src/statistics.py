@@ -15,7 +15,7 @@ from statsmodels.graphics.gofplots import ProbPlot
 from typing import Dict, Tuple, Any, Optional, Union, List
 import streamlit as st
 
-from .logger import get_logger
+from logger import get_logger
 
 # Initialize logger for this module
 logger = get_logger(__name__)

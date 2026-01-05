@@ -9,7 +9,7 @@ import streamlit as st
 from dataclasses import dataclass
 from typing import Optional
 
-from .config import (
+from config import (
     DEFAULT_SEED,
     SEED_MIN,
     SEED_MAX,
@@ -19,7 +19,7 @@ from .config import (
     SIMPLE_REGRESSION,
     UI_DEFAULTS,
 )
-from .logger import get_logger
+from logger import get_logger
 
 logger = get_logger(__name__)
 

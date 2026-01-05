@@ -6,8 +6,8 @@ for applying simple linear regression.
 """
 
 import streamlit as st
-from ...content import get_content
-from ...logger import get_logger
+from content import get_content
+from logger import get_logger
 
 logger = get_logger(__name__)
 

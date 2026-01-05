@@ -9,7 +9,7 @@ import streamlit as st
 from typing import Optional, Dict, Any, Tuple
 import numpy as np
 
-from .logger import get_logger
+from logger import get_logger
 
 logger = get_logger(__name__)
 

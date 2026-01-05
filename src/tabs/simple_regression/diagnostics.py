@@ -6,9 +6,9 @@ including heteroskedasticity testing and influential observations.
 """
 
 import streamlit as st
-from ...plots import create_residuals_vs_fitted_plot, create_qq_plot
-from ...statistics import compute_diagnostic_tests
-from ...logger import get_logger
+from plots import create_residuals_vs_fitted_plot, create_qq_plot
+from statistics import compute_diagnostic_tests
+from logger import get_logger
 
 logger = get_logger(__name__)
 

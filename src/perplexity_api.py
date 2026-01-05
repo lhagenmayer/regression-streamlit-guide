@@ -10,7 +10,7 @@ import numpy as np
 from typing import Dict, Any, Optional
 from openai import OpenAI
 
-from .logger import get_logger
+from logger import get_logger
 
 logger = get_logger(__name__)
 

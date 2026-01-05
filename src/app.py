@@ -17,7 +17,11 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
 # Import from our modules
-from .config import (  # noqa: F401
+import sys
+import os
+sys.path.insert(0, os.path.dirname(__file__))
+
+from config import (  # noqa: F401
     COLORS,
     FONT_SIZES,
     DEFAULT_SEED,
@@ -33,7 +37,7 @@ from .config import (  # noqa: F401
     CSS_STYLES,
     UI_DEFAULTS,
 )
-from .data import (  # noqa: F401
+from data import (  # noqa: F401
     safe_scalar,
     generate_multiple_regression_data,
     generate_simple_regression_data,
@@ -43,7 +47,7 @@ from .data import (  # noqa: F401
     create_dummy_encoded_dataset,
     get_available_swiss_datasets,
 )
-from .statistics import (  # noqa: F401
+from statistics import (  # noqa: F401
     fit_ols_model,
     fit_multiple_ols_model,
     compute_regression_statistics,
@@ -60,7 +64,7 @@ from .statistics import (  # noqa: F401
     perform_normality_tests,
     perform_heteroskedasticity_tests,
 )
-from .plots import (  # noqa: F401
+from plots import (  # noqa: F401
     create_regression_mesh,
     get_3d_layout_config,
     create_zero_plane,
@@ -78,14 +82,14 @@ from .plots import (  # noqa: F401
     calculate_residual_sizes,
     standardize_residuals,
 )
-from .content import (  # noqa: F401
+from content import (  # noqa: F401
     get_multiple_regression_formulas,
     get_multiple_regression_descriptions,
     get_simple_regression_content,
 )
-from .logger import get_logger
-from .accessibility import inject_accessibility_styles
-from .r_output import render_r_output_section
+from logger import get_logger
+from accessibility import inject_accessibility_styles
+from r_output import render_r_output_section
 
 # Initialize logger for the app
 logger = get_logger(__name__)

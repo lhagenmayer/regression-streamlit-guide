@@ -8,9 +8,9 @@ for regression models in the Streamlit application.
 import streamlit as st
 from typing import Optional, List, Any
 
-from .plots import create_r_output_figure
-from .logger import get_logger
-from .perplexity_api import interpret_model, is_api_configured
+from plots import create_r_output_figure
+from logger import get_logger
+from perplexity_api import interpret_model, is_api_configured
 
 logger = get_logger(__name__)
 
@@ -162,7 +162,7 @@ def _render_interpretation_section(model: Any, feature_names: List[str]) -> None
         
         with st.spinner("🤔 Analysiere Modell mit Perplexity AI..."):
             # Extract statistics first
-            from .perplexity_api import extract_model_statistics, create_interpretation_prompt
+            from perplexity_api import extract_model_statistics, create_interpretation_prompt
             stats = extract_model_statistics(model, feature_names)
             prompt = create_interpretation_prompt(stats)
             

@@ -62,35 +62,26 @@ target-version = ['py39', 'py310', 'py311', 'py312']
 include = '\.pyi?$'
 extend-exclude = '''
 /(
-  # Version control
   \.git
   | \.hg
   | \.svn
-
-  # Build outputs
-  _build
+  | _build
   | buck-out
   | build
   | dist
   | \.eggs
-  | *.egg
-
-  # Virtual environments
-  \.venv
+  | .*\.egg
+  | \.venv
   | venv
   | env
-  | .env
-
-  # Testing and coverage
-  htmlcov
+  | \.env
+  | htmlcov
   | \.coverage
   | coverage\.xml
   | \.pytest_cache
   | \.tox
   | \.mypy_cache
-
-  # IDEs
-  \.vscode
+  | \.vscode
   | \.idea
   | __pycache__
   | \.DS_Store

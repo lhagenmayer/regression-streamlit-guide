@@ -8,10 +8,10 @@ and how to fit the regression line to data.
 import streamlit as st
 import numpy as np
 import plotly.graph_objects as go
-from ...ui_config import CSS_STYLES
-from ...data import generate_simple_regression_data
-from ...statistics import compute_simple_regression
-from ...logger import get_logger
+from ui_config import CSS_STYLES
+from data import generate_simple_regression_data
+from statistics import compute_simple_regression
+from logger import get_logger
 
 logger = get_logger(__name__)
 

@@ -9,8 +9,8 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
-from .logger import get_logger
-from .data import safe_scalar as _safe_scalar
+from logger import get_logger
+from data import safe_scalar as _safe_scalar
 
 # Initialize logger for this module
 logger = get_logger(__name__)

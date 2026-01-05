@@ -5,9 +5,9 @@ This module covers model evaluation metrics and goodness-of-fit measures.
 """
 
 import streamlit as st
-from ...statistics import compute_model_evaluation_metrics
-from ...plots import create_residuals_plot
-from ...logger import get_logger
+from statistics import compute_model_evaluation_metrics
+from plots import create_residuals_plot
+from logger import get_logger
 
 logger = get_logger(__name__)
 

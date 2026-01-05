@@ -9,12 +9,12 @@ import streamlit as st
 from typing import Dict, Any, Tuple
 import numpy as np
 
-from .data import (
+from data import (
     generate_multiple_regression_data,
     generate_simple_regression_data,
     generate_electronics_market_data,
 )
-from .statistics import (
+from statistics import (
     create_design_matrix,
     fit_ols_model,
     compute_simple_regression_stats,
@@ -23,7 +23,7 @@ from .statistics import (
     get_model_diagnostics,
     calculate_basic_stats,
 )
-from .session_state import (
+from session_state import (
     check_params_changed,
     update_cached_params,
     cache_model_data,
@@ -32,7 +32,7 @@ from .session_state import (
     cache_simple_data_temp,
     get_simple_data_temp,
 )
-from .logger import get_logger
+from logger import get_logger
 
 logger = get_logger(__name__)
 

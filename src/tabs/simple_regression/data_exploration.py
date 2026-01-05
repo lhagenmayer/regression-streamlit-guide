@@ -6,9 +6,9 @@ before building the regression model.
 """
 
 import streamlit as st
-from ...plots import create_scatter_plot
-from ...data import generate_simple_regression_data
-from ...logger import get_logger
+from plots import create_scatter_plot
+from data import generate_simple_regression_data
+from logger import get_logger
 
 logger = get_logger(__name__)
 

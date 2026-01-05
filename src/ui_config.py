@@ -6,8 +6,8 @@ functions for the Streamlit application.
 """
 
 import streamlit as st
-from .logger import get_logger
-from .accessibility import inject_accessibility_styles
+from logger import get_logger
+from accessibility import inject_accessibility_styles
 
 logger = get_logger(__name__)
 
