@@ -186,7 +186,8 @@ with st.spinner("Lade Datensatz..."):
     st.sidebar.markdown("---")
     with st.sidebar.expander("🔧 Anzeigeoptionen", expanded=False):
         show_formulas = st.checkbox("Formeln anzeigen", value=True,
-                                    help="Zeige mathematische Formeln in der Anleitung")
+                                    help="Zeige mathematische Formeln in der Anleitung",
+                                    key="show_formulas_mult")
         show_true_line = False
 
 # === GEMEINSAME PARAMETER-SEKTION ===
@@ -293,7 +294,8 @@ with st.sidebar.expander("🎛️ Daten-Parameter (Einfache Regression)", expand
     st.sidebar.markdown("---")
     with st.sidebar.expander("🔧 Anzeigeoptionen", expanded=False):
         show_formulas = st.checkbox("Formeln anzeigen", value=True,
-                                    help="Zeige mathematische Formeln in der Anleitung")
+                                    help="Zeige mathematische Formeln in der Anleitung",
+                                    key="show_formulas_simple")
         show_true_line = st.checkbox("Wahre Linie zeigen", value=has_true_line,
                                      help="Zeige die wahre Regressionslinie (nur bei Simulation)") if has_true_line else False
     
