@@ -777,13 +777,13 @@ if needs_recompute:
 
             # Store current model and feature names for R output display
             st.session_state.current_model = model
+            st.session_state.current_feature_names = [x_label]
     except Exception as e:
         logger.error(f"Error computing simple regression model: {e}")
         st.error(f"❌ Fehler bei der Berechnung des Regressionsmodells: {str(e)}")
         st.info("💡 Bitte überprüfen Sie Ihre Daten oder versuchen Sie andere Parameter.")
         st.session_state.error_count += 1
         st.stop()
-        st.session_state.current_feature_names = [x_label]
 else:
     # Use cached model results
     try:
