@@ -16,6 +16,11 @@ import streamlit as st
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
+# Suppress warnings for cleaner output
+warnings.filterwarnings('ignore', category=FutureWarning)
+warnings.filterwarnings('ignore', category=UserWarning)
+warnings.filterwarnings('ignore', category=DeprecationWarning)
+
 # Import from our modules
 import sys
 import os
@@ -110,24 +115,36 @@ st.set_page_config(
 # Inject accessibility improvements
 inject_accessibility_styles()
 
+
+def initialize_session_state():
+    """Initialize session state variables with default values."""
+    defaults = {
+        "active_tab": 0,
+        "last_mult_params": None,
+        "last_simple_params": None,
+        "mult_model_cache": None,
+        "current_model": None,
+        "current_feature_names": None,
+        "simple_model_cache": None,
+        "error_count": 0,
+    }
+    for key, value in defaults.items():
+        if key not in st.session_state:
+            st.session_state[key] = value
+
+
 # ---------------------------------------------------------
 # SESSION STATE INITIALIZATION
 # ---------------------------------------------------------
-# Initialize session state for preferences and computed results
-if "active_tab" not in st.session_state:
-    st.session_state.active_tab = 0
-if "last_mult_params" not in st.session_state:
-    st.session_state.last_mult_params = None
-if "last_simple_params" not in st.session_state:
-    st.session_state.last_simple_params = None
-if "mult_model_cache" not in st.session_state:
-    st.session_state.mult_model_cache = None
-if "current_model" not in st.session_state:
-    st.session_state.current_model = None
-if "current_feature_names" not in st.session_state:
-    st.session_state.current_feature_names = None
-if "simple_model_cache" not in st.session_state:
-    st.session_state.simple_model_cache = None
+initialize_session_state()
+
+# Add warning if there have been multiple errors
+if st.session_state.get("error_count", 0) > 3:
+    st.warning("⚠️ Es sind mehrere Fehler aufgetreten. Bitte erwägen Sie, die Seite neu zu laden.")
+    if st.button("🔄 Seite neu laden und Cache leeren"):
+        for key in list(st.session_state.keys()):
+            del st.session_state[key]
+        st.rerun()
 
 # Custom CSS
 st.markdown(
@@ -314,68 +331,99 @@ with st.sidebar.expander("🎛️ Daten-Parameter (Multiple Regression)", expand
 # Create parameter tuple for cache comparison
 mult_params = (dataset_choice_mult, n_mult, noise_mult_level, seed_mult)
 
+# Validate input parameters
+try:
+    if n_mult <= 0:
+        st.error("❌ Fehler: Die Anzahl der Beobachtungen muss positiv sein.")
+        st.stop()
+    if noise_mult_level < 0:
+        st.error("❌ Fehler: Das Rauschen kann nicht negativ sein.")
+        st.stop()
+    if seed_mult <= 0 or seed_mult >= 10000:
+        st.warning("⚠️ Warnung: Der Random Seed sollte zwischen 1 und 9999 liegen.")
+except Exception as e:
+    logger.error(f"Input validation error: {e}")
+    st.error(f"❌ Fehler bei der Eingabevalidierung: {str(e)}")
+    st.stop()
+
 # Check if we need to regenerate data
 if st.session_state.last_mult_params != mult_params or st.session_state.mult_model_cache is None:
-    with st.spinner("🔄 Lade Datensatz für Multiple Regression..."):
-        mult_data = generate_multiple_regression_data(
-            dataset_choice_mult, n_mult, noise_mult_level, seed_mult
-        )
+    try:
+        with st.spinner("🔄 Lade Datensatz für Multiple Regression..."):
+            mult_data = generate_multiple_regression_data(
+                dataset_choice_mult, n_mult, noise_mult_level, seed_mult
+            )
 
-        # Cache the processed data to avoid recomputation
-        st.session_state.mult_model_cache = mult_data
-        x2_preis = mult_data["x2_preis"]
-        x3_werbung = mult_data["x3_werbung"]
-        y_mult = mult_data["y_mult"]
-        x1_name = mult_data["x1_name"]
-        x2_name = mult_data["x2_name"]
-        y_name = mult_data["y_name"]
+            # Cache the processed data to avoid recomputation
+            st.session_state.mult_model_cache = mult_data
+            x2_preis = mult_data["x2_preis"]
+            x3_werbung = mult_data["x3_werbung"]
+            y_mult = mult_data["y_mult"]
+            x1_name = mult_data["x1_name"]
+            x2_name = mult_data["x2_name"]
+            y_name = mult_data["y_name"]
 
-        X_mult = create_design_matrix(x2_preis, x3_werbung)
-        model_mult, y_pred_mult = fit_multiple_ols_model(X_mult, y_mult)
+            X_mult = create_design_matrix(x2_preis, x3_werbung)
+            model_mult, y_pred_mult = fit_multiple_ols_model(X_mult, y_mult)
+
+            # Get centralized model information
+            mult_coeffs = get_model_coefficients(model_mult)
+            mult_summary = get_model_summary_stats(model_mult)
+            mult_diagnostics = get_model_diagnostics(model_mult)
+
+            # Cache the results
+            st.session_state.mult_model_cache = {
+                "x2_preis": x2_preis,
+                "x3_werbung": x3_werbung,
+                "y_mult": y_mult,
+                "x1_name": x1_name,
+                "x2_name": x2_name,
+                "y_name": y_name,
+                "X_mult": X_mult,
+                "model_mult": model_mult,
+                "y_pred_mult": y_pred_mult,
+            }
+            st.session_state.last_mult_params = mult_params
+
+            # Store current model and feature names for R output display
+            st.session_state.current_model = model_mult
+            st.session_state.current_feature_names = ["hp", "drat", "wt"]
+    except Exception as e:
+        logger.error(f"Error generating multiple regression data: {e}")
+        st.error(f"❌ Fehler beim Laden der Daten: {str(e)}")
+        st.info("💡 Bitte versuchen Sie andere Parameter oder laden Sie die Seite neu.")
+        st.session_state.error_count += 1
+        st.stop()
+else:
+    # Use cached data
+    try:
+        cached = st.session_state.mult_model_cache
+        x2_preis = cached["x2_preis"]
+        x3_werbung = cached["x3_werbung"]
+        y_mult = cached["y_mult"]
+        x1_name = cached["x1_name"]
+        x2_name = cached["x2_name"]
+        y_name = cached["y_name"]
+        X_mult = cached["X_mult"]
+        model_mult = cached["model_mult"]
+        y_pred_mult = cached["y_pred_mult"]
 
         # Get centralized model information
         mult_coeffs = get_model_coefficients(model_mult)
         mult_summary = get_model_summary_stats(model_mult)
         mult_diagnostics = get_model_diagnostics(model_mult)
 
-        # Cache the results
-        st.session_state.mult_model_cache = {
-            "x2_preis": x2_preis,
-            "x3_werbung": x3_werbung,
-            "y_mult": y_mult,
-            "x1_name": x1_name,
-            "x2_name": x2_name,
-            "y_name": y_name,
-            "X_mult": X_mult,
-            "model_mult": model_mult,
-            "y_pred_mult": y_pred_mult,
-        }
-        st.session_state.last_mult_params = mult_params
-
         # Store current model and feature names for R output display
         st.session_state.current_model = model_mult
         st.session_state.current_feature_names = ["hp", "drat", "wt"]
-else:
-    # Use cached data
-    cached = st.session_state.mult_model_cache
-    x2_preis = cached["x2_preis"]
-    x3_werbung = cached["x3_werbung"]
-    y_mult = cached["y_mult"]
-    x1_name = cached["x1_name"]
-    x2_name = cached["x2_name"]
-    y_name = cached["y_name"]
-    X_mult = cached["X_mult"]
-    model_mult = cached["model_mult"]
-    y_pred_mult = cached["y_pred_mult"]
-
-    # Get centralized model information
-    mult_coeffs = get_model_coefficients(model_mult)
-    mult_summary = get_model_summary_stats(model_mult)
-    mult_diagnostics = get_model_diagnostics(model_mult)
-
-    # Store current model and feature names for R output display
-    st.session_state.current_model = model_mult
-    st.session_state.current_feature_names = ["hp", "drat", "wt"]
+    except Exception as e:
+        logger.error(f"Error loading cached multiple regression data: {e}")
+        st.error(f"❌ Fehler beim Laden der Cache-Daten: {str(e)}")
+        st.info("💡 Die Daten werden neu generiert...")
+        # Clear cache to force regeneration
+        st.session_state.mult_model_cache = None
+        st.session_state.last_mult_params = None
+        st.rerun()
 
     st.sidebar.markdown("---")
     with st.sidebar.expander("🔧 Anzeigeoptionen", expanded=False):
@@ -628,76 +676,82 @@ needs_recompute = (
 )
 
 if needs_recompute:
+    try:
+        with st.spinner("📊 Berechne Regressionsmodell..."):
+            df = pd.DataFrame({x_label: x, y_label: y})
 
-    with st.spinner("📊 Berechne Regressionsmodell..."):
-        df = pd.DataFrame({x_label: x, y_label: y})
+            X = create_design_matrix(x)
+            model, y_pred = fit_ols_model(X, y)
 
-        X = create_design_matrix(x)
-        model, y_pred = fit_ols_model(X, y)
+            # Use centralized statistical computations
+            stats_results = compute_simple_regression_stats(model, X, y, n)
 
-        # Use centralized statistical computations
-        stats_results = compute_simple_regression_stats(model, X, y, n)
+            # Extract all statistical results
+            y_mean = stats_results["y_mean"]
+            b0 = stats_results["b0"]
+            b1 = stats_results["b1"]
+            sse = stats_results["sse"]
+            sst = stats_results["sst"]
+            ssr = stats_results["ssr"]
+            mse = stats_results["mse"]
+            msr = stats_results["msr"]
+            se_regression = stats_results["se_regression"]
+            sb1 = stats_results["sb1"]
+            sb0 = stats_results["sb0"]
+            t_val = stats_results["t_val"]
+            f_val = stats_results["f_val"]
+            df_resid = stats_results["df_resid"]
+            x_mean = stats_results["x_mean"]
+            y_mean_val = stats_results["y_mean_val"]
+            cov_xy = stats_results["cov_xy"]
+            var_x = stats_results["var_x"]
+            var_y = stats_results["var_y"]
+            corr_xy = stats_results["corr_xy"]
 
-        # Extract all statistical results
-        y_mean = stats_results["y_mean"]
-        b0 = stats_results["b0"]
-        b1 = stats_results["b1"]
-        sse = stats_results["sse"]
-        sst = stats_results["sst"]
-        ssr = stats_results["ssr"]
-        mse = stats_results["mse"]
-        msr = stats_results["msr"]
-        se_regression = stats_results["se_regression"]
-        sb1 = stats_results["sb1"]
-        sb0 = stats_results["sb0"]
-        t_val = stats_results["t_val"]
-        f_val = stats_results["f_val"]
-        df_resid = stats_results["df_resid"]
-        x_mean = stats_results["x_mean"]
-        y_mean_val = stats_results["y_mean_val"]
-        cov_xy = stats_results["cov_xy"]
-        var_x = stats_results["var_x"]
-        var_y = stats_results["var_y"]
-        corr_xy = stats_results["corr_xy"]
+            # Get additional centralized model information
+            simple_coeffs = get_model_coefficients(model)
+            simple_summary = get_model_summary_stats(model)
+            simple_diagnostics = get_model_diagnostics(model)
 
-        # Get additional centralized model information
-        simple_coeffs = get_model_coefficients(model)
-        simple_summary = get_model_summary_stats(model)
-        simple_diagnostics = get_model_diagnostics(model)
+            # Cache all computed values
+            st.session_state.simple_model_cache = {
+                "model_key": simple_model_key,
+                "df": df,
+                "X": X,
+                "model": model,
+                "y_pred": y_pred,
+                "y_mean": y_mean,
+                "b0": b0,
+                "b1": b1,
+                "sse": sse,
+                "sst": sst,
+                "ssr": ssr,
+                "mse": mse,
+                "msr": msr,
+                "se_regression": se_regression,
+                "sb1": sb1,
+                "sb0": sb0,
+                "t_val": t_val,
+                "f_val": f_val,
+                "df_resid": df_resid,
+                "x_mean": x_mean,
+                "y_mean_val": y_mean_val,
+                "cov_xy": cov_xy,
+                "var_x": var_x,
+                "var_y": var_y,
+                "corr_xy": corr_xy,
+                "x": x,
+                "y": y,
+            }
 
-        # Cache all computed values
-        st.session_state.simple_model_cache = {
-            "model_key": simple_model_key,
-            "df": df,
-            "X": X,
-            "model": model,
-            "y_pred": y_pred,
-            "y_mean": y_mean,
-            "b0": b0,
-            "b1": b1,
-            "sse": sse,
-            "sst": sst,
-            "ssr": ssr,
-            "mse": mse,
-            "msr": msr,
-            "se_regression": se_regression,
-            "sb1": sb1,
-            "sb0": sb0,
-            "t_val": t_val,
-            "f_val": f_val,
-            "df_resid": df_resid,
-            "x_mean": x_mean,
-            "y_mean_val": y_mean_val,
-            "cov_xy": cov_xy,
-            "var_x": var_x,
-            "var_y": var_y,
-            "corr_xy": corr_xy,
-            "x": x,
-            "y": y,
-        }
-
-        # Store current model and feature names for R output display
-        st.session_state.current_model = model
+            # Store current model and feature names for R output display
+            st.session_state.current_model = model
+    except Exception as e:
+        logger.error(f"Error computing simple regression model: {e}")
+        st.error(f"❌ Fehler bei der Berechnung des Regressionsmodells: {str(e)}")
+        st.info("💡 Bitte überprüfen Sie Ihre Daten oder versuchen Sie andere Parameter.")
+        st.session_state.error_count += 1
+        st.stop()
         st.session_state.current_feature_names = [x_label]
 else:
     # Use cached model results
@@ -799,29 +853,30 @@ with col_m1_1:
 
     with col_m1_2:
         # 3D Visualisierung: Ebene statt Linie
-        with st.spinner("🎨 Erstelle 3D-Visualisierung..."):
-            # Erstelle Mesh für die Ebene using helper function
-            X1_mesh, X2_mesh, Y_mesh = create_regression_mesh(
-                x2_preis, x3_werbung, mult_coeffs["params"]
-            )
+        try:
+            with st.spinner("🎨 Erstelle 3D-Visualisierung..."):
+                # Erstelle Mesh für die Ebene using helper function
+                X1_mesh, X2_mesh, Y_mesh = create_regression_mesh(
+                    x2_preis, x3_werbung, mult_coeffs["params"]
+                )
 
-            # Create plotly 3D surface plot
-            fig_3d_plane = create_plotly_3d_surface(
-                X1_mesh,
-                X2_mesh,
-                Y_mesh,
-                x2_preis,
-                x3_werbung,
-                y_mult,
-                x1_label=x1_name,
-                x2_label=x2_name,
-                y_label=y_name,
-                title="Multiple Regression: Ebene statt Gerade",
-            )
+                # Create plotly 3D surface plot
+                fig_3d_plane = create_plotly_3d_surface(
+                    X1_mesh,
+                    X2_mesh,
+                    Y_mesh,
+                    x2_preis,
+                    x3_werbung,
+                    y_mult,
+                    x1_label=x1_name,
+                    x2_label=x2_name,
+                    y_label=y_name,
+                    title="Multiple Regression: Ebene statt Gerade",
+                )
 
-            fig_3d_plane.update_layout(
-                scene=dict(
-                    xaxis_title=x1_name,
+                fig_3d_plane.update_layout(
+                    scene=dict(
+                        xaxis_title=x1_name,
                     yaxis_title=x2_name,
                     zaxis_title=y_name,
                     camera=CAMERA_PRESETS["default"],
@@ -829,6 +884,10 @@ with col_m1_1:
             )
 
             st.plotly_chart(fig_3d_plane, key="multiple_regression_3d_plane", width='stretch')
+        except Exception as e:
+            logger.error(f"Error creating 3D visualization: {e}")
+            st.warning("⚠️ 3D-Visualisierung konnte nicht erstellt werden.")
+            st.info("Die Regression wurde trotzdem berechnet und kann in den anderen Abschnitten eingesehen werden.")
 
     # =========================================================
     # M2: DAS GRUNDMODELL
