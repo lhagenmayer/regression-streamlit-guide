@@ -125,7 +125,7 @@ def _render_interpretation_section(model: Any, feature_names: List[str]) -> None
     if not is_api_configured():
         st.warning(
             "⚠️ Perplexity API nicht konfiguriert. "
-            "Setzen Sie die Umgebungsvariable `PERPLEXITY_API_KEY` um diese Funktion zu nutzen."
+            "Setzen Sie die Umgebungsvariable `PERPLEXITY_API_KEY` oder `.streamlit/secrets.toml` um diese Funktion zu nutzen."
         )
         with st.expander("ℹ️ Wie konfiguriere ich die API?"):
             st.markdown("""
@@ -143,7 +143,8 @@ def _render_interpretation_section(model: Any, feature_names: List[str]) -> None
             Oder fügen Sie sie zu Ihrer `.streamlit/secrets.toml` hinzu:
             
             ```toml
-            PERPLEXITY_API_KEY = "your-api-key-here"
+            [perplexity]
+            api_key = "your-api-key-here"
             ```
             """)
         return

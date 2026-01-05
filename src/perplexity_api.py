@@ -31,8 +31,13 @@ def get_perplexity_api_key() -> Optional[str]:
     # Then try Streamlit secrets (if available)
     try:
         import streamlit as st
-        if hasattr(st, 'secrets') and "PERPLEXITY_API_KEY" in st.secrets:
-            return st.secrets["PERPLEXITY_API_KEY"]
+        if hasattr(st, 'secrets'):
+            # Try new format: st.secrets["perplexity"]["api_key"]
+            if "perplexity" in st.secrets and "api_key" in st.secrets["perplexity"]:
+                return st.secrets["perplexity"]["api_key"]
+            # Fall back to old format for backwards compatibility: st.secrets["PERPLEXITY_API_KEY"]
+            elif "PERPLEXITY_API_KEY" in st.secrets:
+                return st.secrets["PERPLEXITY_API_KEY"]
     except Exception:
         pass
     
