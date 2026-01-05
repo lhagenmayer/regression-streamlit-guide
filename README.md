@@ -3,10 +3,9 @@
 [![Python Version](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Streamlit](https://img.shields.io/badge/Streamlit-1.28+-red.svg)](https://streamlit.io)
-[![Tests](https://github.com/lhagenmayer/linear-regression-guide/actions/workflows/tests.yml/badge.svg)](https://github.com/lhagenmayer/linear-regression-guide/actions)
-[![Linting](https://github.com/lhagenmayer/linear-regression-guide/actions/workflows/lint.yml/badge.svg)](https://github.com/lhagenmayer/linear-regression-guide/actions)
-[![Code Quality](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
-[![Last Commit](https://img.shields.io/github/last-commit/lhagenmayer/linear-regression-guide)](https://github.com/lhagenmayer/linear-regression-guide/commits)
+[![CI](https://github.com/lhagenmayer/linear-regression-guide/actions/workflows/tests.yml/badge.svg)](https://github.com/lhagenmayer/linear-regression-guide/actions)
+[![Quality](https://github.com/lhagenmayer/linear-regression-guide/actions/workflows/lint.yml/badge.svg)](https://github.com/lhagenmayer/linear-regression-guide/actions)
+[![Code Style](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
 Eine interaktive Web-App zum Erlernen linearer Regression. Gebaut mit Streamlit, plotly und statsmodels - für alle, die Regression verstehen wollen, ohne sich durch Formeln zu kämpfen.
 
