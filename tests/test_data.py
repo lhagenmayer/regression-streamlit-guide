@@ -12,7 +12,7 @@ Tests cover:
 import pytest
 import numpy as np
 import pandas as pd
-from data import (
+from src.data import (
     safe_scalar,
     generate_dataset,
     generate_multiple_regression_data,

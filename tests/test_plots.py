@@ -13,7 +13,7 @@ import pytest
 import numpy as np
 import plotly.graph_objects as go
 from unittest.mock import Mock, MagicMock
-from plots import (
+from src.plots import (
     get_signif_stars,
     get_signif_color,
     create_regression_mesh,

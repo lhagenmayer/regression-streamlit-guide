@@ -11,7 +11,7 @@ Tests ensure that:
 import pytest
 import time
 import numpy as np
-from data import (
+from src.data import (
     generate_multiple_regression_data,
     generate_simple_regression_data,
     generate_dataset,

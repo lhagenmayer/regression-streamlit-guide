@@ -6,7 +6,7 @@ import logging
 import os
 import time
 import pytest
-from logger import (
+from src.logger import (
     setup_logging,
     get_logger,
     log_function_call,

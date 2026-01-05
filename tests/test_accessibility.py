@@ -3,7 +3,7 @@ Tests for accessibility functionality.
 """
 
 import pytest
-from accessibility import add_aria_label
+from src.accessibility import add_aria_label
 
 
 class TestAccessibilityHelpers:
