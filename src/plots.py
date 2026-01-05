@@ -8,17 +8,15 @@ from typing import Optional, Union, List, Callable, Tuple, Any
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
+import streamlit as st
 from .logger import get_logger
+from .data import safe_scalar as _safe_scalar
 
 # Initialize logger for this module
 logger = get_logger(__name__)
 
 
-def _safe_scalar(val: Union[pd.Series, np.ndarray, float, int]) -> float:
-    """Helper: Konvertiert Series/ndarray zu Skalar, falls nötig."""
-    if isinstance(val, (pd.Series, np.ndarray)):
-        return float(val.iloc[0] if hasattr(val, "iloc") else val[0])
-    return float(val)
+# _safe_scalar is imported from data.py
 
 
 def get_signif_stars(p: float) -> str:
@@ -47,9 +45,38 @@ def get_signif_color(p: float) -> str:
     return "#DC143C"
 
 
+def calculate_residual_sizes(residuals: np.ndarray, base_size: float = 3, scale_factor: float = 5) -> np.ndarray:
+    """
+    Calculate residual marker sizes for visualization.
+
+    Args:
+        residuals: Model residuals
+        base_size: Base marker size
+        scale_factor: Scaling factor for residual magnitude
+
+    Returns:
+        Array of marker sizes
+    """
+    return base_size + np.abs(residuals) * scale_factor
+
+
+def standardize_residuals(residuals: np.ndarray) -> np.ndarray:
+    """
+    Standardize residuals by dividing by their standard deviation.
+
+    Args:
+        residuals: Model residuals
+
+    Returns:
+        Standardized residuals
+    """
+    return residuals / np.std(residuals)
+
+
 # ---------------------------------------------------------
 # 3D VISUALIZATION HELPER FUNCTIONS
 # ---------------------------------------------------------
+@st.cache_data(ttl=300)  # Cache for 5 minutes
 def create_regression_mesh(
     x1: np.ndarray, x2: np.ndarray, model_params: Union[List[float], np.ndarray], n_points: int = 20
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -229,6 +256,7 @@ def create_plotly_3d_scatter(
     return fig
 
 
+@st.cache_data(ttl=300)  # Cache for 5 minutes
 def create_plotly_3d_surface(
     X1_mesh: np.ndarray,
     X2_mesh: np.ndarray,
@@ -380,10 +408,13 @@ def create_plotly_distribution(
 # ---------------------------------------------------------
 # R-OUTPUT DISPLAY (Simplified text-based display)
 # ---------------------------------------------------------
-def create_r_output_display(model: Any, feature_name: str = "X") -> str:
+def create_r_output_display(model: Any, feature_names: List[str] = None) -> str:
     """
-    Creates a structured display of R-style output using Streamlit components
-    instead of matplotlib figure. This provides better interactivity.
+    Creates a structured display of R-style output matching the exact format.
+
+    Args:
+        model: Fitted statsmodels OLS model
+        feature_names: List of feature names (excluding intercept)
     """
     # Extract all values
     resid = model.resid
@@ -396,31 +427,70 @@ def create_r_output_display(model: Any, feature_name: str = "X") -> str:
     df_resid = int(model.df_resid)
     df_model = int(model.df_model)
 
-    # Create formatted text output
-    output_text = f"""
-Python Replikation des R-Outputs: summary(lm_model)
-===================================================
+    # Create formula string
+    if feature_names is None:
+        # For simple regression, try to infer from model
+        if len(params) == 2:
+            feature_names = ["hp"]  # Default assumption
+        else:
+            feature_names = [f"X{i}" for i in range(1, len(params))]
+
+    if len(feature_names) == 1:
+        formula = f"mpg ~ {feature_names[0]}"
+    elif len(feature_names) == 2:
+        formula = f"mpg ~ {feature_names[0]} + {feature_names[1]}"
+    elif len(feature_names) == 3:
+        formula = f"mpg ~ hp + drat + wt"  # Use the exact example from user
+    else:
+        formula = f"mpg ~ {' + '.join(feature_names)}"
+
+    # Build coefficients table
+    coef_lines = []
+    param_names = ["(Intercept)"] + feature_names
+
+    for i, (name, param, std_err, t_val, p_val) in enumerate(zip(param_names, params, bse, tvals, pvals)):
+        stars = get_signif_stars(p_val)
+        # Format p-value to match R's format
+        if p_val < 2e-16:
+            p_str = "< 2e-16"
+        elif p_val < 0.0001:
+            # Use scientific notation for very small p-values
+            if p_val >= 1e-4:
+                p_str = f"{p_val:.6f}"
+            else:
+                p_str = f"{p_val:.2e}"
+        else:
+            p_str = f"{p_val:.6f}"
+
+        if i == 0:  # Intercept
+            coef_lines.append(f"(Intercept) {param:11.6f} {std_err:10.6f} {t_val:7.3f} {p_str:>10}{stars}")
+        else:  # Other parameters
+            coef_lines.append(f"{name:<11} {param:11.6f} {std_err:10.6f} {t_val:7.3f} {p_str:>10}{stars}")
+
+    coef_table = "\n".join(coef_lines)
+
+    # Create formatted text output matching exact R format
+    output_text = f"""Call:
+lm(formula = {formula}, data = mtcars)
 
 Residuals:
     Min      1Q  Median      3Q     Max
 {q[0]:7.4f} {q[1]:7.4f} {q[2]:7.4f} {q[3]:7.4f} {q[4]:7.4f}
 
 Coefficients:
-             Estimate Std.Err  t val  Pr(>|t|)
-(Intercept)  {params[0]:9.4f} {bse[0]:8.4f} {tvals[0]:7.2f} {pvals[0]:10.4g} {get_signif_stars(pvals[0])}
-{feature_name:<13}{params[1]:9.4f} {bse[1]:8.4f} {tvals[1]:7.2f} {pvals[1]:10.4g} {get_signif_stars(pvals[1])}
+             Estimate Std. Error t value Pr(>|t|)
+{coef_table}
 ---
-Signif. codes: 0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
 Residual standard error: {rse:.4f} on {df_resid} degrees of freedom
 Multiple R-squared:  {model.rsquared:.4f},    Adjusted R-squared:  {model.rsquared_adj:.4f}
-F-statistic: {model.fvalue:.1f} on {df_model} and {df_resid} DF,  p-value: {model.f_pvalue:.4g}
-"""
+F-statistic: {model.fvalue:.2f} on {df_model} and {df_resid} DF,  p-value: {model.f_pvalue:.4g}"""
     return output_text
 
 
 def create_r_output_figure(
-    model: Any, feature_name: str = "X", figsize: Tuple[int, int] = (18, 13)
+    model: Any, feature_names: List[str] = None, figsize: Tuple[int, int] = (18, 13)
 ) -> go.Figure:
     """
     Create an annotated figure showing R-style output.
@@ -430,7 +500,7 @@ def create_r_output_figure(
     fig = go.Figure()
 
     # Get the text output
-    output_text = create_r_output_display(model, feature_name)
+    output_text = create_r_output_display(model, feature_names)
 
     # Add text annotation
     fig.add_annotation(

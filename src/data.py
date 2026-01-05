@@ -5,11 +5,12 @@ This module contains all data generation functions and data manipulation utiliti
 including synthetic data generation and integration with Swiss open government data APIs.
 """
 
-from typing import Dict, Optional, Union, Any, List
+from typing import Dict, Optional, Union, Any, List, Tuple
 import time
 import numpy as np
 import pandas as pd
 import streamlit as st
+import statsmodels.api as sm
 from .config import CITIES_DATASET, HOUSES_DATASET
 from .logger import get_logger, log_function_call, log_error_with_context
 
@@ -697,155 +698,10 @@ def safe_scalar(val: Union[pd.Series, np.ndarray, float, int]) -> float:
     return float(val)
 
 
-@st.cache_data
-def generate_dataset(name: str, seed: int = 42) -> Optional[Dict[str, Any]]:
-    """
-    Generiert einen Datensatz basierend auf dem Namen.
-    Gibt x, y, labels und Metadaten zurueck.
-    """
-    np.random.seed(seed)
-
-    if name == "elektronikmarkt":
-        # Default-Werte, werden durch Slider ueberschrieben
-        return None  # Handled separately due to sliders
-
-    elif name == "staedte":
-        n = CITIES_DATASET["n_default"]
-        x2_preis = np.random.normal(CITIES_DATASET["price_mean"], CITIES_DATASET["price_std"], n)
-        x2_preis = np.clip(x2_preis, CITIES_DATASET["price_min"], CITIES_DATASET["price_max"])
-        x3_werbung = np.random.normal(
-            CITIES_DATASET["advertising_mean"], CITIES_DATASET["advertising_std"], n
-        )
-        x3_werbung = np.clip(
-            x3_werbung, CITIES_DATASET["advertising_min"], CITIES_DATASET["advertising_max"]
-        )
-        y_base = 100 - 5 * x2_preis + 8 * x3_werbung
-        noise = np.random.normal(0, CITIES_DATASET["noise_std"], n)
-        y = y_base + noise
-        y = np.clip(y, CITIES_DATASET["y_min"], CITIES_DATASET["y_max"])
-        y = (y - np.mean(y)) / np.std(y) * CITIES_DATASET["y_std_target"] + CITIES_DATASET[
-            "y_mean_target"
-        ]
-        return {
-            "x_preis": x2_preis,
-            "x_werbung": x3_werbung,
-            "y": y,
-            "n": n,
-            "x1_name": "Preis (CHF)",
-            "x2_name": "Werbung (CHF1000)",
-            "y_name": "Umsatz (1000 CHF)",
-        }
-
-    elif name == "haeuser":
-        n = HOUSES_DATASET["n_default"]
-        x_wohnflaeche = np.random.normal(HOUSES_DATASET["area_mean"], HOUSES_DATASET["area_std"], n)
-        x_wohnflaeche = np.clip(
-            x_wohnflaeche, HOUSES_DATASET["area_min"], HOUSES_DATASET["area_max"]
-        )
-        x_pool = np.random.binomial(1, HOUSES_DATASET["pool_probability"], n).astype(float)
-        y_base = 50 + 7.5 * x_wohnflaeche + 35 * x_pool
-        noise = np.random.normal(0, HOUSES_DATASET["noise_std"], n)
-        y = y_base + noise
-        y = np.clip(y, 134.32, 345.20)
-        y = (y - np.mean(y)) / np.std(y) * 42.19 + 247.66
-        return {
-            "x_wohnflaeche": x_wohnflaeche,
-            "x_pool": x_pool,
-            "y": y,
-            "n": n,
-            "x1_name": "Wohnflaeche (sqft/10)",
-            "x2_name": "Pool (0/1)",
-            "y_name": "Preis (USD)",
-        }
-
-    elif name == "swiss_cantons":
-        return generate_swiss_canton_regression_data()
-
-    elif name == "swiss_weather":
-        return generate_swiss_weather_regression_data()
-
-    elif name == "world_bank":
-        # World Bank economic indicators for cross-country regression
-        wb_data = fetch_world_bank_data(
-            indicators=["NY.GDP.PCAP.KD", "SP.POP.TOTL", "SP.DYN.LE00.IN"],
-            countries=["USA", "CHN", "DEU", "JPN", "GBR", "FRA", "ITA", "CAN", "AUS", "ESP"],
-            years=[2015, 2018, 2020],  # Sample years
-        )
-
-        if wb_data.empty:
-            return generate_swiss_canton_regression_data()  # Fallback
-
-        # Use GDP per capita vs Life expectancy for regression
-        gdp_values = wb_data["NY.GDP.PCAP.KD"].fillna(wb_data["NY.GDP.PCAP.KD"].mean())
-        life_exp_values = wb_data["SP.DYN.LE00.IN"].fillna(wb_data["SP.DYN.LE00.IN"].mean())
-
-        return {
-            "x_gdp_per_capita": gdp_values.values,
-            "y_life_expectancy": life_exp_values.values,
-            "countries": wb_data["country"].tolist(),
-            "n": len(wb_data),
-            "x1_name": "GDP per Capita (USD)",
-            "y_name": "Life Expectancy (years)",
-            "data_source": "World Bank API",
-            "description": "World Bank data: Life Expectancy ~ GDP per Capita (Preston Curve)",
-        }
-
-    elif name == "fred_economic":
-        # US economic time series from FRED
-        fred_data = fetch_fred_data(
-            series_ids=["GDP", "UNRATE"], start_date="2010-01-01", end_date="2023-01-01"
-        )
-
-        if fred_data.empty:
-            return generate_swiss_canton_regression_data()  # Fallback
-
-        # Use Unemployment vs GDP for Phillips curve analysis
-        return {
-            "x_unemployment": fred_data["UNRATE"].values,
-            "y_gdp": fred_data["GDP"].values,
-            "dates": fred_data["date"].tolist(),
-            "n": len(fred_data),
-            "x1_name": "Unemployment Rate (%)",
-            "y_name": "GDP (Billions USD)",
-            "data_source": "FRED API",
-            "description": "US economic data: GDP ~ Unemployment Rate (Phillips Curve)",
-        }
-
-    elif name == "who_health":
-        # WHO health indicators
-        who_data = fetch_who_health_data(
-            indicators=["WHOSIS_000001"],  # Life expectancy
-            countries=["USA", "CHN", "DEU", "JPN", "GBR", "FRA", "ITA"],
-            years=[2015, 2018, 2020],
-        )
-
-        if who_data.empty:
-            return generate_swiss_canton_regression_data()  # Fallback
-
-        # For simple regression, we need to create a relationship
-        # Let's use country GDP estimates vs life expectancy
-        life_exp = who_data["WHOSIS_000001"].fillna(75)
-        # Create mock GDP values correlated with life expectancy
-        gdp_base = np.array(
-            [60000, 10000, 45000, 42000, 41000, 38000, 35000]
-        )  # Rough GDP estimates
-        gdp_values = gdp_base + (life_exp - 75) * 1000  # Correlation
-
-        return {
-            "x_gdp": gdp_values,
-            "y_life_expectancy": life_exp.values,
-            "countries": who_data["country"].tolist(),
-            "n": len(who_data),
-            "x1_name": "GDP per Capita (USD)",
-            "y_name": "Life Expectancy (years)",
-            "data_source": "WHO API",
-            "description": "WHO health data: Life Expectancy ~ GDP per Capita (Global Health Analysis)",
-        }
-
-    return None
 
 
 @st.cache_data
+@st.cache_data(ttl=300)  # Cache for 5 minutes
 def generate_multiple_regression_data(
     dataset_choice_mult: str, n_mult: int, noise_mult_level: float, seed_mult: int
 ) -> Dict[str, Union[np.ndarray, str]]:
@@ -1006,6 +862,7 @@ def generate_multiple_regression_data(
 
 
 @st.cache_data
+@st.cache_data(ttl=300)  # Cache for 5 minutes
 def generate_simple_regression_data(
     dataset_choice: str, x_variable: str, n: int, seed: int = 42
 ) -> Dict[str, Union[np.ndarray, str]]:
@@ -1262,3 +1119,110 @@ def generate_simple_regression_data(
         "context_title": context_title,
         "context_description": context_description,
     }
+
+
+@st.cache_data(ttl=300)  # Cache for 5 minutes
+def create_dummy_encoded_dataset(
+    base_data: Dict[str, np.ndarray],
+    categorical_column: str,
+    categories: List[str],
+    n_samples: int,
+    seed: int = 42
+) -> Dict[str, Union[pd.DataFrame, np.ndarray]]:
+    """
+    Create a dataset with dummy variable encoding for categorical data.
+
+    Args:
+        base_data: Dictionary with base data arrays
+        categorical_column: Name for the categorical column
+        categories: List of category names
+        n_samples: Number of samples to generate
+        seed: Random seed
+
+    Returns:
+        Dictionary with original DataFrame and dummy-encoded DataFrame
+    """
+    np.random.seed(seed)
+
+    # Create categorical data
+    categorical_values = np.random.choice(categories, size=n_samples)
+
+    # Create DataFrame with all data
+    df_data = {categorical_column: categorical_values}
+
+    # Add numerical data from base_data
+    for key, value in base_data.items():
+        if isinstance(value, np.ndarray) and len(value) >= n_samples:
+            df_data[key] = value[:n_samples]
+
+    df = pd.DataFrame(df_data)
+
+    # Create dummy encoding
+    df_encoded = pd.get_dummies(df, columns=[categorical_column], drop_first=True)
+
+    return {
+        "original_df": df,
+        "encoded_df": df_encoded,
+        "categorical_column": categorical_column,
+        "categories": categories
+    }
+
+
+@st.cache_data(ttl=300)  # Cache for 5 minutes
+def generate_electronics_market_data(
+    n: int, true_intercept: float, true_beta: float, noise_level: float, seed: int = 42
+) -> Dict[str, Union[np.ndarray, str]]:
+    """
+    Generate electronics market data for simple regression with interactive parameters.
+
+    Args:
+        n: Number of observations
+        true_intercept: True intercept (β₀)
+        true_beta: True slope (β₁)
+        noise_level: Standard deviation of noise
+        seed: Random seed
+
+    Returns:
+        Dictionary with x, y arrays and metadata
+    """
+    # Validate inputs
+    if not isinstance(n, int) or n <= 0:
+        raise ValueError(f"Sample size n must be a positive integer, got {n}")
+
+    if not isinstance(seed, int):
+        raise ValueError(f"Seed must be an integer, got {seed}")
+
+    if not isinstance(true_intercept, (int, float)):
+        raise ValueError(f"True intercept must be a number, got {true_intercept}")
+
+    if not isinstance(true_beta, (int, float)):
+        raise ValueError(f"True beta must be a number, got {true_beta}")
+
+    if not isinstance(noise_level, (int, float)) or noise_level < 0:
+        raise ValueError(f"Noise level must be a non-negative number, got {noise_level}")
+
+    logger.info(
+        f"Generating electronics market data: n={n}, intercept={true_intercept}, beta={true_beta}, noise={noise_level}, seed={seed}"
+    )
+
+    np.random.seed(seed)
+    x = np.linspace(2, 12, n)  # Verkaufsfläche in 100qm (200-1200qm)
+    noise = np.random.normal(0, noise_level, n)
+    y = true_intercept + true_beta * x + noise  # Umsatz in Mio. €
+
+    return {
+        "x": x,
+        "y": y,
+        "x_label": "Verkaufsfläche (100qm)",
+        "y_label": "Umsatz (Mio. €)",
+        "x_unit": "100 qm",
+        "y_unit": "Mio. €",
+        "context_title": "Elektronikfachmärkte",
+        "context_description": "Eine Elektronikmarkt-Kette analysiert den Zusammenhang zwischen Verkaufsfläche und Umsatz. Die Daten zeigen, wie sich eine Vergrößerung der Verkaufsfläche auf den Umsatz auswirkt.",
+        "n": n,
+        "true_intercept": true_intercept,
+        "true_beta": true_beta,
+        "noise_level": noise_level,
+    }
+
+
