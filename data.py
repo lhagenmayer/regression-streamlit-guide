@@ -1032,10 +1032,6 @@ def generate_simple_regression_data(
         
         context_title = "Häuserpreise-Studie"
 
-    elif dataset_choice == "🇨🇭 Schweizer Kantone (sozioökonomisch)":
-        # Für Simple Regression: Wähle eine Variable basierend auf x_variable
-        canton_data = generate_swiss_canton_regression_data()
-
     elif dataset_choice == "🏦 World Bank (Länder-Entwicklung)":
         # World Bank data for simple regression
         wb_data = fetch_world_bank_data(
@@ -1116,6 +1112,10 @@ def generate_simple_regression_data(
             "context_description": "World Health Organization data analyzing GDP per capita vs. life expectancy across countries."
         }
 
+    elif dataset_choice == "🇨🇭 Schweizer Kantone (sozioökonomisch)":
+        # Für Simple Regression: Wähle eine Variable basierend auf x_variable
+        canton_data = generate_swiss_canton_regression_data()
+
         if x_variable == "Population Density":
             x = canton_data["x_population_density"]
             x_label = "Population Density (per km²)"
@@ -1154,6 +1154,17 @@ def generate_simple_regression_data(
         context_title = "Schweizer Kantone: Sozioökonomische Analyse"
         x_unit = "varies"
         y_unit = "CHF"
+
+        return {
+            'x': x,
+            'y': y,
+            'x_label': x_label,
+            'y_label': y_label,
+            'x_unit': x_unit,
+            'y_unit': y_unit,
+            'context_title': context_title,
+            'context_description': context_description
+        }
 
     elif dataset_choice == "🌤️ Schweizer Wetterstationen":
         # Für Simple Regression: Wähle eine Variable basierend auf x_variable
@@ -1197,6 +1208,17 @@ def generate_simple_regression_data(
         context_title = "Schweizer Wetterstationen: Klimaanalyse"
         x_unit = "varies"
         y_unit = "°C"
+
+        return {
+            'x': x,
+            'y': y,
+            'x_label': x_label,
+            'y_label': y_label,
+            'x_unit': x_unit,
+            'y_unit': y_unit,
+            'context_title': context_title,
+            'context_description': context_description
+        }
 
     else:
         # Should not reach here as elektronikmarkt is handled separately
