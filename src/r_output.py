@@ -10,7 +10,7 @@ from typing import Optional, List, Any
 
 from plots import create_r_output_figure
 from logger import get_logger
-from perplexity_api import interpret_model, is_api_configured
+from perplexity_api import interpret_model, is_api_configured, extract_model_statistics, create_interpretation_prompt
 
 logger = get_logger(__name__)
 
@@ -160,21 +160,32 @@ def _render_interpretation_section(model: Any, feature_names: List[str]) -> None
     # Button to trigger interpretation
     if st.button("🔍 Interpretation generieren", type="primary", width='stretch'):
         st.session_state.interpretation_loading = True
-        
-        with st.spinner("🤔 Analysiere Modell mit Perplexity AI..."):
-            # Extract statistics first
-            from perplexity_api import extract_model_statistics, create_interpretation_prompt
-            stats = extract_model_statistics(model, feature_names)
-            prompt = create_interpretation_prompt(stats)
-            
-            # Store the prompt data for clipboard copy
-            st.session_state.interpretation_prompt_data = {
-                "statistics": stats,
-                "prompt": prompt
+
+        try:
+            with st.spinner("🤔 Analysiere Modell mit Perplexity AI..."):
+                # Extract statistics first
+                stats = extract_model_statistics(model, feature_names)
+                if not stats:
+                    raise ValueError("Konnte Modellstatistiken nicht extrahieren")
+
+                prompt = create_interpretation_prompt(stats)
+
+                # Store the prompt data for clipboard copy
+                st.session_state.interpretation_prompt_data = {
+                    "statistics": stats,
+                    "prompt": prompt
+                }
+
+                result = interpret_model(model, feature_names)
+                st.session_state.interpretation_result = result
+
+        except Exception as e:
+            logger.error(f"Error during AI interpretation: {e}", exc_info=True)
+            st.session_state.interpretation_result = {
+                "success": False,
+                "error": f"Fehler bei der AI-Interpretation: {str(e)}"
             }
-            
-            result = interpret_model(model, feature_names)
-            st.session_state.interpretation_result = result
+        finally:
             st.session_state.interpretation_loading = False
     
     # Display interpretation if available

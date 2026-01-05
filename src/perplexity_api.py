@@ -234,8 +234,21 @@ def get_interpretation_from_perplexity(
         }
         
     except Exception as e:
-        error_msg = f"Fehler bei der API-Anfrage: {str(e)}"
         logger.error(f"Error calling Perplexity API: {e}", exc_info=True)
+
+        # Provide more specific error messages
+        error_str = str(e).lower()
+        if "api key" in error_str or "unauthorized" in error_str or "authentication" in error_str:
+            error_msg = "API-Schlüssel ungültig oder nicht konfiguriert. Überprüfen Sie Ihren Perplexity API-Schlüssel."
+        elif "timeout" in error_str or "connection" in error_str:
+            error_msg = "Netzwerkfehler: Verbindung zu Perplexity API konnte nicht hergestellt werden. Überprüfen Sie Ihre Internetverbindung."
+        elif "rate limit" in error_str:
+            error_msg = "API-Rate-Limit erreicht. Bitte warten Sie einen Moment und versuchen Sie es erneut."
+        elif "model" in error_str:
+            error_msg = "Das angeforderte Modell ist nicht verfügbar. Verwenden Sie ein anderes Modell."
+        else:
+            error_msg = f"Fehler bei der API-Anfrage: {str(e)}"
+
         return {
             "success": False,
             "error": error_msg
@@ -245,26 +258,45 @@ def get_interpretation_from_perplexity(
 def interpret_model(model: Any, feature_names: list) -> Dict[str, Any]:
     """
     High-level function to interpret a regression model using Perplexity API.
-    
+
     Args:
         model: Fitted statsmodels regression model
         feature_names: List of feature names used in the model
-        
+
     Returns:
         Dictionary with interpretation results
     """
     logger.info("Starting model interpretation")
-    
+
+    # Validate inputs
+    if model is None:
+        return {
+            "success": False,
+            "error": "Kein gültiges Modell verfügbar."
+        }
+
+    if not feature_names or not isinstance(feature_names, list):
+        return {
+            "success": False,
+            "error": "Feature-Namen sind nicht verfügbar oder ungültig."
+        }
+
     # Extract statistics
     stats = extract_model_statistics(model, feature_names)
-    
+
     if not stats:
         return {
             "success": False,
             "error": "Fehler beim Extrahieren der Modellstatistiken."
         }
-    
+
+    if not stats.get('coefficients'):
+        return {
+            "success": False,
+            "error": "Modell enthält keine gültigen Koeffizienten."
+        }
+
     # Get interpretation from API
     result = get_interpretation_from_perplexity(stats)
-    
+
     return result
