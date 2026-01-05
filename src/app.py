@@ -1809,7 +1809,15 @@ with col_m1_1:
 
     # Vollständiger R-Output
     st.markdown("### 💻 Vollständiger Modell-Output")
-    st.code(model_mult.summary().as_text(), language=None)
+
+    # R-Style Output Display
+    st.markdown("#### 📊 R-Style Output")
+    fig_r_mult = create_r_output_figure(model_mult, feature_names=["hp", "drat", "wt"], figsize=(18, 13))
+    st.plotly_chart(fig_r_mult, use_container_width=True)
+
+    # Raw text output
+    with st.expander("📜 Raw R-Style Output (zum Kopieren)"):
+        st.code(model_mult.summary().as_text(), language=None)
 
     col_m9_1, col_m9_2 = st.columns([1, 1])
 
@@ -4210,7 +4218,7 @@ with tab1:
     )
 
     # Die annotierte R-Output Figur
-    fig_r_output = create_r_output_figure(model, feature_name=x_label, figsize=(18, 13))
+    fig_r_output = create_r_output_figure(model, feature_names=[x_label], figsize=(18, 13))
     st.plotly_chart(fig_r_output, use_container_width=True)
 
     # Zusätzlich noch den textuellen Output
