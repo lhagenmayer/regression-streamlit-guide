@@ -41,6 +41,8 @@ from .data import (  # noqa: F401
     generate_swiss_canton_regression_data,
     generate_swiss_weather_regression_data,
     get_available_swiss_datasets,
+    fit_ols_model,
+    compute_regression_statistics,
 )
 from .plots import (  # noqa: F401
     create_regression_mesh,
@@ -291,6 +293,9 @@ if st.session_state.last_mult_params != mult_params or st.session_state.mult_mod
         mult_data = generate_multiple_regression_data(
             dataset_choice_mult, n_mult, noise_mult_level, seed_mult
         )
+
+        # Cache the processed data to avoid recomputation
+        st.session_state.mult_model_cache = mult_data
         x2_preis = mult_data["x2_preis"]
         x3_werbung = mult_data["x3_werbung"]
         y_mult = mult_data["y_mult"]
@@ -476,7 +481,8 @@ with st.sidebar.expander("🎛️ Daten-Parameter (Einfache Regression)", expand
 
     # Datensatz-spezifische Generierung
     if dataset_choice != "🏪 Elektronikmarkt (simuliert)" and x_variable:
-        simple_data = generate_simple_regression_data(dataset_choice, x_variable, n, seed=42)
+        with st.spinner("🔄 Lade Datensatz..."):
+            simple_data = generate_simple_regression_data(dataset_choice, x_variable, n, seed=42)
         x = simple_data["x"]
         y = simple_data["y"]
         x_label = simple_data["x_label"]
@@ -555,8 +561,7 @@ if needs_recompute:
         df = pd.DataFrame({x_label: x, y_label: y})
 
         X = sm.add_constant(x)
-        model = sm.OLS(y, X).fit()
-        y_pred = model.predict(X)
+        model, y_pred = fit_ols_model(X, y)
         y_mean = np.mean(y)
 
         b0, b1 = model.params[0], model.params[1]

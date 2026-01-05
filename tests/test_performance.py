@@ -345,3 +345,136 @@ class TestGlobalAPIPerformance:
     """Test performance of global API data fetching functions."""
 
 
+class TestCachingPerformance:
+    """Test performance improvements from caching optimizations."""
+
+    def test_data_generation_caching(self):
+        """Test that data generation caching provides speedup."""
+        from src.data import generate_simple_regression_data
+
+        # First call (cache miss)
+        start = time.time()
+        result1 = generate_simple_regression_data(
+            "🇨🇭 Schweizer Kantone (sozioökonomisch)",
+            "Population Density",
+            10,
+            seed=42
+        )
+        first_call_time = time.time() - start
+
+        # Second call (cache hit)
+        start = time.time()
+        result2 = generate_simple_regression_data(
+            "🇨🇭 Schweizer Kantone (sozioökonomisch)",
+            "Population Density",
+            10,
+            seed=42
+        )
+        second_call_time = time.time() - start
+
+        # Results should be identical
+        assert np.array_equal(result1['x'], result2['x'])
+        assert np.array_equal(result1['y'], result2['y'])
+
+        # Second call should be significantly faster (at least 10x)
+        speedup = first_call_time / max(second_call_time, 0.001)
+        assert speedup > 10, f"Expected speedup > 10x, got {speedup:.2f}x"
+
+    def test_multiple_regression_caching(self):
+        """Test that multiple regression data generation caching works."""
+        from src.data import generate_multiple_regression_data
+
+        # First call
+        start = time.time()
+        result1 = generate_multiple_regression_data(
+            "🏙️ Städte-Umsatzstudie (75 Städte)",
+            50, 0.5, 42
+        )
+        first_call_time = time.time() - start
+
+        # Second call with same parameters
+        start = time.time()
+        result2 = generate_multiple_regression_data(
+            "🏙️ Städte-Umsatzstudie (75 Städte)",
+            50, 0.5, 42
+        )
+        second_call_time = time.time() - start
+
+        # Results should be identical
+        assert np.array_equal(result1['x2_preis'], result2['x2_preis'])
+        assert np.array_equal(result1['x3_werbung'], result2['x3_werbung'])
+
+        # Second call should be faster
+        speedup = first_call_time / max(second_call_time, 0.001)
+        assert speedup > 5, f"Expected speedup > 5x, got {speedup:.2f}x"
+
+    def test_ols_model_caching(self):
+        """Test that OLS model fitting caching works."""
+        from src.data import fit_ols_model
+        import statsmodels.api as sm
+
+        # Create test data
+        np.random.seed(42)
+        X = sm.add_constant(np.random.randn(100, 1))
+        y = 2 + 3 * X[:, 1] + np.random.randn(100) * 0.1
+
+        # First call
+        start = time.time()
+        model1, pred1 = fit_ols_model(X, y)
+        first_call_time = time.time() - start
+
+        # Second call with same data
+        start = time.time()
+        model2, pred2 = fit_ols_model(X, y)
+        second_call_time = time.time() - start
+
+        # Results should be identical
+        assert np.allclose(model1.params, model2.params)
+        assert np.array_equal(pred1, pred2)
+
+        # Second call should be faster
+        speedup = first_call_time / max(second_call_time, 0.001)
+        assert speedup > 10, f"Expected speedup > 10x, got {speedup:.2f}x"
+
+    @pytest.mark.benchmark
+    def test_app_startup_performance(self, benchmark):
+        """Benchmark app startup time."""
+        def startup_test():
+            # This would normally test app initialization
+            # For now, just test a key data generation function
+            from src.data import generate_simple_regression_data
+            return generate_simple_regression_data(
+                "🏪 Elektronikmarkt (simuliert)",
+                "Verkaufsfläche (100qm)",
+                100,
+                seed=42
+            )
+
+        # Should complete in under 0.5 seconds with caching
+        result = benchmark(startup_test)
+        assert result['x'].shape[0] == 100
+        assert benchmark.stats['mean'] < 0.5
+
+    @pytest.mark.benchmark
+    def test_dataset_switching_performance(self, benchmark):
+        """Benchmark performance of switching between datasets."""
+        datasets = [
+            ("🇨🇭 Schweizer Kantone (sozioökonomisch)", "Population Density"),
+            ("🏙️ Städte-Umsatzstudie (75 Städte)", "Population"),
+            ("🏠 Häuserpreise mit Pool (1000 Häuser)", "Living Area")
+        ]
+
+        def switching_test():
+            from src.data import generate_simple_regression_data
+            results = []
+            for dataset, variable in datasets:
+                result = generate_simple_regression_data(dataset, variable, 50, seed=42)
+                results.append(result)
+            return results
+
+        # Should complete switching in under 2 seconds with caching
+        result = benchmark(switching_test)
+        assert len(result) == 3
+        assert benchmark.stats['mean'] < 2.0
+
+

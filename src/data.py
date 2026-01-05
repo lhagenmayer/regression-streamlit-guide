@@ -5,11 +5,12 @@ This module contains all data generation functions and data manipulation utiliti
 including synthetic data generation and integration with Swiss open government data APIs.
 """
 
-from typing import Dict, Optional, Union, Any, List
+from typing import Dict, Optional, Union, Any, List, Tuple
 import time
 import numpy as np
 import pandas as pd
 import streamlit as st
+import statsmodels.api as sm
 from .config import CITIES_DATASET, HOUSES_DATASET
 from .logger import get_logger, log_function_call, log_error_with_context
 
@@ -846,6 +847,7 @@ def generate_dataset(name: str, seed: int = 42) -> Optional[Dict[str, Any]]:
 
 
 @st.cache_data
+@st.cache_data(ttl=300)  # Cache for 5 minutes
 def generate_multiple_regression_data(
     dataset_choice_mult: str, n_mult: int, noise_mult_level: float, seed_mult: int
 ) -> Dict[str, Union[np.ndarray, str]]:
@@ -1006,6 +1008,7 @@ def generate_multiple_regression_data(
 
 
 @st.cache_data
+@st.cache_data(ttl=300)  # Cache for 5 minutes
 def generate_simple_regression_data(
     dataset_choice: str, x_variable: str, n: int, seed: int = 42
 ) -> Dict[str, Union[np.ndarray, str]]:
@@ -1261,4 +1264,61 @@ def generate_simple_regression_data(
         "y_unit": y_unit,
         "context_title": context_title,
         "context_description": context_description,
+    }
+
+
+# ============================================================================
+# CACHED COMPUTATION FUNCTIONS
+# ============================================================================
+
+@st.cache_data(ttl=300)  # Cache for 5 minutes
+def fit_ols_model(
+    X: np.ndarray, y: np.ndarray
+) -> Tuple[sm.regression.linear_model.RegressionResultsWrapper, np.ndarray]:
+    """
+    Fit OLS regression model with caching.
+
+    Args:
+        X: Design matrix (with constant column)
+        y: Response variable
+
+    Returns:
+        Tuple of (fitted model, predictions)
+    """
+    logger.debug(f"Fitting OLS model with X shape {X.shape}, y shape {y.shape}")
+    model = sm.OLS(y, X).fit()
+    predictions = model.predict(X)
+    return model, predictions
+
+
+@st.cache_data(ttl=300)  # Cache for 5 minutes
+def compute_regression_statistics(
+    y: np.ndarray, y_pred: np.ndarray, X: np.ndarray
+) -> Dict[str, float]:
+    """
+    Compute regression statistics with caching.
+
+    Args:
+        y: Actual values
+        y_pred: Predicted values
+        X: Design matrix
+
+    Returns:
+        Dictionary with regression statistics
+    """
+    y_mean = np.mean(y)
+    sse = np.sum((y - y_pred) ** 2)
+    sst = np.sum((y - y_mean) ** 2)
+    ssr = np.sum((y_pred - y_mean) ** 2)
+    r_squared = ssr / sst if sst != 0 else 0
+    n, p = X.shape
+    adj_r_squared = 1 - (1 - r_squared) * (n - 1) / (n - p)
+
+    return {
+        "r_squared": r_squared,
+        "adj_r_squared": adj_r_squared,
+        "sse": sse,
+        "ssr": ssr,
+        "sst": sst,
+        "y_mean": y_mean
     }

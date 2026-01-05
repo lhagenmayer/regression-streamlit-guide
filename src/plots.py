@@ -50,6 +50,7 @@ def get_signif_color(p: float) -> str:
 # ---------------------------------------------------------
 # 3D VISUALIZATION HELPER FUNCTIONS
 # ---------------------------------------------------------
+@st.cache_data(ttl=300)  # Cache for 5 minutes
 def create_regression_mesh(
     x1: np.ndarray, x2: np.ndarray, model_params: Union[List[float], np.ndarray], n_points: int = 20
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -229,6 +230,7 @@ def create_plotly_3d_scatter(
     return fig
 
 
+@st.cache_data(ttl=300)  # Cache for 5 minutes
 def create_plotly_3d_surface(
     X1_mesh: np.ndarray,
     X2_mesh: np.ndarray,
