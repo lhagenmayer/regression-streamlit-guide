@@ -20,7 +20,7 @@ from plotly.subplots import make_subplots
 from config import (
     COLORS, FONT_SIZES, DEFAULT_SEED, SEED_MIN, SEED_MAX,
     CITIES_DATASET, HOUSES_DATASET, ELECTRONICS_DATASET, SIMPLE_REGRESSION,
-    VISUALIZATION_3D
+    VISUALIZATION_3D, COLUMN_LAYOUTS, CAMERA_PRESETS, CSS_STYLES, UI_DEFAULTS
 )
 from data import safe_scalar, generate_dataset, generate_multiple_regression_data, generate_simple_regression_data
 from plots import (
@@ -209,7 +209,7 @@ else:
 
     st.sidebar.markdown("---")
     with st.sidebar.expander("🔧 Anzeigeoptionen", expanded=False):
-        show_formulas = st.checkbox("Formeln anzeigen", value=True,
+        show_formulas = st.checkbox("Formeln anzeigen", value=UI_DEFAULTS["show_formulas"],
                                     help="Zeige mathematische Formeln in der Anleitung",
                                     key="show_formulas_mult")
         show_true_line = False
@@ -339,10 +339,10 @@ with st.sidebar.expander("🎛️ Daten-Parameter (Einfache Regression)", expand
 
     st.sidebar.markdown("---")
     with st.sidebar.expander("🔧 Anzeigeoptionen", expanded=False):
-        show_formulas = st.checkbox("Formeln anzeigen", value=True,
+        show_formulas = st.checkbox("Formeln anzeigen", value=UI_DEFAULTS["show_formulas"],
                                     help="Zeige mathematische Formeln in der Anleitung",
                                     key="show_formulas_simple")
-        show_true_line = st.checkbox("Wahre Linie zeigen", value=has_true_line,
+        show_true_line = st.checkbox("Wahre Linie zeigen", value=UI_DEFAULTS["show_true_line"],
                                      help="Zeige die wahre Regressionslinie (nur bei Simulation)") if has_true_line else False
     
     # Ensure all required variables are defined (fallback initialization)
@@ -495,7 +495,7 @@ with tab2:
     st.markdown("---")
     st.markdown('<p class="section-header">M1. Von der Linie zur Ebene: Der konzeptionelle Sprung</p>', unsafe_allow_html=True)
 
-col_m1_1, col_m1_2 = st.columns([1.5, 1])
+col_m1_1, col_m1_2 = st.columns(COLUMN_LAYOUTS["moderately_wide"])
 
 with col_m1_1:
     st.markdown("""
@@ -541,7 +541,7 @@ with col_m1_1:
                 xaxis_title=x1_name,
                 yaxis_title=x2_name,
                 zaxis_title=y_name,
-                camera=dict(eye=dict(x=1.5, y=-1.5, z=1.2))
+                camera=CAMERA_PRESETS["default"]
             ))
             
             st.plotly_chart(fig_3d_plane, use_container_width=True)
@@ -734,7 +734,7 @@ with col_m1_1:
                 xaxis_title=x1_name,
                 yaxis_title=x2_name,
                 zaxis_title=y_name,
-                camera=dict(eye=dict(x=1.5, y=-1.5, z=1.2))
+                camera=CAMERA_PRESETS["default"]
             ),
             template='plotly_white',
             height=600
@@ -897,13 +897,13 @@ with col_m1_1:
                 xaxis_title=x1_name,
                 yaxis_title=x2_name,
                 zaxis_title=y_name,
-                camera=dict(eye=dict(x=1.5, y=-1.5, z=1.2))
+                camera=CAMERA_PRESETS["default"]
             ),
             scene2=dict(
                 xaxis_title=x1_name,
                 yaxis_title=x2_name,
                 zaxis_title='Residuen',
-                camera=dict(eye=dict(x=1.5, y=-1.5, z=1.2))
+                camera=CAMERA_PRESETS["default"]
             )
         )
         
@@ -1159,7 +1159,7 @@ with col_m1_1:
                 xaxis_title=x1_name,
                 yaxis_title=x2_name,
                 zaxis_title=y_name,
-                camera=dict(eye=dict(x=1.5, y=-1.5, z=1.3))
+                camera=CAMERA_PRESETS["elevated"]
             ),
             template='plotly_white',
             height=600
@@ -1507,7 +1507,7 @@ with tab1:
     # =========================================================
     # KAPITEL 1: EINLEITUNG
     # =========================================================
-    st.markdown('<p class="main-header">📖 Umfassender Leitfaden zur Linearen Regression</p>', unsafe_allow_html=True)
+    st.markdown(f'<p style="{CSS_STYLES["main_header"]}">📖 Umfassender Leitfaden zur Linearen Regression</p>', unsafe_allow_html=True)
     st.markdown("### Von der Frage zur validierten Erkenntnis – Ein interaktiver Lernpfad")
 
     st.markdown("---")
@@ -1663,9 +1663,9 @@ with tab1:
             height=500,
             showlegend=False,
             scene1=dict(xaxis_title='X', yaxis_title='Y', zaxis_title='f(X,Y)',
-                       camera=dict(eye=dict(x=1.5, y=-1.5, z=1.2))),
+                       camera=CAMERA_PRESETS["default"]),
             scene2=dict(xaxis_title='X', yaxis_title='', zaxis_title='f_X(x)',
-                       camera=dict(eye=dict(x=1.5, y=-1.8, z=1.0))),
+                       camera=CAMERA_PRESETS["close_up"]),
             scene3=dict(xaxis_title='X', yaxis_title='Y', zaxis_title='f(Y|X=1)',
                        camera=dict(eye=dict(x=1.5, y=-1.8, z=1.0)))
         )
@@ -1924,7 +1924,7 @@ with tab1:
                 xaxis_title=f'{x_label} (X)',
                 yaxis_title=f'{y_label} (Y)',
                 zaxis_title='(X - X̄)(Y - Ȳ)',
-                camera=dict(eye=dict(x=1.5, y=-1.5, z=1.2))
+                camera=CAMERA_PRESETS["default"]
             ),
             height=600
         )
@@ -2443,7 +2443,7 @@ with tab1:
     """)
 
     # Die vollständige OLS-Herleitung
-    with st.expander("🧮 Mathematische Herleitung der OLS-Schätzer", expanded=False):
+    with st.expander("🧮 Mathematische Herleitung der OLS-Schätzer", expanded=UI_DEFAULTS["expander_expanded"]):
         st.markdown("### Schritt 1: Das Optimierungsproblem")
         st.latex(r"\min_{b_0, b_1} \sum_{i=1}^{n} (y_i - b_0 - b_1 \cdot x_i)^2 = \min_{b_0, b_1} SSE")
         st.caption("Wir suchen b₀ und b₁, die die Summe der quadrierten Abweichungen minimieren")
@@ -2785,19 +2785,19 @@ with tab1:
                 xaxis=dict(title='X', range=[0, 1]),
                 yaxis=dict(title='Y', range=[0, 1]),
                 zaxis=dict(title='Varianz', range=[0, 1]),
-                camera=dict(eye=dict(x=1.5, y=1.5, z=1.2))
+                camera=CAMERA_PRESETS["top_down"]
             ),
             scene2=dict(
                 xaxis=dict(title='X', range=[0, 1]),
                 yaxis=dict(title='Y', range=[0, 1]),
                 zaxis=dict(title='Varianz', range=[0, 1]),
-                camera=dict(eye=dict(x=1.5, y=1.5, z=1.2))
+                camera=CAMERA_PRESETS["top_down"]
             ),
             scene3=dict(
                 xaxis=dict(title='X', range=[0, 1]),
                 yaxis=dict(title='Y', range=[0, 1]),
                 zaxis=dict(title='Varianz', range=[0, 1]),
-                camera=dict(eye=dict(x=1.5, y=1.5, z=1.2))
+                camera=CAMERA_PRESETS["top_down"]
             )
         )
     
@@ -3451,7 +3451,7 @@ with tab1:
                 yaxis_title='Gruppen',
                 zaxis_title='Dichte',
                 yaxis=dict(tickvals=[0, 1, 2], ticktext=regions),
-                camera=dict(eye=dict(x=1.5, y=-1.5, z=1.2))
+                camera=CAMERA_PRESETS["default"]
             )
         )
         fig_anova_viz.update_xaxes(title_text='Quadratsumme', row=1, col=2)
@@ -3811,7 +3811,7 @@ with tab1:
                 xaxis_title=f'X ({x_label})',
                 yaxis_title=f'Y ({y_label})',
                 zaxis_title='f(y|x)',
-                camera=dict(eye=dict(x=1.5, y=-1.8, z=1.2))
+                camera=CAMERA_PRESETS["angled_close"]
             ),
             height=600,
             showlegend=True

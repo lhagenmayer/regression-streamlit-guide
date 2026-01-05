@@ -143,3 +143,56 @@ VISUALIZATION_3D = {
     "houses_x1_default": 25.0,
     "houses_x1_step": 0.5,
 }
+
+# ============================================================================
+# UI LAYOUT CONSTANTS
+# ============================================================================
+
+# Streamlit columns ratios (width ratios for multi-column layouts)
+COLUMN_LAYOUTS = {
+    "wide_narrow": [2, 1],      # Main content + sidebar-like narrow column
+    "narrow_wide": [1, 2],      # Narrow column + main content
+    "equal": [1, 1],            # Equal width columns
+    "slightly_wide": [1.2, 1],  # Slightly wider left column
+    "moderately_wide": [1.5, 1], # Moderately wider left column
+    "data_explanation": [1, 2],  # Data column + explanation column
+}
+
+# ============================================================================
+# 3D CAMERA PRESETS
+# ============================================================================
+
+CAMERA_PRESETS = {
+    "default": dict(eye=dict(x=1.5, y=-1.5, z=1.2)),     # Standard 3D view
+    "elevated": dict(eye=dict(x=1.5, y=-1.5, z=1.3)),    # Higher elevation
+    "top_down": dict(eye=dict(x=1.5, y=1.5, z=1.2)),     # From above
+    "close_up": dict(eye=dict(x=1.5, y=-1.8, z=1.0)),    # Closer view
+    "angled_close": dict(eye=dict(x=1.5, y=-1.8, z=1.2)), # Angled close view
+}
+
+# ============================================================================
+# CSS STYLE CONSTANTS
+# ============================================================================
+
+CSS_STYLES = {
+    "main_header": "font-size: 2.8rem; font-weight: bold; margin-bottom: 0.5rem;",
+    "section_header": "font-size: 1.8rem; font-weight: bold; padding-bottom: 0.5rem;",
+    "subsection_header": "font-size: 1.4rem; font-weight: bold; margin-top: 1.5rem;",
+    "code_block": "background-color: #f5f5f5; padding: 1rem; border-radius: 0.5rem; font-family: 'Courier New', monospace;",
+    "highlight_box": "background-color: #e8f4fd; padding: 1rem; border-left: 4px solid #1f77b4; margin: 1rem 0;",
+    "warning_box": "background-color: #fff3cd; padding: 1rem; border-left: 4px solid #ffc107; margin: 1rem 0;",
+    "success_box": "background-color: #d4edda; padding: 1rem; border-left: 4px solid #28a745; margin: 1rem 0;",
+}
+
+# ============================================================================
+# UI COMPONENT DEFAULTS
+# ============================================================================
+
+UI_DEFAULTS = {
+    "expander_expanded": False,      # Most expanders start collapsed
+    "sidebar_expanded": True,        # Sidebar sections usually expanded
+    "show_formulas": True,           # Formula display enabled by default
+    "show_true_line": True,          # True regression line visible
+    "plot_height": 500,              # Default plotly figure height
+    "animation_duration": 500,       # Animation duration in ms
+}
