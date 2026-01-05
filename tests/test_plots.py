@@ -503,3 +503,140 @@ class TestEdgeCases:
         assert get_signif_stars(0.01) == '*'     # Boundary
         assert get_signif_stars(0.05) == '.'     # Boundary
         assert get_signif_stars(0.1) == ' '      # Boundary
+
+
+class TestSwissDatasetPlotCompatibility:
+    """Test plot functions compatibility with Swiss dataset structures."""
+
+    @pytest.mark.unit
+    def test_swiss_canton_3d_plot_compatibility(self):
+        """Test that Swiss canton data works with 3D plotting functions."""
+        from data import generate_swiss_canton_regression_data
+
+        # Generate Swiss canton data
+        canton_data = generate_swiss_canton_regression_data()
+
+        # Test regression mesh creation
+        X1_mesh, X2_mesh, Y_mesh = create_regression_mesh(
+            canton_data['x_population_density'],
+            canton_data['x_foreign_pct'],
+            [50000, 1000, -2000, 1000],  # Mock coefficients
+            n_points=8
+        )
+
+        assert X1_mesh.shape == (8, 8)
+        assert X2_mesh.shape == (8, 8)
+        assert Y_mesh.shape == (8, 8)
+
+        # Test 3D surface plot creation
+        fig = create_plotly_3d_surface(
+            X1_mesh, X2_mesh, Y_mesh,
+            canton_data['x_population_density'],
+            canton_data['x_foreign_pct'],
+            canton_data['y_gdp_per_capita'],
+            canton_data['x1_name'],
+            canton_data['x2_name'],
+            canton_data['y_name'],
+            'Swiss Cantons: GDP ~ Population Density + Foreign Population'
+        )
+
+        assert isinstance(fig, go.Figure)
+        # Check that the figure has the expected traces
+        assert len(fig.data) >= 2  # Surface + scatter points
+
+    @pytest.mark.unit
+    def test_swiss_weather_3d_plot_compatibility(self):
+        """Test that Swiss weather data works with 3D plotting functions."""
+        from data import generate_swiss_weather_regression_data
+
+        # Generate Swiss weather data
+        weather_data = generate_swiss_weather_regression_data()
+
+        # Test regression mesh creation
+        X1_mesh, X2_mesh, Y_mesh = create_regression_mesh(
+            weather_data['x_altitude'],
+            weather_data['x_sunshine'],
+            [10, -0.005, 0.1, 5],  # Mock coefficients for temperature model
+            n_points=8
+        )
+
+        assert X1_mesh.shape == (8, 8)
+        assert X2_mesh.shape == (8, 8)
+        assert Y_mesh.shape == (8, 8)
+
+        # Test 3D surface plot creation
+        fig = create_plotly_3d_surface(
+            X1_mesh, X2_mesh, Y_mesh,
+            weather_data['x_altitude'],
+            weather_data['x_sunshine'],
+            weather_data['y_temperature'],
+            weather_data['x1_name'],
+            weather_data['x2_name'],
+            weather_data['y_name'],
+            'Swiss Weather: Temperature ~ Altitude + Sunshine + Humidity'
+        )
+
+        assert isinstance(fig, go.Figure)
+        assert len(fig.data) >= 2
+
+    @pytest.mark.unit
+    def test_swiss_simple_regression_plots(self):
+        """Test that Swiss datasets work with simple regression plotting."""
+        from data import generate_simple_regression_data
+
+        # Test canton simple regression
+        canton_data = generate_simple_regression_data(
+            '🇨🇭 Schweizer Kantone (sozioökonomisch)',
+            'Population Density',
+            5, 42
+        )
+
+        # Mock OLS model for testing
+        class MockOLS:
+            def __init__(self):
+                self.params = np.array([50000, 1000])
+
+        mock_model = MockOLS()
+
+        # Test scatter plot with regression line
+        fig_scatter = create_plotly_scatter(
+            canton_data['x'],
+            canton_data['y'],
+            canton_data['x_label'],
+            canton_data['y_label'],
+            mock_model
+        )
+
+        assert isinstance(fig_scatter, go.Figure)
+
+        # Test residual plot
+        fig_residual = create_plotly_residual_plot(
+            mock_model.params[0] + mock_model.params[1] * canton_data['x'],
+            np.random.normal(0, 5000, len(canton_data['x'])),
+            'Residual Plot: Swiss Cantons'
+        )
+
+        assert isinstance(fig_residual, go.Figure)
+
+    @pytest.mark.unit
+    def test_swiss_dataset_label_consistency(self):
+        """Test that Swiss dataset labels are consistent and meaningful."""
+        from data import generate_swiss_canton_regression_data, generate_swiss_weather_regression_data
+
+        # Test canton labels
+        canton_data = generate_swiss_canton_regression_data()
+        assert 'x1_name' in canton_data
+        assert 'x2_name' in canton_data
+        assert 'x3_name' in canton_data
+        assert 'y_name' in canton_data
+        assert 'Population Density' in canton_data['x1_name']
+        assert 'GDP' in canton_data['y_name']
+
+        # Test weather labels
+        weather_data = generate_swiss_weather_regression_data()
+        assert 'x1_name' in weather_data
+        assert 'x2_name' in weather_data
+        assert 'x3_name' in weather_data
+        assert 'y_name' in weather_data
+        assert 'Altitude' in weather_data['x1_name']
+        assert 'Temperature' in weather_data['y_name']

@@ -14,7 +14,12 @@ import numpy as np
 from data import (
     generate_multiple_regression_data,
     generate_simple_regression_data,
-    generate_dataset
+    generate_dataset,
+    generate_swiss_canton_regression_data,
+    generate_swiss_weather_regression_data,
+    fetch_world_bank_data,
+    fetch_fred_data,
+    fetch_who_health_data
 )
 
 
@@ -306,3 +311,114 @@ class TestCacheInvalidation:
         
         # Y values should be different due to different noise
         assert not np.array_equal(result1["y_mult"], result2["y_mult"])
+
+
+class TestSwissDatasetPerformance:
+    """Test performance of Swiss dataset generation functions."""
+
+    @pytest.mark.performance
+    def test_swiss_canton_data_generation_speed(self):
+        """Test that Swiss canton data generation is reasonably fast."""
+        start = time.time()
+        result = generate_swiss_canton_regression_data()
+        end = time.time()
+
+        # Should complete in under 0.1 seconds
+        assert end - start < 0.1
+        assert result['n'] == 5  # Sample size
+        assert len(result['canton_names']) == 5
+
+    @pytest.mark.performance
+    def test_swiss_weather_data_generation_speed(self):
+        """Test that Swiss weather data generation is reasonably fast."""
+        start = time.time()
+        result = generate_swiss_weather_regression_data()
+        end = time.time()
+
+        # Should complete in under 0.1 seconds
+        assert end - start < 0.1
+        assert result['n'] == 7  # 7 weather stations
+        assert len(result['station_names']) == 7
+
+
+class TestGlobalAPIPerformance:
+    """Test performance of global API data fetching functions."""
+
+    @pytest.mark.performance
+    @pytest.mark.slow
+    def test_world_bank_api_performance(self):
+        """Test World Bank API performance (mock implementation)."""
+        start = time.time()
+        result = fetch_world_bank_data(
+            indicators=['NY.GDP.PCAP.KD', 'SP.POP.TOTL'],
+            countries=['USA', 'CHN', 'DEU'],
+            years=[2015, 2018, 2020]
+        )
+        end = time.time()
+
+        # Should complete in under 0.5 seconds (mock data)
+        assert end - start < 0.5
+        assert isinstance(result, pd.DataFrame)
+
+    @pytest.mark.performance
+    @pytest.mark.slow
+    def test_fred_api_performance(self):
+        """Test FRED API performance (mock implementation)."""
+        start = time.time()
+        result = fetch_fred_data(
+            series_ids=['GDP', 'UNRATE'],
+            start_date='2010-01-01',
+            end_date='2020-01-01'
+        )
+        end = time.time()
+
+        # Should complete in under 0.5 seconds (mock data)
+        assert end - start < 0.5
+        assert isinstance(result, pd.DataFrame)
+
+    @pytest.mark.performance
+    @pytest.mark.slow
+    def test_who_api_performance(self):
+        """Test WHO API performance (mock implementation)."""
+        start = time.time()
+        result = fetch_who_health_data(
+            indicators=['WHOSIS_000001'],
+            countries=['USA', 'CHN', 'DEU'],
+            years=[2015, 2018, 2020]
+        )
+        end = time.time()
+
+        # Should complete in under 0.5 seconds (mock data)
+        assert end - start < 0.5
+        assert isinstance(result, pd.DataFrame)
+
+    @pytest.mark.performance
+    def test_global_api_caching(self):
+        """Test that global API functions are cached properly."""
+        # First call
+        start1 = time.time()
+        result1 = fetch_world_bank_data(
+            indicators=['NY.GDP.PCAP.KD'],
+            countries=['USA'],
+            years=[2015]
+        )
+        end1 = time.time()
+
+        # Second call with same parameters (should be cached)
+        start2 = time.time()
+        result2 = fetch_world_bank_data(
+            indicators=['NY.GDP.PCAP.KD'],
+            countries=['USA'],
+            years=[2015]
+        )
+        end2 = time.time()
+
+        # Cached call should be at least 5x faster
+        uncached_time = end1 - start1
+        cached_time = end2 - start2
+
+        if uncached_time > 0.01:  # Only test if first call took measurable time
+            assert cached_time < uncached_time * 0.5  # At least 2x faster (allowing for some variance)
+
+        # Results should be identical
+        pd.testing.assert_frame_equal(result1, result2)

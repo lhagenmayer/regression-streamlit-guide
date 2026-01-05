@@ -16,7 +16,14 @@ from data import (
     safe_scalar,
     generate_dataset,
     generate_multiple_regression_data,
-    generate_simple_regression_data
+    generate_simple_regression_data,
+    generate_swiss_canton_regression_data,
+    generate_swiss_weather_regression_data,
+    fetch_world_bank_data,
+    fetch_fred_data,
+    fetch_who_health_data,
+    get_available_swiss_datasets,
+    get_global_regression_datasets
 )
 
 
@@ -448,3 +455,135 @@ class TestEdgeCases:
         )
         # Should still work, just noisy data
         assert len(result["y_mult"]) == 75
+
+
+class TestSwissDatasets:
+    """Test Swiss dataset generation functions."""
+
+    @pytest.mark.unit
+    def test_swiss_canton_regression_data(self):
+        """Test Swiss canton socioeconomic data generation."""
+        result = generate_swiss_canton_regression_data()
+
+        # Check required keys
+        required_keys = ['x_population_density', 'x_foreign_pct', 'x_unemployment',
+                        'y_gdp_per_capita', 'canton_names', 'n', 'x1_name', 'x2_name', 'x3_name', 'y_name']
+        for key in required_keys:
+            assert key in result
+
+        # Check data types and shapes
+        assert isinstance(result['x_population_density'], np.ndarray)
+        assert isinstance(result['y_gdp_per_capita'], np.ndarray)
+        assert len(result['x_population_density']) == len(result['y_gdp_per_capita'])
+        assert result['n'] == len(result['canton_names'])
+        assert result['n'] == 5  # Sample of 5 cantons
+
+    @pytest.mark.unit
+    def test_swiss_weather_regression_data(self):
+        """Test Swiss weather station data generation."""
+        result = generate_swiss_weather_regression_data()
+
+        # Check required keys
+        required_keys = ['x_altitude', 'x_sunshine', 'x_humidity',
+                        'y_temperature', 'station_names', 'n', 'x1_name', 'x2_name', 'x3_name', 'y_name']
+        for key in required_keys:
+            assert key in result
+
+        # Check data types and shapes
+        assert isinstance(result['x_altitude'], np.ndarray)
+        assert isinstance(result['y_temperature'], np.ndarray)
+        assert len(result['x_altitude']) == len(result['y_temperature'])
+        assert result['n'] == len(result['station_names'])
+        assert result['n'] == 7  # 7 weather stations
+
+    @pytest.mark.unit
+    def test_simple_regression_swiss_datasets(self):
+        """Test simple regression with Swiss datasets."""
+        # Test cantons
+        result_canton = generate_simple_regression_data(
+            '🇨🇭 Schweizer Kantone (sozioökonomisch)',
+            'Population Density',
+            5, 42
+        )
+        assert 'x' in result_canton
+        assert 'y' in result_canton
+        assert 'x_label' in result_canton
+        assert 'y_label' in result_canton
+        assert len(result_canton['x']) == 5
+
+        # Test weather
+        result_weather = generate_simple_regression_data(
+            '🌤️ Schweizer Wetterstationen',
+            'Altitude',
+            7, 42
+        )
+        assert 'x' in result_weather
+        assert 'y' in result_weather
+        assert 'x_label' in result_weather
+        assert 'y_label' in result_weather
+        assert len(result_weather['x']) == 7
+
+
+class TestGlobalAPIs:
+    """Test global API data fetching functions."""
+
+    @pytest.mark.integration
+    def test_world_bank_data_fetching(self):
+        """Test World Bank data fetching (mock implementation)."""
+        result = fetch_world_bank_data(
+            indicators=['NY.GDP.PCAP.KD', 'SP.POP.TOTL'],
+            countries=['USA', 'CHN', 'DEU'],
+            years=[2015, 2018, 2020]
+        )
+
+        # Should return DataFrame (even if empty due to mock)
+        assert isinstance(result, pd.DataFrame)
+
+    @pytest.mark.integration
+    def test_fred_data_fetching(self):
+        """Test FRED economic data fetching (mock implementation)."""
+        result = fetch_fred_data(
+            series_ids=['GDP', 'UNRATE'],
+            start_date='2010-01-01',
+            end_date='2020-01-01'
+        )
+
+        # Should return DataFrame (even if empty due to mock)
+        assert isinstance(result, pd.DataFrame)
+
+    @pytest.mark.integration
+    def test_who_health_data_fetching(self):
+        """Test WHO health data fetching (mock implementation)."""
+        result = fetch_who_health_data(
+            indicators=['WHOSIS_000001'],
+            countries=['USA', 'CHN', 'DEU'],
+            years=[2015, 2018, 2020]
+        )
+
+        # Should return DataFrame (even if empty due to mock)
+        assert isinstance(result, pd.DataFrame)
+
+    @pytest.mark.unit
+    def test_dataset_metadata_functions(self):
+        """Test dataset metadata functions."""
+        swiss_datasets = get_available_swiss_datasets()
+        global_datasets = get_global_regression_datasets()
+
+        # Check structure
+        assert isinstance(swiss_datasets, dict)
+        assert isinstance(global_datasets, dict)
+
+        # Check that datasets have required metadata
+        for name, info in swiss_datasets.items():
+            assert 'name' in info
+            assert 'description' in info
+            assert 'variables' in info
+            assert 'source' in info
+
+        for name, info in global_datasets.items():
+            assert 'name' in info
+            assert 'description' in info
+            assert 'variables' in info
+            assert 'source' in info
+            assert 'python_package' in info
+            assert 'api_available' in info
