@@ -828,7 +828,7 @@ with col_m1_1:
                 )
             )
 
-            st.plotly_chart(fig_3d_plane, key="multiple_regression_3d_plane", use_container_width=True)
+            st.plotly_chart(fig_3d_plane, key="multiple_regression_3d_plane", width='stretch')
 
     # =========================================================
     # M2: DAS GRUNDMODELL
@@ -975,7 +975,7 @@ with col_m1_1:
         fig_resid = create_plotly_residual_plot(
             y_pred_mult, mult_diagnostics["resid"], title="Residual Plot"
         )
-        st.plotly_chart(fig_resid, key="residual_plot_m3", use_container_width=True)
+        st.plotly_chart(fig_resid, key="residual_plot_m3", width='stretch')
 
     with col_m3_2:
         st.markdown("### 📊 Unsere Schätzungen")
@@ -1072,7 +1072,7 @@ with col_m1_1:
             height=600,
         )
 
-        st.plotly_chart(fig_3d_resid, key="3d_residual_plot", use_container_width=True)
+        st.plotly_chart(fig_3d_resid, key="3d_residual_plot", width='stretch')
 
     st.info(
         """
@@ -1135,7 +1135,7 @@ with col_m1_1:
             colors=["gray", "green", "red"],
             title=f"Varianzzerlegung: R² = {mult_summary['rsquared']:.4f}",
         )
-        st.plotly_chart(fig_var_mult, key="variance_decomposition_mult", use_container_width=True)
+        st.plotly_chart(fig_var_mult, key="variance_decomposition_mult", width='stretch')
 
     with col_m4_2:
         if show_formulas:
@@ -1268,7 +1268,7 @@ with col_m1_1:
             ),
         )
 
-        st.plotly_chart(fig_3d_var, key="3d_variance_plot", use_container_width=True)
+        st.plotly_chart(fig_3d_var, key="3d_variance_plot", width='stretch')
 
     st.info(
         f"""
@@ -1423,7 +1423,7 @@ with col_m1_1:
             hovermode="x",
         )
 
-        st.plotly_chart(fig_sens, key="sensitivity_plot", use_container_width=True)
+        st.plotly_chart(fig_sens, key="sensitivity_plot", width='stretch')
 
     # =========================================================
     # M6: DUMMY-VARIABLEN
@@ -1522,11 +1522,11 @@ with col_m1_1:
             f"""
         **Unser Modell:**
 
-        β₀ = {dummy_coeffs["params"][0]:.2f} (Nord-Basis)
-        β₁ = {dummy_coeffs["params"][1]:.2f} (Preis)
-        β₂ = {dummy_coeffs["params"][2]:.2f} (Werbung)
-        β₃ = {dummy_coeffs["params"][3]:.2f} (Ost-Effekt)
-        β₄ = {dummy_coeffs["params"][4]:.2f} (Süd-Effekt)
+        β₀ = {dummy_coeffs["params"].iloc[0]:.2f} (Nord-Basis)
+        β₁ = {dummy_coeffs["params"].iloc[1]:.2f} (Preis)
+        β₂ = {dummy_coeffs["params"].iloc[2]:.2f} (Werbung)
+        β₃ = {dummy_coeffs["params"].iloc[3]:.2f} (Ost-Effekt)
+        β₄ = {dummy_coeffs["params"].iloc[4]:.2f} (Süd-Effekt)
         """
         )
 
@@ -1601,7 +1601,7 @@ with col_m1_1:
             height=600,
         )
 
-        st.plotly_chart(fig_3d_m7, key="3d_m7_multicollinearity", use_container_width=True)
+        st.plotly_chart(fig_3d_m7, key="3d_m7_multicollinearity", width='stretch')
 
         st.info(
             """
@@ -1778,7 +1778,7 @@ with col_m1_1:
 
     fig_diag.update_layout(height=800, template="plotly_white", showlegend=False)
 
-    st.plotly_chart(fig_diag, key="diagnostic_plots_m8", use_container_width=True)
+    st.plotly_chart(fig_diag, key="diagnostic_plots_m8", width='stretch')
 
     col_m8_1, col_m8_2 = st.columns([1, 1])
 
@@ -1890,7 +1890,7 @@ with col_m1_1:
         height=600,
     )
 
-    st.plotly_chart(fig_3d_resid_m8, key="3d_residual_plot_m8", use_container_width=True)
+    st.plotly_chart(fig_3d_resid_m8, key="3d_residual_plot_m8", width='stretch')
 
     st.info(
         """
@@ -1929,7 +1929,7 @@ with col_m1_1:
     st.markdown("#### 📊 R-Style Output")
     # Use the specification example variable names for consistency
     fig_r_mult = create_r_output_figure(model_mult, feature_names=["hp", "drat", "wt"], figsize=(18, 13))
-    st.plotly_chart(fig_r_mult, key="r_output_mult_regression", use_container_width=True)
+    st.plotly_chart(fig_r_mult, key="r_output_mult_regression", width='stretch')
 
     # Raw text output
     with st.expander("📜 Raw R-Style Output (zum Kopieren)"):
@@ -2253,7 +2253,7 @@ with tab1:
 
         fig_joint_3d.update_layout()
 
-        st.plotly_chart(fig_joint_3d, key="joint_3d_distribution", use_container_width=True)
+        st.plotly_chart(fig_joint_3d, key="joint_3d_distribution", width='stretch')
 
     with col_joint2:
         if show_formulas:
@@ -2358,7 +2358,7 @@ with tab1:
 
         fig_indep.update_layout(height=400, template="plotly_white")
 
-        st.plotly_chart(fig_indep, key="independence_plot", use_container_width=True)
+        st.plotly_chart(fig_indep, key="independence_plot", width='stretch')
 
     st.success(
         """
@@ -2480,7 +2480,7 @@ with tab1:
             hovermode="closest",
         )
 
-        st.plotly_chart(fig_scatter1, key="correlation_scatter_plot", use_container_width=True)
+        st.plotly_chart(fig_scatter1, key="correlation_scatter_plot", width='stretch')
 
     st.success(
         f"""
@@ -2586,7 +2586,7 @@ with tab1:
             height=600,
         )
 
-        st.plotly_chart(fig_cov, key="covariance_3d_plot", use_container_width=True)
+        st.plotly_chart(fig_cov, key="covariance_3d_plot", width='stretch')
 
     with col_cov2:
         if show_formulas:
@@ -2700,7 +2700,7 @@ with tab1:
             template="plotly_white",
         )
 
-        st.plotly_chart(fig_corr_examples, key="correlation_examples_plot", use_container_width=True)
+        st.plotly_chart(fig_corr_examples, key="correlation_examples_plot", width='stretch')
 
     with col_corr2:
         if show_formulas:
@@ -2808,7 +2808,7 @@ with tab1:
             hovermode="x",
         )
 
-        st.plotly_chart(fig_t_corr, key="t_test_correlation_plot", use_container_width=True)
+        st.plotly_chart(fig_t_corr, key="t_test_correlation_plot", width='stretch')
 
     with col_ttest_corr2:
         if show_formulas:
@@ -2883,7 +2883,7 @@ with tab1:
 
             fig_spear.update_layout(height=400, template="plotly_white")
 
-            st.plotly_chart(fig_spear, key="spearman_correlation_plot", use_container_width=True)
+            st.plotly_chart(fig_spear, key="spearman_correlation_plot", width='stretch')
 
         with col_sp2:
             st.latex(r"r_s = 1 - \frac{6 \sum d_i^2}{n(n^2-1)}")
@@ -3011,7 +3011,7 @@ with tab1:
             hovermode="closest",
         )
 
-        st.plotly_chart(fig_ols, key="ols_regression_plot", use_container_width=True)
+        st.plotly_chart(fig_ols, key="ols_regression_plot", width='stretch')
 
     with col_ols2:
         if show_formulas:
@@ -3154,7 +3154,7 @@ with tab1:
         showlegend=True,
     )
 
-    st.plotly_chart(fig_detail, key="detailed_ols_plot", use_container_width=True)
+    st.plotly_chart(fig_detail, key="detailed_ols_plot", width='stretch')
 
     # Erklärungstext
     col_exp1, col_exp2, col_exp3 = st.columns(3)
@@ -3383,7 +3383,7 @@ with tab1:
             hovermode="closest",
         )
 
-        st.plotly_chart(fig_se, use_container_width=True)
+        st.plotly_chart(fig_se, width='stretch')
 
     with col_se2:
         if show_formulas:
@@ -3555,7 +3555,7 @@ with tab1:
 
         fig_sb.update_layout(height=400, template="plotly_white", showlegend=True)
 
-        st.plotly_chart(fig_sb, use_container_width=True)
+        st.plotly_chart(fig_sb, width='stretch')
 
     with col_sb2:
         if show_formulas:
@@ -3676,7 +3676,7 @@ with tab1:
 
         fig_var.update_layout()
 
-        st.plotly_chart(fig_var, use_container_width=True)
+        st.plotly_chart(fig_var, width='stretch')
 
     with col_r2_2:
         if show_formulas:
@@ -3690,7 +3690,7 @@ with tab1:
             colors=["gray", "green", "red"],
             title=f"R² = {model.rsquared:.1%}",
         )
-        st.plotly_chart(fig_r2bar, use_container_width=True)
+        st.plotly_chart(fig_r2bar, width='stretch')
 
         st.success(
             f"""
@@ -4005,7 +4005,7 @@ with tab1:
         showlegend=False,
     )
 
-    st.plotly_chart(fig_assumptions, use_container_width=True)
+    st.plotly_chart(fig_assumptions, width='stretch')
 
     # Erklärungstext zu den Konsequenzen
     col_gm1, col_gm2 = st.columns(2)
@@ -4067,7 +4067,7 @@ with tab1:
                 hovermode="closest",
             )
 
-            st.plotly_chart(fig_diag1, use_container_width=True)
+            st.plotly_chart(fig_diag1, width='stretch')
 
             st.markdown(
                 """
@@ -4115,7 +4115,7 @@ with tab1:
                 showlegend=False,
             )
 
-            st.plotly_chart(fig_diag2, use_container_width=True)
+            st.plotly_chart(fig_diag2, width='stretch')
 
             st.markdown(
                 """
@@ -4191,7 +4191,7 @@ with tab1:
             hovermode="x",
         )
 
-        st.plotly_chart(fig_t, use_container_width=True)
+        st.plotly_chart(fig_t, width='stretch')
 
     with col_t2:
         if show_formulas:
@@ -4280,7 +4280,7 @@ with tab1:
             hovermode="x",
         )
 
-        st.plotly_chart(fig_f, use_container_width=True)
+        st.plotly_chart(fig_f, width='stretch')
 
     with col_f2:
         if show_formulas:
@@ -4335,7 +4335,7 @@ with tab1:
 
     # Die annotierte R-Output Figur
     fig_r_output = create_r_output_figure(model, feature_names=[x_label], figsize=(18, 13))
-    st.plotly_chart(fig_r_output, use_container_width=True)
+    st.plotly_chart(fig_r_output, width='stretch')
 
     # Zusätzlich noch den textuellen Output
     with st.expander("📜 Reiner Text-Output (zum Kopieren)"):
@@ -4541,7 +4541,7 @@ with tab1:
         )
         fig_anova_viz.update_xaxes(title_text="Quadratsumme", row=1, col=2)
 
-        st.plotly_chart(fig_anova_viz, use_container_width=True)
+        st.plotly_chart(fig_anova_viz, width='stretch')
 
     with col_anova2:
         if show_formulas:
@@ -4810,7 +4810,7 @@ with tab1:
             showlegend=False,
         )
 
-        st.plotly_chart(fig_trichter, use_container_width=True)
+        st.plotly_chart(fig_trichter, width='stretch')
 
     with col_hetero2:
         st.error(
@@ -5012,7 +5012,7 @@ with tab1:
             showlegend=True,
         )
 
-        st.plotly_chart(fig_3d, use_container_width=True)
+        st.plotly_chart(fig_3d, width='stretch')
 
     with col_3d2:
         st.latex(r"Y_i | X_i = x \sim N(\beta_0 + \beta_1 x, \sigma^2)")
@@ -5163,7 +5163,7 @@ with tab3:
         }
     )
 
-    st.dataframe(comparison_df, use_container_width=True, hide_index=True)
+    st.dataframe(comparison_df, width='stretch', hide_index=True)
 
 # Footer
 st.markdown("---")
