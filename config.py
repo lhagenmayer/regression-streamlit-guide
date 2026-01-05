@@ -150,11 +150,11 @@ VISUALIZATION_3D = {
 
 # Streamlit columns ratios (width ratios for multi-column layouts)
 COLUMN_LAYOUTS = {
-    "wide_narrow": [2, 1],      # Main content + sidebar-like narrow column
-    "narrow_wide": [1, 2],      # Narrow column + main content
-    "equal": [1, 1],            # Equal width columns
+    "wide_narrow": [2, 1],  # Main content + sidebar-like narrow column
+    "narrow_wide": [1, 2],  # Narrow column + main content
+    "equal": [1, 1],  # Equal width columns
     "slightly_wide": [1.2, 1],  # Slightly wider left column
-    "moderately_wide": [1.5, 1], # Moderately wider left column
+    "moderately_wide": [1.5, 1],  # Moderately wider left column
     "data_explanation": [1, 2],  # Data column + explanation column
 }
 
@@ -163,11 +163,11 @@ COLUMN_LAYOUTS = {
 # ============================================================================
 
 CAMERA_PRESETS = {
-    "default": dict(eye=dict(x=1.5, y=-1.5, z=1.2)),     # Standard 3D view
-    "elevated": dict(eye=dict(x=1.5, y=-1.5, z=1.3)),    # Higher elevation
-    "top_down": dict(eye=dict(x=1.5, y=1.5, z=1.2)),     # From above
-    "close_up": dict(eye=dict(x=1.5, y=-1.8, z=1.0)),    # Closer view
-    "angled_close": dict(eye=dict(x=1.5, y=-1.8, z=1.2)), # Angled close view
+    "default": dict(eye=dict(x=1.5, y=-1.5, z=1.2)),  # Standard 3D view
+    "elevated": dict(eye=dict(x=1.5, y=-1.5, z=1.3)),  # Higher elevation
+    "top_down": dict(eye=dict(x=1.5, y=1.5, z=1.2)),  # From above
+    "close_up": dict(eye=dict(x=1.5, y=-1.8, z=1.0)),  # Closer view
+    "angled_close": dict(eye=dict(x=1.5, y=-1.8, z=1.2)),  # Angled close view
 }
 
 # ============================================================================
@@ -189,10 +189,10 @@ CSS_STYLES = {
 # ============================================================================
 
 UI_DEFAULTS = {
-    "expander_expanded": False,      # Most expanders start collapsed
-    "sidebar_expanded": True,        # Sidebar sections usually expanded
-    "show_formulas": True,           # Formula display enabled by default
-    "show_true_line": True,          # True regression line visible
-    "plot_height": 500,              # Default plotly figure height
-    "animation_duration": 500,       # Animation duration in ms
+    "expander_expanded": False,  # Most expanders start collapsed
+    "sidebar_expanded": True,  # Sidebar sections usually expanded
+    "show_formulas": True,  # Formula display enabled by default
+    "show_true_line": True,  # True regression line visible
+    "plot_height": 500,  # Default plotly figure height
+    "animation_duration": 500,  # Animation duration in ms
 }

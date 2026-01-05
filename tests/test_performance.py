@@ -14,13 +14,12 @@ import numpy as np
 from data import (
     generate_multiple_regression_data,
     generate_simple_regression_data,
-    generate_dataset
 )
 
 
 class TestDataGenerationPerformance:
     """Test performance of data generation functions."""
-    
+
     @pytest.mark.performance
     @pytest.mark.slow
     def test_cached_data_generation_is_faster(self):
@@ -28,47 +27,39 @@ class TestDataGenerationPerformance:
         # First call (uncached)
         start = time.time()
         result1 = generate_multiple_regression_data(
-            "🏙️ Städte-Umsatzstudie (75 Städte)",
-            n_mult=75,
-            noise_mult_level=3.5,
-            seed_mult=42
+            "🏙️ Städte-Umsatzstudie (75 Städte)", n_mult=75, noise_mult_level=3.5, seed_mult=42
         )
         first_call_time = time.time() - start
-        
+
         # Second call (should be cached)
         start = time.time()
         result2 = generate_multiple_regression_data(
-            "🏙️ Städte-Umsatzstudie (75 Städte)",
-            n_mult=75,
-            noise_mult_level=3.5,
-            seed_mult=42
+            "🏙️ Städte-Umsatzstudie (75 Städte)", n_mult=75, noise_mult_level=3.5, seed_mult=42
         )
         second_call_time = time.time() - start
-        
+
         # Cached call should be much faster (at least 2x)
         # Note: With @st.cache_data, cached calls are typically 10-100x faster
-        assert second_call_time < first_call_time * 0.5, \
-            f"Cached call ({second_call_time:.4f}s) not significantly faster than first call ({first_call_time:.4f}s)"
-        
+        assert (
+            second_call_time < first_call_time * 0.5
+        ), f"Cached call ({second_call_time:.4f}s) not significantly faster than first call ({first_call_time:.4f}s)"
+
         # Results should be identical
         np.testing.assert_array_equal(result1["x2_preis"], result2["x2_preis"])
-    
+
     @pytest.mark.performance
     def test_small_dataset_generation_speed(self):
         """Test that small dataset generation completes quickly."""
         start = time.time()
         result = generate_multiple_regression_data(
-            "🏙️ Städte-Umsatzstudie (75 Städte)",
-            n_mult=20,
-            noise_mult_level=3.5,
-            seed_mult=123
+            "🏙️ Städte-Umsatzstudie (75 Städte)", n_mult=20, noise_mult_level=3.5, seed_mult=123
         )
         duration = time.time() - start
-        
+
         # Should complete in under 1 second for small dataset
         assert duration < 1.0, f"Small dataset took {duration:.4f}s, expected <1.0s"
         assert len(result["x2_preis"]) == 20
-    
+
     @pytest.mark.performance
     def test_large_dataset_generation_speed(self):
         """Test that large dataset generation completes in reasonable time."""
@@ -77,26 +68,23 @@ class TestDataGenerationPerformance:
             "🏠 Häuserpreise mit Pool (1000 Häuser)",
             n_mult=2000,
             noise_mult_level=20.0,
-            seed_mult=456
+            seed_mult=456,
         )
         duration = time.time() - start
-        
+
         # Should complete in under 5 seconds even for large dataset
         assert duration < 5.0, f"Large dataset took {duration:.4f}s, expected <5.0s"
         assert len(result["x2_preis"]) == 2000
-    
+
     @pytest.mark.performance
     def test_simple_regression_data_generation_speed(self):
         """Test simple regression data generation performance."""
         start = time.time()
         result = generate_simple_regression_data(
-            "🏙️ Städte-Umsatzstudie (75 Städte)",
-            "Preis (CHF)",
-            n=75,
-            seed=42
+            "🏙️ Städte-Umsatzstudie (75 Städte)", "Preis (CHF)", n=75, seed=42
         )
         duration = time.time() - start
-        
+
         # Should be fast
         assert duration < 2.0, f"Simple regression data took {duration:.4f}s, expected <2.0s"
         assert len(result["x"]) == 75
@@ -104,26 +92,26 @@ class TestDataGenerationPerformance:
 
 class TestCachingEffectiveness:
     """Test that caching is effective and provides expected benefits."""
-    
+
     @pytest.mark.performance
     def test_cache_hit_with_identical_parameters(self):
         """Test that identical parameters result in cache hit."""
         params = ("🏙️ Städte-Umsatzstudie (75 Städte)", 75, 3.5, 42)
-        
+
         # First call
         result1 = generate_multiple_regression_data(*params)
-        
+
         # Second call with identical params
         start = time.time()
         result2 = generate_multiple_regression_data(*params)
         cached_time = time.time() - start
-        
+
         # Should be very fast (cache hit)
         assert cached_time < 0.01, f"Cache hit took {cached_time:.4f}s, expected <0.01s"
-        
+
         # Results should be identical
         np.testing.assert_array_equal(result1["x2_preis"], result2["x2_preis"])
-    
+
     @pytest.mark.performance
     def test_cache_miss_with_different_parameters(self):
         """Test that different parameters result in cache miss."""
@@ -131,16 +119,16 @@ class TestCachingEffectiveness:
         result1 = generate_multiple_regression_data(
             "🏙️ Städte-Umsatzstudie (75 Städte)", 75, 3.5, 42
         )
-        
+
         # Generate with different params (should be cache miss)
         result2 = generate_multiple_regression_data(
             "🏙️ Städte-Umsatzstudie (75 Städte)", 75, 3.5, 999
         )
-        
+
         # Results should be different (different seed)
         with pytest.raises(AssertionError):
             np.testing.assert_array_equal(result1["x2_preis"], result2["x2_preis"])
-    
+
     @pytest.mark.performance
     def test_multiple_cache_entries(self):
         """Test that multiple different parameter sets are cached separately."""
@@ -148,52 +136,45 @@ class TestCachingEffectiveness:
         result1 = generate_multiple_regression_data(
             "🏙️ Städte-Umsatzstudie (75 Städte)", 75, 3.5, 42
         )
-        result2 = generate_multiple_regression_data(
-            "🏠 Häuserpreise mit Pool (1000 Häuser)", 1000, 20.0, 42
-        )
-        result3 = generate_multiple_regression_data(
-            "🏪 Elektronikmarkt (erweitert)", 50, 0.35, 42
-        )
-        
+        generate_multiple_regression_data("🏠 Häuserpreise mit Pool (1000 Häuser)", 1000, 20.0, 42)
+        generate_multiple_regression_data("🏪 Elektronikmarkt (erweitert)", 50, 0.35, 42)
+
         # Re-access first dataset - should be cached
         start = time.time()
         result1_cached = generate_multiple_regression_data(
             "🏙️ Städte-Umsatzstudie (75 Städte)", 75, 3.5, 42
         )
         cached_time = time.time() - start
-        
+
         assert cached_time < 0.01
         np.testing.assert_array_equal(result1["x2_preis"], result1_cached["x2_preis"])
 
 
 class TestPerformanceRegression:
     """Test for performance regressions."""
-    
+
     @pytest.mark.performance
     def test_no_regression_in_data_generation(self):
         """Test that data generation doesn't regress in performance."""
         times = []
-        
+
         # Run 5 times with different seeds
         for seed in range(100, 105):
             start = time.time()
             generate_multiple_regression_data(
-                "🏙️ Städte-Umsatzstudie (75 Städte)",
-                n_mult=75,
-                noise_mult_level=3.5,
-                seed_mult=seed
+                "🏙️ Städte-Umsatzstudie (75 Städte)", n_mult=75, noise_mult_level=3.5, seed_mult=seed
             )
             times.append(time.time() - start)
-        
+
         avg_time = np.mean(times)
         max_time = np.max(times)
-        
+
         # Average should be under 1 second
         assert avg_time < 1.0, f"Average generation time {avg_time:.4f}s exceeds 1.0s"
-        
+
         # No single call should take more than 2 seconds
         assert max_time < 2.0, f"Max generation time {max_time:.4f}s exceeds 2.0s"
-    
+
     @pytest.mark.performance
     def test_consistent_performance_across_datasets(self):
         """Test that all dataset types have reasonable performance."""
@@ -202,14 +183,12 @@ class TestPerformanceRegression:
             ("🏠 Häuserpreise mit Pool (1000 Häuser)", 1000, 20.0),
             ("🏪 Elektronikmarkt (erweitert)", 50, 0.35),
         ]
-        
+
         for dataset, n, noise in datasets:
             start = time.time()
-            result = generate_multiple_regression_data(
-                dataset, n, noise, 42
-            )
+            result = generate_multiple_regression_data(dataset, n, noise, 42)
             duration = time.time() - start
-            
+
             # All should complete in reasonable time
             assert duration < 3.0, f"{dataset} took {duration:.4f}s, expected <3.0s"
             assert len(result["x2_preis"]) == n
@@ -217,7 +196,7 @@ class TestPerformanceRegression:
 
 class TestMemoryEfficiency:
     """Test memory efficiency of data structures."""
-    
+
     @pytest.mark.performance
     def test_reasonable_memory_usage(self):
         """Test that generated data uses reasonable memory."""
@@ -226,14 +205,14 @@ class TestMemoryEfficiency:
             "🏠 Häuserpreise mit Pool (1000 Häuser)",
             n_mult=2000,
             noise_mult_level=20.0,
-            seed_mult=42
+            seed_mult=42,
         )
-        
+
         # Check data types are appropriate (float64 is standard)
         assert result["x2_preis"].dtype in [np.float64, np.float32]
         assert result["x3_werbung"].dtype in [np.float64, np.float32]
         assert result["y_mult"].dtype in [np.float64, np.float32]
-        
+
         # Arrays should be 1D
         assert result["x2_preis"].ndim == 1
         assert result["x3_werbung"].ndim == 1
@@ -242,41 +221,42 @@ class TestMemoryEfficiency:
 
 class TestScalability:
     """Test that functions scale well with input size."""
-    
+
     @pytest.mark.performance
     @pytest.mark.slow
     def test_linear_scaling_with_sample_size(self):
         """Test that generation time scales linearly with sample size."""
         sizes = [100, 500, 1000]
         times = []
-        
+
         for size in sizes:
             start = time.time()
             generate_multiple_regression_data(
                 "🏠 Häuserpreise mit Pool (1000 Häuser)",
                 n_mult=size,
                 noise_mult_level=20.0,
-                seed_mult=42
+                seed_mult=42,
             )
             times.append(time.time() - start)
-        
+
         # Time ratio should not grow super-linearly
         # If time grows faster than O(n), this indicates a problem
         time_ratio_1 = times[1] / times[0]
         size_ratio_1 = sizes[1] / sizes[0]
-        
-        time_ratio_2 = times[2] / times[1]
-        size_ratio_2 = sizes[2] / sizes[1]
-        
+
+        times[2] / times[1]
+        sizes[2] / sizes[1]
+
         # Time ratio should not be much larger than size ratio
         # Allow factor of 2 for variability
-        assert time_ratio_1 < size_ratio_1 * 2, \
-            f"Time scaling is worse than linear: time ratio {time_ratio_1:.2f} vs size ratio {size_ratio_1:.2f}"
+        assert (
+            time_ratio_1 < size_ratio_1 * 2
+        ), f"Time scaling is worse than linear: time ratio {time_ratio_1:.2f} vs size ratio {size_ratio_1:.2f}"
 
 
 class TestCacheInvalidation:
     """Test that cache invalidates correctly when it should."""
-    
+
     @pytest.mark.performance
     def test_different_seeds_invalidate_cache(self):
         """Test that changing seed invalidates cache."""
@@ -284,25 +264,25 @@ class TestCacheInvalidation:
         result1 = generate_multiple_regression_data(
             "🏙️ Städte-Umsatzstudie (75 Städte)", 75, 3.5, 42
         )
-        
+
         # Second call with seed 999 (should not use cache)
         result2 = generate_multiple_regression_data(
             "🏙️ Städte-Umsatzstudie (75 Städte)", 75, 3.5, 999
         )
-        
+
         # Results should be different
         assert not np.array_equal(result1["x2_preis"], result2["x2_preis"])
-    
+
     @pytest.mark.performance
     def test_different_noise_levels_invalidate_cache(self):
         """Test that changing noise level invalidates cache."""
         result1 = generate_multiple_regression_data(
             "🏙️ Städte-Umsatzstudie (75 Städte)", 75, 1.0, 42
         )
-        
+
         result2 = generate_multiple_regression_data(
             "🏙️ Städte-Umsatzstudie (75 Städte)", 75, 8.0, 42
         )
-        
+
         # Y values should be different due to different noise
         assert not np.array_equal(result1["y_mult"], result2["y_mult"])

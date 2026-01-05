@@ -18,20 +18,32 @@ from plotly.subplots import make_subplots
 
 # Import from our modules
 from config import (
-    COLORS, FONT_SIZES, DEFAULT_SEED, SEED_MIN, SEED_MAX,
-    CITIES_DATASET, HOUSES_DATASET, ELECTRONICS_DATASET, SIMPLE_REGRESSION,
-    VISUALIZATION_3D, COLUMN_LAYOUTS, CAMERA_PRESETS, CSS_STYLES, UI_DEFAULTS
+    DEFAULT_SEED,
+    SEED_MIN,
+    SEED_MAX,
+    CITIES_DATASET,
+    HOUSES_DATASET,
+    ELECTRONICS_DATASET,
+    SIMPLE_REGRESSION,
+    VISUALIZATION_3D,
+    COLUMN_LAYOUTS,
+    CAMERA_PRESETS,
+    CSS_STYLES,
+    UI_DEFAULTS,
 )
 from data import (
-    safe_scalar, generate_dataset, generate_multiple_regression_data, generate_simple_regression_data,
-    generate_swiss_canton_regression_data, generate_swiss_weather_regression_data, get_available_swiss_datasets
+    safe_scalar,
+    generate_multiple_regression_data,
+    generate_simple_regression_data,
 )
 from plots import (
-    create_regression_mesh, get_3d_layout_config, create_zero_plane,
-    create_plotly_scatter, create_plotly_scatter_with_line, create_plotly_3d_scatter,
-    create_plotly_3d_surface, create_plotly_residual_plot, create_plotly_bar,
-    create_plotly_distribution, create_r_output_display, create_r_output_figure,
-    get_signif_stars, get_signif_color
+    create_regression_mesh,
+    create_zero_plane,
+    create_plotly_3d_surface,
+    create_plotly_residual_plot,
+    create_plotly_bar,
+    create_r_output_figure,
+    get_signif_stars,
 )
 
 # ---------------------------------------------------------
@@ -41,26 +53,27 @@ st.set_page_config(
     page_title="📖 Leitfaden Lineare Regression",
     page_icon="📊",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="expanded",
 )
 
 # ---------------------------------------------------------
 # SESSION STATE INITIALIZATION
 # ---------------------------------------------------------
 # Initialize session state for preferences and computed results
-if 'active_tab' not in st.session_state:
+if "active_tab" not in st.session_state:
     st.session_state.active_tab = 0
-if 'last_mult_params' not in st.session_state:
+if "last_mult_params" not in st.session_state:
     st.session_state.last_mult_params = None
-if 'last_simple_params' not in st.session_state:
+if "last_simple_params" not in st.session_state:
     st.session_state.last_simple_params = None
-if 'mult_model_cache' not in st.session_state:
+if "mult_model_cache" not in st.session_state:
     st.session_state.mult_model_cache = None
-if 'simple_model_cache' not in st.session_state:
+if "simple_model_cache" not in st.session_state:
     st.session_state.simple_model_cache = None
 
 # Custom CSS
-st.markdown("""
+st.markdown(
+    """
 <style>
     .main-header {
         font-size: 2.8rem;
@@ -105,7 +118,9 @@ st.markdown("""
         margin: 10px 0;
     }
 </style>
-""", unsafe_allow_html=True)
+""",
+    unsafe_allow_html=True,
+)
 
 # ---------------------------------------------------------
 # SIDEBAR - INTERAKTIVE PARAMETER
@@ -117,55 +132,125 @@ st.sidebar.markdown("---")
 with st.sidebar.expander("📊 Datensatz", expanded=True):
     dataset_choice = st.selectbox(
         "Datensatz wählen (Einfache Regression):",
-        ["🏪 Elektronikmarkt (simuliert)", "🏙️ Städte-Umsatzstudie (75 Städte)", "🏠 Häuserpreise mit Pool (1000 Häuser)",
-         "🇨🇭 Schweizer Kantone (sozioökonomisch)", "🌤️ Schweizer Wetterstationen"],
+        [
+            "🏪 Elektronikmarkt (simuliert)",
+            "🏙️ Städte-Umsatzstudie (75 Städte)",
+            "🏠 Häuserpreise mit Pool (1000 Häuser)",
+            "🇨🇭 Schweizer Kantone (sozioökonomisch)",
+            "🌤️ Schweizer Wetterstationen",
+        ],
         index=0,
-        help="Wählen Sie zwischen simulierten Datensätzen, echten Schweizer Daten oder API-basierten Datensätzen."
+        help="Wählen Sie zwischen simulierten Datensätzen, echten Schweizer Daten oder API-basierten Datensätzen.",
     )
     dataset_choice_mult = st.selectbox(
         "Datensatz wählen (Multiple Regression):",
-        ["🏙️ Städte-Umsatzstudie (75 Städte)", "🏠 Häuserpreise mit Pool (1000 Häuser)", "🏪 Elektronikmarkt (erweitert)",
-         "🇨🇭 Schweizer Kantone (sozioökonomisch)", "🌤️ Schweizer Wetterstationen"],
+        [
+            "🏙️ Städte-Umsatzstudie (75 Städte)",
+            "🏠 Häuserpreise mit Pool (1000 Häuser)",
+            "🏪 Elektronikmarkt (erweitert)",
+            "🇨🇭 Schweizer Kantone (sozioökonomisch)",
+            "🌤️ Schweizer Wetterstationen",
+        ],
         index=0,
         help="Wählen Sie einen Datensatz für multiple Regression (2+ Prädiktoren).",
-            key="mult_dataset"
-        )
+        key="mult_dataset",
+    )
 
 # Einheitlicher Daten-Parameter-Block mit Sliders
 st.sidebar.markdown("---")
 with st.sidebar.expander("🎛️ Daten-Parameter (Multiple Regression)", expanded=False):
     if dataset_choice_mult == "🏙️ Städte-Umsatzstudie (75 Städte)":
         st.markdown("**Stichproben-Eigenschaften:**")
-        n_mult = st.slider("Anzahl Städte (n)", min_value=CITIES_DATASET["n_min"], max_value=CITIES_DATASET["n_max"], value=CITIES_DATASET["n_default"], step=CITIES_DATASET["n_step"],
-                         help="Grösse der Stichprobe", key="n_mult_staedte")
-        
+        n_mult = st.slider(
+            "Anzahl Städte (n)",
+            min_value=CITIES_DATASET["n_min"],
+            max_value=CITIES_DATASET["n_max"],
+            value=CITIES_DATASET["n_default"],
+            step=CITIES_DATASET["n_step"],
+            help="Grösse der Stichprobe",
+            key="n_mult_staedte",
+        )
+
         st.markdown("**Zufallskomponente:**")
-        noise_mult_level = st.slider("Rauschen (σ)", min_value=CITIES_DATASET["noise_min"], max_value=CITIES_DATASET["noise_max"], value=CITIES_DATASET["noise_std"], step=CITIES_DATASET["noise_step"],
-                                       help="Standardabweichung der Störgrösse", key="noise_mult_staedte")
-        seed_mult = st.number_input("Random Seed", min_value=SEED_MIN, max_value=SEED_MAX, value=DEFAULT_SEED,
-                                      help="Zufallsseed für Reproduzierbarkeit", key="seed_mult_staedte")
-    
+        noise_mult_level = st.slider(
+            "Rauschen (σ)",
+            min_value=CITIES_DATASET["noise_min"],
+            max_value=CITIES_DATASET["noise_max"],
+            value=CITIES_DATASET["noise_std"],
+            step=CITIES_DATASET["noise_step"],
+            help="Standardabweichung der Störgrösse",
+            key="noise_mult_staedte",
+        )
+        seed_mult = st.number_input(
+            "Random Seed",
+            min_value=SEED_MIN,
+            max_value=SEED_MAX,
+            value=DEFAULT_SEED,
+            help="Zufallsseed für Reproduzierbarkeit",
+            key="seed_mult_staedte",
+        )
+
     elif dataset_choice_mult == "🏠 Häuserpreise mit Pool (1000 Häuser)":
         st.markdown("**Stichproben-Eigenschaften:**")
-        n_mult = st.slider("Anzahl Häuser (n)", min_value=HOUSES_DATASET["n_min"], max_value=HOUSES_DATASET["n_max"], value=HOUSES_DATASET["n_default"], step=HOUSES_DATASET["n_step"],
-                         help="Grösse der Stichprobe", key="n_mult_haeuser")
-        
+        n_mult = st.slider(
+            "Anzahl Häuser (n)",
+            min_value=HOUSES_DATASET["n_min"],
+            max_value=HOUSES_DATASET["n_max"],
+            value=HOUSES_DATASET["n_default"],
+            step=HOUSES_DATASET["n_step"],
+            help="Grösse der Stichprobe",
+            key="n_mult_haeuser",
+        )
+
         st.markdown("**Zufallskomponente:**")
-        noise_mult_level = st.slider("Rauschen (σ)", min_value=HOUSES_DATASET["noise_min"], max_value=HOUSES_DATASET["noise_max"], value=HOUSES_DATASET["noise_default"], step=HOUSES_DATASET["noise_step"],
-                                   help="Standardabweichung der Störgrösse", key="noise_mult_haeuser")
-        seed_mult = st.number_input("Random Seed", min_value=1, max_value=999, value=42,
-                                  help="Zufallsseed für Reproduzierbarkeit", key="seed_mult_haeuser")
-    
+        noise_mult_level = st.slider(
+            "Rauschen (σ)",
+            min_value=HOUSES_DATASET["noise_min"],
+            max_value=HOUSES_DATASET["noise_max"],
+            value=HOUSES_DATASET["noise_default"],
+            step=HOUSES_DATASET["noise_step"],
+            help="Standardabweichung der Störgrösse",
+            key="noise_mult_haeuser",
+        )
+        seed_mult = st.number_input(
+            "Random Seed",
+            min_value=1,
+            max_value=999,
+            value=42,
+            help="Zufallsseed für Reproduzierbarkeit",
+            key="seed_mult_haeuser",
+        )
+
     else:  # Elektronikmarkt
         st.markdown("**Stichproben-Eigenschaften:**")
-        n_mult = st.slider("Anzahl Beobachtungen (n)", min_value=ELECTRONICS_DATASET["n_min"], max_value=ELECTRONICS_DATASET["n_max"], value=ELECTRONICS_DATASET["n_default"], step=ELECTRONICS_DATASET["n_step"],
-                         help="Grösse der Stichprobe", key="n_mult_elektro")
-        
+        n_mult = st.slider(
+            "Anzahl Beobachtungen (n)",
+            min_value=ELECTRONICS_DATASET["n_min"],
+            max_value=ELECTRONICS_DATASET["n_max"],
+            value=ELECTRONICS_DATASET["n_default"],
+            step=ELECTRONICS_DATASET["n_step"],
+            help="Grösse der Stichprobe",
+            key="n_mult_elektro",
+        )
+
         st.markdown("**Zufallskomponente:**")
-        noise_mult_level = st.slider("Rauschen (σ)", min_value=ELECTRONICS_DATASET["noise_min"], max_value=ELECTRONICS_DATASET["noise_max"], value=ELECTRONICS_DATASET["noise_default"], step=ELECTRONICS_DATASET["noise_step"],
-                                   help="Standardabweichung der Störgrösse", key="noise_mult_elektro")
-        seed_mult = st.number_input("Random Seed", min_value=1, max_value=999, value=42,
-                                  help="Zufallsseed für Reproduzierbarkeit", key="seed_mult_elektro")
+        noise_mult_level = st.slider(
+            "Rauschen (σ)",
+            min_value=ELECTRONICS_DATASET["noise_min"],
+            max_value=ELECTRONICS_DATASET["noise_max"],
+            value=ELECTRONICS_DATASET["noise_default"],
+            step=ELECTRONICS_DATASET["noise_step"],
+            help="Standardabweichung der Störgrösse",
+            key="noise_mult_elektro",
+        )
+        seed_mult = st.number_input(
+            "Random Seed",
+            min_value=1,
+            max_value=999,
+            value=42,
+            help="Zufallsseed für Reproduzierbarkeit",
+            key="seed_mult_elektro",
+        )
 
 # === MULTIPLE REGRESSION DATA PREPARATION ===
 # Create parameter tuple for cache comparison
@@ -174,49 +259,54 @@ mult_params = (dataset_choice_mult, n_mult, noise_mult_level, seed_mult)
 # Check if we need to regenerate data
 if st.session_state.last_mult_params != mult_params or st.session_state.mult_model_cache is None:
     with st.spinner("🔄 Lade Datensatz für Multiple Regression..."):
-        mult_data = generate_multiple_regression_data(dataset_choice_mult, n_mult, noise_mult_level, seed_mult)
-        x2_preis = mult_data['x2_preis']
-        x3_werbung = mult_data['x3_werbung']
-        y_mult = mult_data['y_mult']
-        x1_name = mult_data['x1_name']
-        x2_name = mult_data['x2_name']
-        y_name = mult_data['y_name']
-        
+        mult_data = generate_multiple_regression_data(
+            dataset_choice_mult, n_mult, noise_mult_level, seed_mult
+        )
+        x2_preis = mult_data["x2_preis"]
+        x3_werbung = mult_data["x3_werbung"]
+        y_mult = mult_data["y_mult"]
+        x1_name = mult_data["x1_name"]
+        x2_name = mult_data["x2_name"]
+        y_name = mult_data["y_name"]
+
         X_mult = sm.add_constant(np.column_stack([x2_preis, x3_werbung]))
         model_mult = sm.OLS(y_mult, X_mult).fit()
         y_pred_mult = model_mult.predict(X_mult)
-        
+
         # Cache the results
         st.session_state.mult_model_cache = {
-            'x2_preis': x2_preis,
-            'x3_werbung': x3_werbung,
-            'y_mult': y_mult,
-            'x1_name': x1_name,
-            'x2_name': x2_name,
-            'y_name': y_name,
-            'X_mult': X_mult,
-            'model_mult': model_mult,
-            'y_pred_mult': y_pred_mult
+            "x2_preis": x2_preis,
+            "x3_werbung": x3_werbung,
+            "y_mult": y_mult,
+            "x1_name": x1_name,
+            "x2_name": x2_name,
+            "y_name": y_name,
+            "X_mult": X_mult,
+            "model_mult": model_mult,
+            "y_pred_mult": y_pred_mult,
         }
         st.session_state.last_mult_params = mult_params
 else:
     # Use cached data
     cached = st.session_state.mult_model_cache
-    x2_preis = cached['x2_preis']
-    x3_werbung = cached['x3_werbung']
-    y_mult = cached['y_mult']
-    x1_name = cached['x1_name']
-    x2_name = cached['x2_name']
-    y_name = cached['y_name']
-    X_mult = cached['X_mult']
-    model_mult = cached['model_mult']
-    y_pred_mult = cached['y_pred_mult']
+    x2_preis = cached["x2_preis"]
+    x3_werbung = cached["x3_werbung"]
+    y_mult = cached["y_mult"]
+    x1_name = cached["x1_name"]
+    x2_name = cached["x2_name"]
+    y_name = cached["y_name"]
+    X_mult = cached["X_mult"]
+    model_mult = cached["model_mult"]
+    y_pred_mult = cached["y_pred_mult"]
 
     st.sidebar.markdown("---")
     with st.sidebar.expander("🔧 Anzeigeoptionen", expanded=False):
-        show_formulas = st.checkbox("Formeln anzeigen", value=UI_DEFAULTS["show_formulas"],
-                                    help="Zeige mathematische Formeln in der Anleitung",
-                                    key="show_formulas_mult")
+        show_formulas = st.checkbox(
+            "Formeln anzeigen",
+            value=UI_DEFAULTS["show_formulas"],
+            help="Zeige mathematische Formeln in der Anleitung",
+            key="show_formulas_mult",
+        )
         show_true_line = False
 
 # === GEMEINSAME PARAMETER-SEKTION ===
@@ -230,25 +320,54 @@ with st.sidebar.expander("🎛️ Daten-Parameter (Einfache Regression)", expand
             "X-Variable (Prädiktor):",
             x_variable_options,
             index=0,
-            help="Beim simulierten Datensatz ist nur die Verkaufsfläche als Prädiktor verfügbar."
+            help="Beim simulierten Datensatz ist nur die Verkaufsfläche als Prädiktor verfügbar.",
         )
-        
+
         st.markdown("**Stichproben-Eigenschaften:**")
-        n = st.slider("Anzahl Beobachtungen (n)", min_value=SIMPLE_REGRESSION["n_min"], max_value=SIMPLE_REGRESSION["n_max"], value=SIMPLE_REGRESSION["n_default"], step=SIMPLE_REGRESSION["n_step"],
-                     help="Grösse der Stichprobe (mehr Beobachtungen = präzisere Schätzungen)")
-        
+        n = st.slider(
+            "Anzahl Beobachtungen (n)",
+            min_value=SIMPLE_REGRESSION["n_min"],
+            max_value=SIMPLE_REGRESSION["n_max"],
+            value=SIMPLE_REGRESSION["n_default"],
+            step=SIMPLE_REGRESSION["n_step"],
+            help="Grösse der Stichprobe (mehr Beobachtungen = präzisere Schätzungen)",
+        )
+
         st.markdown("**Wahre Parameter (bekannt bei Simulation):**")
-        true_intercept = st.slider("Wahrer β₀ (Intercept)", min_value=SIMPLE_REGRESSION["intercept_min"], max_value=SIMPLE_REGRESSION["intercept_max"], value=SIMPLE_REGRESSION["intercept_default"], step=SIMPLE_REGRESSION["intercept_step"],
-                                  help="Y-Achsenabschnitt: Wert von Y wenn X=0")
-        true_beta = st.slider("Wahre Steigung β₁", min_value=SIMPLE_REGRESSION["slope_min"], max_value=SIMPLE_REGRESSION["slope_max"], value=SIMPLE_REGRESSION["slope_default"], step=SIMPLE_REGRESSION["slope_step"],
-                             help="Steigung: Änderung in Y pro Einheit X")
-        
+        true_intercept = st.slider(
+            "Wahrer β₀ (Intercept)",
+            min_value=SIMPLE_REGRESSION["intercept_min"],
+            max_value=SIMPLE_REGRESSION["intercept_max"],
+            value=SIMPLE_REGRESSION["intercept_default"],
+            step=SIMPLE_REGRESSION["intercept_step"],
+            help="Y-Achsenabschnitt: Wert von Y wenn X=0",
+        )
+        true_beta = st.slider(
+            "Wahre Steigung β₁",
+            min_value=SIMPLE_REGRESSION["slope_min"],
+            max_value=SIMPLE_REGRESSION["slope_max"],
+            value=SIMPLE_REGRESSION["slope_default"],
+            step=SIMPLE_REGRESSION["slope_step"],
+            help="Steigung: Änderung in Y pro Einheit X",
+        )
+
         st.markdown("**Zufallskomponente:**")
-        noise_level = st.slider("Rauschen (σ)", min_value=SIMPLE_REGRESSION["noise_min"], max_value=SIMPLE_REGRESSION["noise_max"], value=SIMPLE_REGRESSION["noise_default"], step=SIMPLE_REGRESSION["noise_step"],
-                               help="Standardabweichung der Störgrösse (mehr Rauschen = schlechteres R²)")
-        seed = st.number_input("Random Seed", min_value=SEED_MIN, max_value=SEED_MAX, value=DEFAULT_SEED,
-                              help="Zufallsseed für Reproduzierbarkeit")
-        
+        noise_level = st.slider(
+            "Rauschen (σ)",
+            min_value=SIMPLE_REGRESSION["noise_min"],
+            max_value=SIMPLE_REGRESSION["noise_max"],
+            value=SIMPLE_REGRESSION["noise_default"],
+            step=SIMPLE_REGRESSION["noise_step"],
+            help="Standardabweichung der Störgrösse (mehr Rauschen = schlechteres R²)",
+        )
+        seed = st.number_input(
+            "Random Seed",
+            min_value=SEED_MIN,
+            max_value=SEED_MAX,
+            value=DEFAULT_SEED,
+            help="Zufallsseed für Reproduzierbarkeit",
+        )
+
         # Simulierte Daten generieren
         simple_params = (dataset_choice, n, true_intercept, true_beta, noise_level, seed)
         if st.session_state.last_simple_params != simple_params:
@@ -259,25 +378,25 @@ with st.sidebar.expander("🎛️ Daten-Parameter (Einfache Regression)", expand
                 y = true_intercept + true_beta * x + noise  # Umsatz in Mio. €
                 st.session_state.last_simple_params = simple_params
                 # Store the generated data temporarily
-                if 'simple_data_temp' not in st.session_state:
+                if "simple_data_temp" not in st.session_state:
                     st.session_state.simple_data_temp = {}
-                st.session_state.simple_data_temp['x'] = x
-                st.session_state.simple_data_temp['y'] = y
+                st.session_state.simple_data_temp["x"] = x
+                st.session_state.simple_data_temp["y"] = y
         else:
             # Use cached data if params haven't changed
-            if 'simple_data_temp' in st.session_state and st.session_state.simple_data_temp:
-                x = st.session_state.simple_data_temp['x']
-                y = st.session_state.simple_data_temp['y']
-            elif st.session_state.simple_model_cache and 'x' in st.session_state.simple_model_cache:
-                x = st.session_state.simple_model_cache['x']
-                y = st.session_state.simple_model_cache['y']
+            if "simple_data_temp" in st.session_state and st.session_state.simple_data_temp:
+                x = st.session_state.simple_data_temp["x"]
+                y = st.session_state.simple_data_temp["y"]
+            elif st.session_state.simple_model_cache and "x" in st.session_state.simple_model_cache:
+                x = st.session_state.simple_model_cache["x"]
+                y = st.session_state.simple_model_cache["y"]
             else:
                 # Fallback: regenerate if no cache available
                 np.random.seed(int(seed))
                 x = np.linspace(2, 12, n)
                 noise = np.random.normal(0, noise_level, n)
                 y = true_intercept + true_beta * x + noise
-        
+
         # Variablen-Namen für konsistente Anzeige
         x_label = "Verkaufsfläche (100qm)"
         y_label = "Umsatz (Mio. €)"
@@ -288,13 +407,13 @@ with st.sidebar.expander("🎛️ Daten-Parameter (Einfache Regression)", expand
         Das Management möchte untersuchen:
         - **X** = Verkaufsfläche (in 100 qm)
         - **Y** = Umsatz (in Mio. €)
-        
+
         **Fragen:**
         1. Wie stark steigt der Umsatz pro 100 qm mehr Fläche?
         2. Welchen Umsatz erwarten wir für eine 1200 qm Filiale?
         """
         has_true_line = True
-    
+
     elif dataset_choice == "🏙️ Städte-Umsatzstudie (75 Städte)":
         # X-Variable als Dropdown (zwei Optionen verfügbar)
         x_variable_options = ["Werbung (CHF1000)", "Preis (CHF)"]
@@ -302,9 +421,9 @@ with st.sidebar.expander("🎛️ Daten-Parameter (Einfache Regression)", expand
             "X-Variable (Prädiktor):",
             x_variable_options,
             index=0,
-            help="Einfache Regression: Nur EIN Prädiktor → grösserer Fehlerterm (didaktisch wertvoll!)"
+            help="Einfache Regression: Nur EIN Prädiktor → grösserer Fehlerterm (didaktisch wertvoll!)",
         )
-    
+
     elif dataset_choice == "🏠 Häuserpreise mit Pool (1000 Häuser)":
         # X-Variable als Dropdown (zwei Optionen verfügbar)
         x_variable_options = ["Wohnfläche (sqft/10)", "Pool (0/1)"]
@@ -312,31 +431,31 @@ with st.sidebar.expander("🎛️ Daten-Parameter (Einfache Regression)", expand
             "X-Variable (Prädiktor):",
             x_variable_options,
             index=0,
-            help="Einfache Regression: Nur EIN Prädiktor. Pool ist eine Dummy-Variable (0 = kein Pool, 1 = Pool)."
+            help="Einfache Regression: Nur EIN Prädiktor. Pool ist eine Dummy-Variable (0 = kein Pool, 1 = Pool).",
         )
     else:
         x_variable = None
-    
+
     st.sidebar.markdown("**Stichproben-Info:**")
-    
+
     if dataset_choice == "🏠 Häuserpreise mit Pool (1000 Häuser)":
         st.sidebar.info("n = 1000 Häuser (fixiert)")
         n = 1000
     elif dataset_choice == "🏙️ Städte-Umsatzstudie (75 Städte)":
         st.sidebar.info("n = 75 Städte (fixiert)")
         n = 75
-    
+
     # Datensatz-spezifische Generierung
     if dataset_choice != "🏪 Elektronikmarkt (simuliert)" and x_variable:
         simple_data = generate_simple_regression_data(dataset_choice, x_variable, n, seed=42)
-        x = simple_data['x']
-        y = simple_data['y']
-        x_label = simple_data['x_label']
-        y_label = simple_data['y_label']
-        x_unit = simple_data['x_unit']
-        y_unit = simple_data['y_unit']
-        context_title = simple_data['context_title']
-        context_description = simple_data['context_description']
+        x = simple_data["x"]
+        y = simple_data["y"]
+        x_label = simple_data["x_label"]
+        y_label = simple_data["y_label"]
+        x_unit = simple_data["x_unit"]
+        y_unit = simple_data["y_unit"]
+        context_title = simple_data["context_title"]
+        context_description = simple_data["context_description"]
         has_true_line = False
         true_intercept = 0
         true_beta = 0
@@ -344,17 +463,27 @@ with st.sidebar.expander("🎛️ Daten-Parameter (Einfache Regression)", expand
 
     st.sidebar.markdown("---")
     with st.sidebar.expander("🔧 Anzeigeoptionen", expanded=False):
-        show_formulas = st.checkbox("Formeln anzeigen", value=UI_DEFAULTS["show_formulas"],
-                                    help="Zeige mathematische Formeln in der Anleitung",
-                                    key="show_formulas_simple")
-        show_true_line = st.checkbox("Wahre Linie zeigen", value=UI_DEFAULTS["show_true_line"],
-                                     help="Zeige die wahre Regressionslinie (nur bei Simulation)") if has_true_line else False
-    
+        show_formulas = st.checkbox(
+            "Formeln anzeigen",
+            value=UI_DEFAULTS["show_formulas"],
+            help="Zeige mathematische Formeln in der Anleitung",
+            key="show_formulas_simple",
+        )
+        show_true_line = (
+            st.checkbox(
+                "Wahre Linie zeigen",
+                value=UI_DEFAULTS["show_true_line"],
+                help="Zeige die wahre Regressionslinie (nur bei Simulation)",
+            )
+            if has_true_line
+            else False
+        )
+
     # Ensure all required variables are defined (fallback initialization)
-    if 'x_label' not in locals() or 'y_label' not in locals():
+    if "x_label" not in locals() or "y_label" not in locals():
         x_label = "X"
         y_label = "Y"
-    if 'x' not in locals() or 'y' not in locals():
+    if "x" not in locals() or "y" not in locals():
         # Fallback: create minimal dataset
         np.random.seed(42)
         n = 12
@@ -369,8 +498,8 @@ with st.sidebar.expander("🎛️ Daten-Parameter (Einfache Regression)", expand
         has_true_line = False
         true_intercept = 0
         true_beta = 0
-    if 'n' not in locals():
-        n = len(x) if 'x' in locals() else 12
+    if "n" not in locals():
+        n = len(x) if "x" in locals() else 12
 
 # ---------------------------------------------------------
 # MODELL & KENNZAHLEN BERECHNEN (nur einfache Regression)
@@ -378,7 +507,7 @@ with st.sidebar.expander("🎛️ Daten-Parameter (Einfache Regression)", expand
 # Build parameter tuple for cache validation (avoid hashing large arrays)
 # Use array shape and basic properties instead of full array content
 simple_model_key = (
-    dataset_choice, 
+    dataset_choice,
     len(x) if isinstance(x, np.ndarray) else 0,
     float(x.mean()) if isinstance(x, np.ndarray) and len(x) > 0 else 0,
     float(y.mean()) if isinstance(y, np.ndarray) and len(y) > 0 else 0,
@@ -386,27 +515,24 @@ simple_model_key = (
 
 # Check if we need to recompute the model
 needs_recompute = (
-    st.session_state.simple_model_cache is None or 
-    'model_key' not in st.session_state.simple_model_cache or
-    st.session_state.simple_model_cache.get('model_key') != simple_model_key
+    st.session_state.simple_model_cache is None
+    or "model_key" not in st.session_state.simple_model_cache
+    or st.session_state.simple_model_cache.get("model_key") != simple_model_key
 )
 
 if needs_recompute:
-    
+
     with st.spinner("📊 Berechne Regressionsmodell..."):
-        df = pd.DataFrame({
-            x_label: x,
-            y_label: y
-        })
-        
+        df = pd.DataFrame({x_label: x, y_label: y})
+
         X = sm.add_constant(x)
         model = sm.OLS(y, X).fit()
         y_pred = model.predict(X)
         y_mean = np.mean(y)
-        
+
         b0, b1 = model.params[0], model.params[1]
-        sse = np.sum((y - y_pred)**2)
-        sst = np.sum((y - y_mean)**2)
+        sse = np.sum((y - y_pred) ** 2)
+        sst = np.sum((y - y_mean) ** 2)
         ssr = sst - sse
         mse = sse / (n - 2)
         msr = ssr / 1
@@ -420,64 +546,64 @@ if needs_recompute:
         var_x = np.var(x, ddof=1)
         var_y = np.var(y, ddof=1)
         corr_xy = cov_xy / (np.sqrt(var_x) * np.sqrt(var_y))
-        
+
         # Cache all computed values
         st.session_state.simple_model_cache = {
-            'model_key': simple_model_key,
-            'df': df,
-            'X': X,
-            'model': model,
-            'y_pred': y_pred,
-            'y_mean': y_mean,
-            'b0': b0,
-            'b1': b1,
-            'sse': sse,
-            'sst': sst,
-            'ssr': ssr,
-            'mse': mse,
-            'msr': msr,
-            'se_regression': se_regression,
-            'sb1': sb1,
-            'sb0': sb0,
-            't_val': t_val,
-            'f_val': f_val,
-            'df_resid': df_resid,
-            'x_mean': x_mean,
-            'y_mean_val': y_mean_val,
-            'cov_xy': cov_xy,
-            'var_x': var_x,
-            'var_y': var_y,
-            'corr_xy': corr_xy,
-            'x': x,
-            'y': y
+            "model_key": simple_model_key,
+            "df": df,
+            "X": X,
+            "model": model,
+            "y_pred": y_pred,
+            "y_mean": y_mean,
+            "b0": b0,
+            "b1": b1,
+            "sse": sse,
+            "sst": sst,
+            "ssr": ssr,
+            "mse": mse,
+            "msr": msr,
+            "se_regression": se_regression,
+            "sb1": sb1,
+            "sb0": sb0,
+            "t_val": t_val,
+            "f_val": f_val,
+            "df_resid": df_resid,
+            "x_mean": x_mean,
+            "y_mean_val": y_mean_val,
+            "cov_xy": cov_xy,
+            "var_x": var_x,
+            "var_y": var_y,
+            "corr_xy": corr_xy,
+            "x": x,
+            "y": y,
         }
 else:
     # Use cached model results
     cached = st.session_state.simple_model_cache
-    df = cached['df']
-    X = cached['X']
-    model = cached['model']
-    y_pred = cached['y_pred']
-    y_mean = cached['y_mean']
-    b0 = cached['b0']
-    b1 = cached['b1']
-    sse = cached['sse']
-    sst = cached['sst']
-    ssr = cached['ssr']
-    mse = cached['mse']
-    msr = cached['msr']
-    se_regression = cached['se_regression']
-    sb1 = cached['sb1']
-    sb0 = cached['sb0']
-    t_val = cached['t_val']
-    f_val = cached['f_val']
-    df_resid = cached['df_resid']
-    x_mean = cached['x_mean']
-    y_mean_val = cached['y_mean_val']
-    cov_xy = cached['cov_xy']
-    var_x = cached['var_x']
-    var_y = cached['var_y']
-    corr_xy = cached['corr_xy']
+    df = cached["df"]
+    X = cached["X"]
+    model = cached["model"]
+    y_pred = cached["y_pred"]
+    y_mean = cached["y_mean"]
+    b0 = cached["b0"]
+    b1 = cached["b1"]
+    sse = cached["sse"]
+    sst = cached["sst"]
+    ssr = cached["ssr"]
+    mse = cached["mse"]
+    msr = cached["msr"]
+    se_regression = cached["se_regression"]
+    sb1 = cached["sb1"]
+    sb0 = cached["sb0"]
+    t_val = cached["t_val"]
+    f_val = cached["f_val"]
+    df_resid = cached["df_resid"]
+    x_mean = cached["x_mean"]
+    y_mean_val = cached["y_mean_val"]
+    cov_xy = cached["cov_xy"]
+    var_x = cached["var_x"]
+    var_y = cached["var_y"]
+    corr_xy = cached["corr_xy"]
 # =========================================================
 
 # =========================================================
@@ -491,93 +617,124 @@ tab1, tab2, tab3 = st.tabs(["📈 Einfache Regression", "📊 Multiple Regressio
 # TAB 2: MULTIPLE REGRESSION
 # =========================================================
 with tab2:
-    st.markdown('<p class="main-header">📊 Leitfaden zur Multiplen Regression</p>', unsafe_allow_html=True)
+    st.markdown(
+        '<p class="main-header">📊 Leitfaden zur Multiplen Regression</p>', unsafe_allow_html=True
+    )
     st.markdown("### Von der einfachen zur multiplen Regression – Mehrere Prädiktoren gleichzeitig")
 
     # =========================================================
     # M1: VON DER LINIE ZUR EBENE
     # =========================================================
     st.markdown("---")
-    st.markdown('<p class="section-header">M1. Von der Linie zur Ebene: Der konzeptionelle Sprung</p>', unsafe_allow_html=True)
+    st.markdown(
+        '<p class="section-header">M1. Von der Linie zur Ebene: Der konzeptionelle Sprung</p>',
+        unsafe_allow_html=True,
+    )
 
 col_m1_1, col_m1_2 = st.columns(COLUMN_LAYOUTS["moderately_wide"])
 
 with col_m1_1:
-    st.markdown("""
-    Bei der **einfachen linearen Regression** haben wir gesehen, wie eine Gerade den Zusammenhang 
+    st.markdown(
+        """
+    Bei der **einfachen linearen Regression** haben wir gesehen, wie eine Gerade den Zusammenhang
     zwischen **einer** unabhängigen Variable X und der abhängigen Variable Y beschreibt.
-    
+
     In der Praxis hängt aber eine Zielvariable oft von **mehreren Faktoren** ab:
     - Umsatz ← Preis, Werbung, Standort, Saison, ...
     - Gehalt ← Ausbildung, Erfahrung, Branche, ...
     - Aktienkurs ← Zinsen, Inflation, Gewinn, ...
-    
+
     Die **multiple Regression** erweitert die einfache Regression, um diese Komplexität zu modellieren.
-    """)
-        
-    st.info("""
+    """
+    )
+
+    st.info(
+        """
     **🔑 Der zentrale Unterschied:**
-    
+
     | Aspekt | Einfache Regression | Multiple Regression |
     |--------|---------------------|---------------------|
     | **Prädiktoren** | 1 Variable (X) | K Variablen (X₁, X₂, ..., Xₖ) |
     | **Geometrie** | Gerade in 2D | Ebene/Hyperebene in (K+1)D |
         | **Gleichung** | ŷ = b₀ + b₁x | ŷ = b₀ + b₁x₁ + b₂x₂ + ... + bₖxₖ |
         | **Interpretation** | "Pro Einheit X" | "Bei Konstanthaltung der anderen" |
-        """)
-    
+        """
+    )
+
     with col_m1_2:
         # 3D Visualisierung: Ebene statt Linie
         with st.spinner("🎨 Erstelle 3D-Visualisierung..."):
             # Erstelle Mesh für die Ebene using helper function
-            X1_mesh, X2_mesh, Y_mesh = create_regression_mesh(x2_preis, x3_werbung, model_mult.params)
-            
+            X1_mesh, X2_mesh, Y_mesh = create_regression_mesh(
+                x2_preis, x3_werbung, model_mult.params
+            )
+
             # Create plotly 3D surface plot
             fig_3d_plane = create_plotly_3d_surface(
-                X1_mesh, X2_mesh, Y_mesh,
-                x2_preis, x3_werbung, y_mult,
+                X1_mesh,
+                X2_mesh,
+                Y_mesh,
+                x2_preis,
+                x3_werbung,
+                y_mult,
                 x1_label=x1_name,
                 x2_label=x2_name,
                 y_label=y_name,
-                title='Multiple Regression: Ebene statt Gerade'
+                title="Multiple Regression: Ebene statt Gerade",
             )
-            
-            fig_3d_plane.update_layout(scene=dict(
-                xaxis_title=x1_name,
-                yaxis_title=x2_name,
-                zaxis_title=y_name,
-                camera=CAMERA_PRESETS["default"]
-            ))
-            
+
+            fig_3d_plane.update_layout(
+                scene=dict(
+                    xaxis_title=x1_name,
+                    yaxis_title=x2_name,
+                    zaxis_title=y_name,
+                    camera=CAMERA_PRESETS["default"],
+                )
+            )
+
             st.plotly_chart(fig_3d_plane, use_container_width=True)
-        
+
     # =========================================================
     # M2: DAS GRUNDMODELL
     # =========================================================
     st.markdown("---")
-    st.markdown('<p class="section-header">M2. Das Grundmodell der Multiplen Regression</p>', unsafe_allow_html=True)
-    
-    st.markdown("""
+    st.markdown(
+        '<p class="section-header">M2. Das Grundmodell der Multiplen Regression</p>',
+        unsafe_allow_html=True,
+    )
+
+    st.markdown(
+        """
     Das multiple Regressionsmodell erweitert die einfache lineare Regression um **K unabhängige Variablen**.
-    """)
-    
+    """
+    )
+
     if show_formulas:
         st.markdown("### 📐 Das allgemeine Modell")
-        st.latex(r"y_i = \beta_0 + \beta_1 \cdot x_{1i} + \beta_2 \cdot x_{2i} + \cdots + \beta_K \cdot x_{Ki} + \varepsilon_i")
-        
+        st.latex(
+            r"y_i = \beta_0 + \beta_1 \cdot x_{1i} + \beta_2 \cdot x_{2i} + \cdots + \beta_K \cdot x_{Ki} + \varepsilon_i"
+        )
+
         st.markdown(f"### 📊 Unser Beispiel: {dataset_choice_mult}")
         if dataset_choice_mult == "🏙️ Städte-Umsatzstudie (75 Städte)":
-            st.latex(r"\text{Umsatz}_i = \beta_0 + \beta_1 \cdot \text{Preis}_i + \beta_2 \cdot \text{Werbung}_i + \varepsilon_i")
+            st.latex(
+                r"\text{Umsatz}_i = \beta_0 + \beta_1 \cdot \text{Preis}_i + \beta_2 \cdot \text{Werbung}_i + \varepsilon_i"
+            )
         elif dataset_choice_mult == "🏠 Häuserpreise mit Pool (1000 Häuser)":
-            st.latex(r"\text{Preis}_i = \beta_0 + \beta_1 \cdot \text{Wohnfläche}_i + \beta_2 \cdot \text{Pool}_i + \varepsilon_i")
+            st.latex(
+                r"\text{Preis}_i = \beta_0 + \beta_1 \cdot \text{Wohnfläche}_i + \beta_2 \cdot \text{Pool}_i + \varepsilon_i"
+            )
         else:
-            st.latex(r"\text{Umsatz}_i = \beta_0 + \beta_1 \cdot \text{Fläche}_i + \beta_2 \cdot \text{Marketing}_i + \varepsilon_i")
-    
+            st.latex(
+                r"\text{Umsatz}_i = \beta_0 + \beta_1 \cdot \text{Fläche}_i + \beta_2 \cdot \text{Marketing}_i + \varepsilon_i"
+            )
+
     col_m2_1, col_m2_2 = st.columns([1, 1])
-    
+
     with col_m2_1:
         st.markdown("### 📋 Modellkomponenten")
-        st.markdown("""
+        st.markdown(
+            """
         | Symbol | Bedeutung | Beispiel |
         |--------|-----------|----------|
         | **yᵢ** | Zielvariable (abhängig) | Umsatz in Stadt i |
@@ -585,403 +742,507 @@ with col_m1_1:
         | **β₀** | Achsenabschnitt (Intercept) | Basis-Umsatz ohne Einflüsse |
         | **βₖ** | Partieller Regressionskoeffizient | Effekt von xₖ **ceteris paribus** |
         | **εᵢ** | Störgrösse | Alle anderen Einflüsse |
-        """)
-        
-        st.success(f"""
+        """
+        )
+
+        st.success(
+            f"""
         **🎯 Unser geschätztes Modell:**
-        
-        Umsatz = {model_mult.params[0]:.2f} 
-                 {model_mult.params[1]:+.2f} · Preis 
+
+        Umsatz = {model_mult.params[0]:.2f}
+                 {model_mult.params[1]:+.2f} · Preis
                  {model_mult.params[2]:+.2f} · Werbung
-        """)
-    
+        """
+        )
+
     with col_m2_2:
         st.markdown("### 🔬 Partielle Koeffizienten")
-        st.markdown(f"""
+        st.markdown(
+            f"""
         **β₁ (Preis) = {model_mult.params[1]:.3f}**
-        
+
         → Pro CHF Preiserhöhung sinkt der Umsatz um {abs(model_mult.params[1]):.2f} Tausend CHF,
         **wenn Werbung konstant gehalten wird**.
-        
+
         **β₂ (Werbung) = {model_mult.params[2]:.3f}**
-        
+
         → Pro 1000 CHF mehr Werbung steigt der Umsatz um {model_mult.params[2]:.2f} Tausend CHF,
         **wenn Preis konstant gehalten wird**.
-        """)
-        
-        st.warning("""
+        """
+        )
+
+        st.warning(
+            """
         **⚠️ Wichtig: Ceteris Paribus**
-        
+
         Die Interpretation "bei Konstanthaltung der anderen Variablen" ist zentral!
-        
+
         Anders als bei der einfachen Regression misst βₖ den **isolierten Effekt**
         einer Variable.
-        """)
-    
+        """
+        )
+
     # Daten anzeigen
     st.markdown("### 📊 Die Daten")
-    df_mult = pd.DataFrame({
-        x1_name: x2_preis,
-        x2_name: x3_werbung,
-        y_name: y_mult
-    })
-    st.dataframe(df_mult.head(15).style.format({
-        'Preis (CHF)': '{:.2f}',
-        'Werbung (CHF1000)': '{:.2f}',
-        'Umsatz (1000 CHF)': '{:.2f}'
-    }), width='stretch')
+    df_mult = pd.DataFrame({x1_name: x2_preis, x2_name: x3_werbung, y_name: y_mult})
+    st.dataframe(
+        df_mult.head(15).style.format(
+            {"Preis (CHF)": "{:.2f}", "Werbung (CHF1000)": "{:.2f}", "Umsatz (1000 CHF)": "{:.2f}"}
+        ),
+        width="stretch",
+    )
 
     # =========================================================
     # M3: OLS & GAUSS-MARKOV
     # =========================================================
     st.markdown("---")
-    st.markdown('<p class="section-header">M3. OLS-Schätzer und Gauss-Markov Theorem</p>', unsafe_allow_html=True)
-    
-    st.markdown("""
+    st.markdown(
+        '<p class="section-header">M3. OLS-Schätzer und Gauss-Markov Theorem</p>',
+        unsafe_allow_html=True,
+    )
+
+    st.markdown(
+        """
     Wie bei der einfachen Regression bestimmen wir die Koeffizienten durch **Minimierung der Fehlerquadratsumme**.
-    """)
-    
+    """
+    )
+
     if show_formulas:
         st.markdown("### 📐 OLS-Zielfunktion")
-        st.latex(r"\min \sum_{i=1}^{n} e_i^2 = \sum_{i=1}^{n} (y_i - b_0 - b_1 \cdot x_{1i} - b_2 \cdot x_{2i} - \cdots - b_K \cdot x_{Ki})^2")
-        
+        st.latex(
+            r"\min \sum_{i=1}^{n} e_i^2 = \sum_{i=1}^{n} (y_i - b_0 - b_1 \cdot x_{1i} - b_2 \cdot x_{2i} - \cdots - b_K \cdot x_{Ki})^2"
+        )
+
         st.markdown("### 📊 Matrixform (elegant!)")
         st.latex(r"\mathbf{b} = (\mathbf{X}^T \mathbf{X})^{-1} \mathbf{X}^T \mathbf{y}")
-        st.markdown("""
+        st.markdown(
+            """
         Wo:
         - **y** ist der Vektor der abhängigen Variable (n×1)
         - **X** ist die Design-Matrix der Prädiktoren (n×(K+1))
         - **b** ist der Vektor der geschätzten Koeffizienten ((K+1)×1)
-        """)
-    
+        """
+        )
+
     col_m3_1, col_m3_2 = st.columns([1.2, 1])
-    
+
     with col_m3_1:
         st.markdown("### 🏆 Gauss-Markov Theorem")
-        st.markdown("""
+        st.markdown(
+            """
         Wenn die folgenden **Annahmen** erfüllt sind:
-        
+
         1. **Linearität**: E(ε|X) = 0
         2. **Homoskedastizität**: Var(ε|X) = σ²
         3. **Keine Autokorrelation**: Cov(εᵢ, εⱼ) = 0
         4. **Keine perfekte Multikollinearität**: X hat vollen Rang
-        
+
         Dann ist der OLS-Schätzer **BLUE**:
         - **B**est: Kleinste Varianz unter allen linearen Schätzern
         - **L**inear: Lineare Funktion der Daten
         - **U**nbiased: Erwartungstreu, E(b) = β
         - **E**stimator: Schätzer für die wahren Parameter
-        """)
-        
+        """
+        )
+
         # Residuen-Plot
-        fig_resid = create_plotly_residual_plot(y_pred_mult, model_mult.resid, title="Residual Plot")
+        fig_resid = create_plotly_residual_plot(
+            y_pred_mult, model_mult.resid, title="Residual Plot"
+        )
         st.plotly_chart(fig_resid, use_container_width=True)
-            
+
     with col_m3_2:
         st.markdown("### 📊 Unsere Schätzungen")
-        params_df = pd.DataFrame({
-            'Koeffizient': ['β₀ (Intercept)', f'β₁ ({x1_name.split("(")[0].strip()})', f'β₂ ({x2_name.split("(")[0].strip()})'],
-            'Schätzwert': [f'{model_mult.params[0]:.4f}', f'{model_mult.params[1]:.4f}', f'{model_mult.params[2]:.4f}'],
-            'Std. Error': [f'{model_mult.bse[0]:.4f}', f'{model_mult.bse[1]:.4f}', f'{model_mult.bse[2]:.4f}']
-        })
-        st.dataframe(params_df, width='stretch', hide_index=True)
-        
-        st.success(f"""
+        params_df = pd.DataFrame(
+            {
+                "Koeffizient": [
+                    "β₀ (Intercept)",
+                    f'β₁ ({x1_name.split("(")[0].strip()})',
+                    f'β₂ ({x2_name.split("(")[0].strip()})',
+                ],
+                "Schätzwert": [
+                    f"{model_mult.params[0]:.4f}",
+                    f"{model_mult.params[1]:.4f}",
+                    f"{model_mult.params[2]:.4f}",
+                ],
+                "Std. Error": [
+                    f"{model_mult.bse[0]:.4f}",
+                    f"{model_mult.bse[1]:.4f}",
+                    f"{model_mult.bse[2]:.4f}",
+                ],
+            }
+        )
+        st.dataframe(params_df, width="stretch", hide_index=True)
+
+        st.success(
+            f"""
         **✅ Modellgüte:**
-        
+
         - R² = {model_mult.rsquared:.4f} ({model_mult.rsquared*100:.1f}%)
         - Adjustiertes R² = {model_mult.rsquared_adj:.4f}
         - F-Statistik = {model_mult.fvalue:.2f}
         - p-Wert (F-Test) = {model_mult.f_pvalue:.4g}
-        """)
-    
+        """
+        )
+
     # 3D Residual Visualization
     st.markdown("### 🎲 3D-Visualisierung: Residuen als Abstände zur Regressions-Ebene")
-    
+
     with st.spinner("🎨 Erstelle 3D-Residuenplot..."):
         # Create 3D residual plot using helper function
         X1_mesh, X2_mesh, Y_mesh = create_regression_mesh(x2_preis, x3_werbung, model_mult.params)
-        
+
         fig_3d_resid = go.Figure()
-        
+
         # Add regression surface
-        fig_3d_resid.add_trace(go.Surface(
-            x=X1_mesh, y=X2_mesh, z=Y_mesh,
-            colorscale='Viridis',
-            opacity=0.7,
-            name='Regression Plane',
-            showscale=False
-        ))
-        
+        fig_3d_resid.add_trace(
+            go.Surface(
+                x=X1_mesh,
+                y=X2_mesh,
+                z=Y_mesh,
+                colorscale="Viridis",
+                opacity=0.7,
+                name="Regression Plane",
+                showscale=False,
+            )
+        )
+
         # Add data points
-        fig_3d_resid.add_trace(go.Scatter3d(
-            x=x2_preis, y=x3_werbung, z=y_mult,
-            mode='markers',
-            marker=dict(size=5, color='red', opacity=0.8),
-            name='Datenpunkte'
-        ))
-        
+        fig_3d_resid.add_trace(
+            go.Scatter3d(
+                x=x2_preis,
+                y=x3_werbung,
+                z=y_mult,
+                mode="markers",
+                marker=dict(size=5, color="red", opacity=0.8),
+                name="Datenpunkte",
+            )
+        )
+
         # Add residual lines
         for i in range(len(x2_preis)):
-            fig_3d_resid.add_trace(go.Scatter3d(
-                x=[x2_preis[i], x2_preis[i]],
-                y=[x3_werbung[i], x3_werbung[i]],
-                z=[y_pred_mult[i], y_mult[i]],
-                mode='lines',
-                line=dict(color='black', width=2),
-                opacity=0.3,
-                showlegend=False
-            ))
-        
+            fig_3d_resid.add_trace(
+                go.Scatter3d(
+                    x=[x2_preis[i], x2_preis[i]],
+                    y=[x3_werbung[i], x3_werbung[i]],
+                    z=[y_pred_mult[i], y_mult[i]],
+                    mode="lines",
+                    line=dict(color="black", width=2),
+                    opacity=0.3,
+                    showlegend=False,
+                )
+            )
+
         fig_3d_resid.update_layout(
-            title='OLS: Minimierung der Residuen-Quadratsumme<br>(Vertikale Abstände zur Ebene)',
+            title="OLS: Minimierung der Residuen-Quadratsumme<br>(Vertikale Abstände zur Ebene)",
             scene=dict(
                 xaxis_title=x1_name,
                 yaxis_title=x2_name,
                 zaxis_title=y_name,
-                camera=CAMERA_PRESETS["default"]
+                camera=CAMERA_PRESETS["default"],
             ),
-            template='plotly_white',
-            height=600
+            template="plotly_white",
+            height=600,
         )
-        
-        
+
         st.plotly_chart(fig_3d_resid, use_container_width=True)
-            
-    st.info("""
+
+    st.info(
+        """
     **💡 3D-Interpretation:**
-    
+
     - **Schwarze Linien** = Residuen (Abstände der roten Punkte zur Ebene)
     - **OLS minimiert** die Summe der quadrierten Längen dieser Linien
     - Je kleiner die Linien, desto besser passt die Ebene zu den Daten
     - **BLUE-Eigenschaft**: Diese Methode liefert die beste lineare unverzerrte Schätzung!
-    """)
+    """
+    )
 
     # =========================================================
     # M4: MODELLVALIDIERUNG
     # =========================================================
     st.markdown("---")
-    st.markdown('<p class="section-header">M4. Modellvalidierung: R² und Adjustiertes R²</p>', unsafe_allow_html=True)
-    
-    st.markdown("""
+    st.markdown(
+        '<p class="section-header">M4. Modellvalidierung: R² und Adjustiertes R²</p>',
+        unsafe_allow_html=True,
+    )
+
+    st.markdown(
+        """
     Wie gut ist unser Modell? Wir brauchen Kennzahlen, die die **Erklärungskraft** messen.
-    """)
-    
+    """
+    )
+
     # Berechne Kennzahlen
-    sst_mult = np.sum((y_mult - np.mean(y_mult))**2)
+    sst_mult = np.sum((y_mult - np.mean(y_mult)) ** 2)
     sse_mult = np.sum(model_mult.resid**2)
     ssr_mult = sst_mult - sse_mult
-    
+
     col_m4_1, col_m4_2 = st.columns([1.5, 1])
-    
+
     with col_m4_1:
         if show_formulas:
             st.markdown("### 📐 Bestimmtheitsmass R²")
             st.latex(r"R^2 = 1 - \frac{SSE}{SST} = \frac{SSR}{SST}")
-            st.latex(r"R^2 = 1 - \frac{\sum_{i=1}^{n}(y_i - \hat{y}_i)^2}{\sum_{i=1}^{n}(y_i - \bar{y})^2}")
-        
-        st.markdown(f"""
+            st.latex(
+                r"R^2 = 1 - \frac{\sum_{i=1}^{n}(y_i - \hat{y}_i)^2}{\sum_{i=1}^{n}(y_i - \bar{y})^2}"
+            )
+
+        st.markdown(
+            f"""
         **Interpretation:**
-        
+
         R² = {model_mult.rsquared:.4f} bedeutet: **{model_mult.rsquared*100:.1f}%** der Varianz in Y
         wird durch die Prädiktoren X₁, X₂ erklärt.
-        
-        **⚠️ Problem:** R² steigt **immer**, wenn wir neue Variablen hinzufügen, 
+
+        **⚠️ Problem:** R² steigt **immer**, wenn wir neue Variablen hinzufügen,
         selbst wenn sie irrelevant sind!
-        """)
-        
+        """
+        )
+
         # Varianzzerlegung
         fig_var_mult = create_plotly_bar(
-            categories=['SST\n(Total)', 'SSR\n(Erklärt)', 'SSE\n(Unerklärt)'],
+            categories=["SST\n(Total)", "SSR\n(Erklärt)", "SSE\n(Unerklärt)"],
             values=[sst_mult, ssr_mult, sse_mult],
-            colors=['gray', 'green', 'red'],
-            title=f"Varianzzerlegung: R² = {model_mult.rsquared:.4f}"
+            colors=["gray", "green", "red"],
+            title=f"Varianzzerlegung: R² = {model_mult.rsquared:.4f}",
         )
         st.plotly_chart(fig_var_mult, use_container_width=True)
-            
+
     with col_m4_2:
         if show_formulas:
             st.markdown("### 📐 Adjustiertes R²")
             st.latex(r"R^2_{adj} = 1 - (1-R^2) \cdot \frac{n-1}{n-K-1}")
-        
-        st.markdown(f"""
+
+        st.markdown(
+            f"""
         **Adjustiertes R² = {model_mult.rsquared_adj:.4f}**
-        
+
         **Vorteile:**
         - Bestraft unnötige Komplexität (mehr K → Strafe)
         - Erlaubt fairen Vergleich von Modellen
         - Kann sogar sinken beim Hinzufügen schwacher Prädiktoren!
-        
+
         **Interpretation:**
-        
+
         Unser Modell mit K=2 Prädiktoren hat:
         - R² = {model_mult.rsquared:.4f}
         - R²_adj = {model_mult.rsquared_adj:.4f}
-        
+
         Die Differenz von {(model_mult.rsquared - model_mult.rsquared_adj):.4f} ist klein
         → Die Prädiktoren sind **substanziell relevant**.
-        """)
-        
+        """
+        )
+
         # Vergleich
-        st.info(f"""
+        st.info(
+            f"""
         **📊 Vergleich:**
-        
+
         | Mass | Wert | Deutung |
         |-----|------|---------|
         | R² | {model_mult.rsquared:.4f} | Roh-Erklärungskraft |
         | R²_adj | {model_mult.rsquared_adj:.4f} | Korrigiert für Komplexität |
         | Differenz | {(model_mult.rsquared - model_mult.rsquared_adj):.4f} | Sehr klein → gut! |
-        """)
-    
+        """
+        )
+
     # 3D Variance Decomposition
     st.markdown("### 🎲 3D-Visualisierung: Varianzzerlegung im Prädiktorraum")
-    
+
     with st.spinner("🎨 Erstelle Varianzzerlegungs-Visualisierung..."):
         # Create side-by-side 3D plots using plotly subplots
         fig_3d_var = make_subplots(
-            rows=1, cols=2,
-            specs=[[{'type': 'scatter3d'}, {'type': 'scatter3d'}]],
-            subplot_titles=(f'SSR (Erklärt): {ssr_mult:.1f}<br>Varianz durch Modell',
-                          f'SSE (Unerklärt): {sse_mult:.1f}<br>Nicht erfasste Varianz')
+            rows=1,
+            cols=2,
+            specs=[[{"type": "scatter3d"}, {"type": "scatter3d"}]],
+            subplot_titles=(
+                f"SSR (Erklärt): {ssr_mult:.1f}<br>Varianz durch Modell",
+                f"SSE (Unerklärt): {sse_mult:.1f}<br>Nicht erfasste Varianz",
+            ),
         )
-        
+
         # Left: Explained variance (SSR)
         fig_3d_var.add_trace(
             go.Scatter3d(
-                x=x2_preis, y=x3_werbung, z=y_pred_mult,
-                mode='markers',
+                x=x2_preis,
+                y=x3_werbung,
+                z=y_pred_mult,
+                mode="markers",
                 marker=dict(
                     size=5,
                     color=y_pred_mult,
-                    colorscale='Greens',
+                    colorscale="Greens",
                     opacity=0.7,
                     showscale=True,
-                    colorbar=dict(x=0.45, len=0.5)
+                    colorbar=dict(x=0.45, len=0.5),
                 ),
-                name='Predicted'
+                name="Predicted",
             ),
-            row=1, col=1
+            row=1,
+            col=1,
         )
-        
+
         # Right: Unexplained variance (SSE)
         residual_sizes = 3 + np.abs(model_mult.resid) * 5  # Scale for visibility
         fig_3d_var.add_trace(
             go.Scatter3d(
-                x=x2_preis, y=x3_werbung, z=model_mult.resid,
-                mode='markers',
+                x=x2_preis,
+                y=x3_werbung,
+                z=model_mult.resid,
+                mode="markers",
                 marker=dict(
                     size=residual_sizes,
                     color=model_mult.resid,
-                    colorscale='Reds',
+                    colorscale="Reds",
                     opacity=0.7,
                     showscale=True,
-                    colorbar=dict(x=1.05, len=0.5)
+                    colorbar=dict(x=1.05, len=0.5),
                 ),
-                name='Residuals'
+                name="Residuals",
             ),
-            row=1, col=2
+            row=1,
+            col=2,
         )
-        
+
         # Add zero plane for residuals
         x_range = [x2_preis.min(), x2_preis.max()]
         y_range = [x3_werbung.min(), x3_werbung.max()]
         xx, yy = np.meshgrid(x_range, y_range)
         zz = np.zeros_like(xx)
-        
+
         fig_3d_var.add_trace(
-            go.Surface(x=xx, y=yy, z=zz, opacity=0.2,
-                      colorscale=[[0, 'gray'], [1, 'gray']],
-                      showscale=False),
-            row=1, col=2
+            go.Surface(
+                x=xx,
+                y=yy,
+                z=zz,
+                opacity=0.2,
+                colorscale=[[0, "gray"], [1, "gray"]],
+                showscale=False,
+            ),
+            row=1,
+            col=2,
         )
-        
+
         fig_3d_var.update_layout(
             height=600,
-            template='plotly_white',
+            template="plotly_white",
             scene=dict(
                 xaxis_title=x1_name,
                 yaxis_title=x2_name,
                 zaxis_title=y_name,
-                camera=CAMERA_PRESETS["default"]
+                camera=CAMERA_PRESETS["default"],
             ),
             scene2=dict(
                 xaxis_title=x1_name,
                 yaxis_title=x2_name,
-                zaxis_title='Residuen',
-                camera=CAMERA_PRESETS["default"]
-            )
+                zaxis_title="Residuen",
+                camera=CAMERA_PRESETS["default"],
+            ),
         )
-        
-        
+
         st.plotly_chart(fig_3d_var, use_container_width=True)
-            
-    st.info(f"""
+
+    st.info(
+        f"""
     **💡 3D-Interpretation:**
-    
+
     - **Links (grün)**: Vorhergesagte Werte ŷ → zeigt die **Systematik** die unser Modell erfasst
     - **Rechts (rot)**: Residuen e → zeigt die **Abweichungen** die unser Modell nicht erklärt
     - **R² = {model_mult.rsquared:.4f}** bedeutet: {model_mult.rsquared*100:.1f}% der Varianz ist "grün" (erklärt)
     - Grössere rote Punkte = grössere Residuen = schlechtere Vorhersage an dieser Stelle
-    """)
+    """
+    )
 
     # =========================================================
     # M5: ANWENDUNGSBEISPIEL
     # =========================================================
     st.markdown("---")
-    st.markdown('<p class="section-header">M5. Anwendungsbeispiel und Interpretation</p>', unsafe_allow_html=True)
-    
-    st.markdown("""
+    st.markdown(
+        '<p class="section-header">M5. Anwendungsbeispiel und Interpretation</p>',
+        unsafe_allow_html=True,
+    )
+
+    st.markdown(
+        """
     Wie nutzen wir unser Modell in der Praxis? Schauen wir uns konkrete Szenarien an.
-    """)
-    
+    """
+    )
+
     col_m5_1, col_m5_2 = st.columns([1, 1])
-    
+
     with col_m5_1:
         st.markdown("### 🔮 Prognose")
-        st.markdown(f"Wir wollen {y_name.split('(')[0].strip()} für einen neuen Datenpunkt vorhersagen.")
-        
+        st.markdown(
+            f"Wir wollen {y_name.split('(')[0].strip()} für einen neuen Datenpunkt vorhersagen."
+        )
+
         # Interaktive Eingabe - dynamic ranges based on dataset
         if dataset_choice_mult == "🏙️ Städte-Umsatzstudie (75 Städte)":
-            slider1_val = st.slider(x1_name, min_value=VISUALIZATION_3D["x1_slider_min"], max_value=VISUALIZATION_3D["x1_slider_max"], value=VISUALIZATION_3D["x1_slider_default"], step=VISUALIZATION_3D["x1_slider_step"])
-            slider2_val = st.slider(x2_name, min_value=VISUALIZATION_3D["x2_slider_min"], max_value=VISUALIZATION_3D["x2_slider_max"], value=VISUALIZATION_3D["x2_slider_default"], step=VISUALIZATION_3D["x2_slider_step"])
+            slider1_val = st.slider(
+                x1_name,
+                min_value=VISUALIZATION_3D["x1_slider_min"],
+                max_value=VISUALIZATION_3D["x1_slider_max"],
+                value=VISUALIZATION_3D["x1_slider_default"],
+                step=VISUALIZATION_3D["x1_slider_step"],
+            )
+            slider2_val = st.slider(
+                x2_name,
+                min_value=VISUALIZATION_3D["x2_slider_min"],
+                max_value=VISUALIZATION_3D["x2_slider_max"],
+                value=VISUALIZATION_3D["x2_slider_default"],
+                step=VISUALIZATION_3D["x2_slider_step"],
+            )
         elif dataset_choice_mult == "🏠 Häuserpreise mit Pool (1000 Häuser)":
-            slider1_val = st.slider(x1_name, min_value=VISUALIZATION_3D["houses_x1_min"], max_value=VISUALIZATION_3D["houses_x1_max"], value=VISUALIZATION_3D["houses_x1_default"], step=VISUALIZATION_3D["houses_x1_step"])
+            slider1_val = st.slider(
+                x1_name,
+                min_value=VISUALIZATION_3D["houses_x1_min"],
+                max_value=VISUALIZATION_3D["houses_x1_max"],
+                value=VISUALIZATION_3D["houses_x1_default"],
+                step=VISUALIZATION_3D["houses_x1_step"],
+            )
             slider2_val = st.slider(x2_name, min_value=0.0, max_value=1.0, value=0.0, step=1.0)
         else:  # Elektronikmarkt
             slider1_val = st.slider(x1_name, min_value=2.0, max_value=12.0, value=7.0, step=0.5)
             slider2_val = st.slider(x2_name, min_value=0.5, max_value=5.0, value=2.5, step=0.5)
-        
+
         # Prognose berechnen
         new_X = np.array([1, slider1_val, slider2_val])
         pred_value = model_mult.predict(new_X)[0]
-        
+
         # Konfidenzintervall
-        pred_frame = pd.DataFrame({'const': [1], 'x1': [slider1_val], 'x2': [slider2_val]})
+        pred_frame = pd.DataFrame({"const": [1], "x1": [slider1_val], "x2": [slider2_val]})
         pred_obj = model_mult.get_prediction(pred_frame)
         pred_summary = pred_obj.summary_frame(alpha=0.05)
-        
-        st.success(f"""
+
+        st.success(
+            f"""
         **Prognose für:**
         - {x1_name} = {slider1_val:.2f}
         - {x2_name} = {slider2_val:.2f}
-        
+
         **Erwarteter {y_name}:**
-        
+
         {pred_value:.2f}
-        
+
         **95% Konfidenzintervall:**
         [{pred_summary['mean_ci_lower'].values[0]:.2f}, {pred_summary['mean_ci_upper'].values[0]:.2f}]
-        """)
-        
+        """
+        )
+
         if show_formulas:
             st.latex(r"\hat{y} = b_0 + b_1 \cdot x_1 + b_2 \cdot x_2")
-            st.latex(f"\\hat{{y}} = {model_mult.params[0]:.2f} + {model_mult.params[1]:.2f} \\cdot {slider1_val:.2f} + {model_mult.params[2]:.2f} \\cdot {slider2_val:.2f}")
+            st.latex(
+                f"\\hat{{y}} = {model_mult.params[0]:.2f} + {model_mult.params[1]:.2f} \\cdot {slider1_val:.2f} + {model_mult.params[2]:.2f} \\cdot {slider2_val:.2f}"
+            )
             st.latex(f"\\hat{{y}} = {pred_value:.2f}")
-    
+
     with col_m5_2:
         st.markdown("### 📊 Sensitivitätsanalyse")
-        st.markdown(f"Wie verändert sich {y_name.split('(')[0].strip()} bei Änderung der Variablen?")
-        
+        st.markdown(
+            f"Wie verändert sich {y_name.split('(')[0].strip()} bei Änderung der Variablen?"
+        )
+
         # Sensitivität: Variable 1
         if dataset_choice_mult == "🏙️ Städte-Umsatzstudie (75 Städte)":
             var1_range = np.linspace(4.5, 7.0, 50)
@@ -992,518 +1253,616 @@ with col_m1_1:
         else:  # Elektronikmarkt
             var1_range = np.linspace(2.0, 12.0, 50)
             var2_range = np.linspace(0.5, 5.0, 50)
-        
-        response_var1 = model_mult.params[0] + model_mult.params[1]*var1_range + model_mult.params[2]*slider2_val
-        
+
+        response_var1 = (
+            model_mult.params[0]
+            + model_mult.params[1] * var1_range
+            + model_mult.params[2] * slider2_val
+        )
+
         # Create sensitivity plot with plotly
         fig_sens = go.Figure()
-        
+
         # Variable 1 sensitivity line
-        fig_sens.add_trace(go.Scatter(
-            x=var1_range, y=response_var1,
-            mode='lines',
-            line=dict(color='blue', width=3),
-            name='Predicted Response'
-        ))
-        
+        fig_sens.add_trace(
+            go.Scatter(
+                x=var1_range,
+                y=response_var1,
+                mode="lines",
+                line=dict(color="blue", width=3),
+                name="Predicted Response",
+            )
+        )
+
         # Current value point
-        fig_sens.add_trace(go.Scatter(
-            x=[slider1_val], y=[pred_value],
-            mode='markers',
-            marker=dict(size=15, color='red'),
-            name='Aktuell'
-        ))
-        
+        fig_sens.add_trace(
+            go.Scatter(
+                x=[slider1_val],
+                y=[pred_value],
+                mode="markers",
+                marker=dict(size=15, color="red"),
+                name="Aktuell",
+            )
+        )
+
         fig_sens.update_layout(
             title=f'Sensitivität {x1_name.split("(")[0].strip()}<br>({x2_name.split("(")[0].strip()}={slider2_val:.1f} konstant)',
             xaxis_title=x1_name,
             yaxis_title=y_name,
-            template='plotly_white',
-            hovermode='x'
+            template="plotly_white",
+            hovermode="x",
         )
-        
+
         st.plotly_chart(fig_sens, use_container_width=True)
-        
+
     # =========================================================
     # M6: DUMMY-VARIABLEN
     # =========================================================
     st.markdown("---")
-    st.markdown('<p class="section-header">M6. Dummy-Variablen: Kategoriale Prädiktoren</p>', unsafe_allow_html=True)
-    
-    st.markdown("""
-    Nicht alle Prädiktoren sind numerisch! Was ist mit **kategorialen Variablen** wie Region, 
+    st.markdown(
+        '<p class="section-header">M6. Dummy-Variablen: Kategoriale Prädiktoren</p>',
+        unsafe_allow_html=True,
+    )
+
+    st.markdown(
+        """
+    Nicht alle Prädiktoren sind numerisch! Was ist mit **kategorialen Variablen** wie Region,
     Geschlecht, oder Produkttyp?
-    
+
     **Lösung: Dummy-Variablen** (0/1-Kodierung)
-    """)
-    
+    """
+    )
+
     # Erstelle Dummy-Daten
     np.random.seed(42)
-    regions = np.random.choice(['Nord', 'Süd', 'Ost'], size=n_mult)
-    df_dummy = pd.DataFrame({
-        'Preis': x2_preis,
-        'Werbung': x3_werbung,
-        'Region': regions,
-        'Umsatz': y_mult
-    })
-    
+    regions = np.random.choice(["Nord", "Süd", "Ost"], size=n_mult)
+    df_dummy = pd.DataFrame(
+        {"Preis": x2_preis, "Werbung": x3_werbung, "Region": regions, "Umsatz": y_mult}
+    )
+
     # Dummy-Kodierung
-    df_dummy_encoded = pd.get_dummies(df_dummy, columns=['Region'], drop_first=True)
-    
+    df_dummy_encoded = pd.get_dummies(df_dummy, columns=["Region"], drop_first=True)
+
     col_m6_1, col_m6_2 = st.columns([1, 1])
-    
+
     with col_m6_1:
         st.markdown("### 📋 Konzept")
-        st.markdown("""
+        st.markdown(
+            """
         Für eine kategoriale Variable mit **m Ausprägungen** erstellen wir **m-1 Dummy-Variablen**.
-        
+
         **Beispiel: Region (3 Ausprägungen)**
         - Nord, Süd, Ost
         - Wir brauchen **2 Dummies**: Region_Ost, Region_Süd
         - **Referenzkategorie**: Nord (beide Dummies = 0)
-        """)
-        
-        st.dataframe(df_dummy[['Region']].head(10), width='stretch')
+        """
+        )
+
+        st.dataframe(df_dummy[["Region"]].head(10), width="stretch")
         st.markdown("**→ wird zu →**")
-        st.dataframe(df_dummy_encoded[['Region_Ost', 'Region_Süd']].head(10), width='stretch')
-        
-        st.warning("""
+        st.dataframe(df_dummy_encoded[["Region_Ost", "Region_Süd"]].head(10), width="stretch")
+
+        st.warning(
+            """
         **⚠️ Dummy-Variable Trap:**
-        
+
         Niemals **alle** m Dummies verwenden! Das führt zu perfekter Multikollinearität.
-        
+
         Grund: Region_Nord = 1 - Region_Ost - Region_Süd
-        """)
-    
+        """
+        )
+
     with col_m6_2:
         if show_formulas:
             st.markdown("### 📐 Modell mit Dummies")
-            st.latex(r"\text{Umsatz}_i = \beta_0 + \beta_1 \cdot \text{Preis}_i + \beta_2 \cdot \text{Werbung}_i + \beta_3 \cdot \text{Ost}_i + \beta_4 \cdot \text{Süd}_i + \varepsilon_i")
-        
+            st.latex(
+                r"\text{Umsatz}_i = \beta_0 + \beta_1 \cdot \text{Preis}_i + \beta_2 \cdot \text{Werbung}_i + \beta_3 \cdot \text{Ost}_i + \beta_4 \cdot \text{Süd}_i + \varepsilon_i"
+            )
+
         st.markdown("### 📊 Interpretation")
-        st.markdown("""
+        st.markdown(
+            """
         **β₀:** Basis-Umsatz in der **Referenzregion** (Nord)
-        
+
         **β₃ (Ost-Dummy):** Zusätzlicher Umsatz in **Ost** verglichen mit Nord
         (ceteris paribus)
-        
+
         **β₄ (Süd-Dummy):** Zusätzlicher Umsatz in **Süd** verglichen mit Nord
         (ceteris paribus)
-        
+
         **Prognose für Ost:**
         ŷ = β₀ + β₁·Preis + β₂·Werbung + β₃·1 + β₄·0
-        
+
         **Prognose für Nord:**
         ŷ = β₀ + β₁·Preis + β₂·Werbung + β₃·0 + β₄·0
-        """)
-        
+        """
+        )
+
         # Modell mit Dummies fitten
-        X_dummy = df_dummy_encoded[['Preis', 'Werbung', 'Region_Ost', 'Region_Süd']]
+        X_dummy = df_dummy_encoded[["Preis", "Werbung", "Region_Ost", "Region_Süd"]]
         X_dummy_const = sm.add_constant(X_dummy)
-        model_dummy = sm.OLS(df_dummy_encoded['Umsatz'], X_dummy_const).fit()
-        
-        st.success(f"""
+        model_dummy = sm.OLS(df_dummy_encoded["Umsatz"], X_dummy_const).fit()
+
+        st.success(
+            f"""
         **Unser Modell:**
-        
+
         β₀ = {model_dummy.params[0]:.2f} (Nord-Basis)
         β₁ = {model_dummy.params[1]:.2f} (Preis)
         β₂ = {model_dummy.params[2]:.2f} (Werbung)
         β₃ = {model_dummy.params[3]:.2f} (Ost-Effekt)
         β₄ = {model_dummy.params[4]:.2f} (Süd-Effekt)
-        """)
+        """
+        )
 
     # =========================================================
     # M7: MULTIKOLLINEARITÄT
     # =========================================================
     st.markdown("---")
-    st.markdown('<p class="section-header">M7. Multikollinearität: Wenn Prädiktoren korreliert sind</p>', unsafe_allow_html=True)
-    
-    st.markdown("""
+    st.markdown(
+        '<p class="section-header">M7. Multikollinearität: Wenn Prädiktoren korreliert sind</p>',
+        unsafe_allow_html=True,
+    )
+
+    st.markdown(
+        """
     **Multikollinearität** liegt vor, wenn unabhängige Variablen **stark miteinander korrelieren**.
-    
+
     Das ist ein **Problem**, weil es schwer wird, die individuellen Effekte zu trennen!
-    """)
-    
+    """
+    )
+
     col_m7_1, col_m7_2 = st.columns([1.2, 1])
-    
+
     with col_m7_1:
         st.markdown("### 🔍 Diagnose (3D Visualisierung)")
-        
+
         # 3D Scatter using helper function
         X1_mesh, X2_mesh, Y_mesh = create_regression_mesh(x2_preis, x3_werbung, model_mult.params)
-        
+
         fig_3d_m7 = go.Figure()
-        
+
         # Add regression surface
-        fig_3d_m7.add_trace(go.Surface(
-            x=X1_mesh, y=X2_mesh, z=Y_mesh,
-            colorscale='RdBu',
-            opacity=0.6,
-            showscale=False,
-            name='Regression Plane'
-        ))
-        
+        fig_3d_m7.add_trace(
+            go.Surface(
+                x=X1_mesh,
+                y=X2_mesh,
+                z=Y_mesh,
+                colorscale="RdBu",
+                opacity=0.6,
+                showscale=False,
+                name="Regression Plane",
+            )
+        )
+
         # Add scatter plot of data points
-        fig_3d_m7.add_trace(go.Scatter3d(
-            x=x2_preis, y=x3_werbung, z=y_mult,
-            mode='markers',
-            marker=dict(
-                size=5,
-                color=y_mult,
-                colorscale='Viridis',
-                opacity=0.7,
-                showscale=True,
-                colorbar=dict(title=y_name)
-            ),
-            name='Data Points'
-        ))
-        
+        fig_3d_m7.add_trace(
+            go.Scatter3d(
+                x=x2_preis,
+                y=x3_werbung,
+                z=y_mult,
+                mode="markers",
+                marker=dict(
+                    size=5,
+                    color=y_mult,
+                    colorscale="Viridis",
+                    opacity=0.7,
+                    showscale=True,
+                    colorbar=dict(title=y_name),
+                ),
+                name="Data Points",
+            )
+        )
+
         fig_3d_m7.update_layout(
-            title='3D: Multikollinearität Visualisierung<br>(Korrelation zwischen Prädiktoren sichtbar in Punktverteilung)',
+            title="3D: Multikollinearität Visualisierung<br>(Korrelation zwischen Prädiktoren sichtbar in Punktverteilung)",
             scene=dict(
                 xaxis_title=x1_name,
                 yaxis_title=x2_name,
                 zaxis_title=y_name,
-                camera=CAMERA_PRESETS["elevated"]
+                camera=CAMERA_PRESETS["elevated"],
             ),
-            template='plotly_white',
-            height=600
+            template="plotly_white",
+            height=600,
         )
-        
-        
+
         st.plotly_chart(fig_3d_m7, use_container_width=True)
-                    
-        st.info("""
+
+        st.info(
+            """
         **💡 3D-Interpretation:**
-        
+
         - Wenn Prädiktoren **unkorreliert** sind: Punkte bilden eine "Wolke" über die gesamte x-y-Ebene
         - Wenn Prädiktoren **korreliert** sind: Punkte liegen entlang einer Diagonale/Linie in der x-y-Ebene
         - **Problem:** Korrelierte Prädiktoren → schwer zu trennen, welcher Prädiktor welchen Effekt hat!
-        """)
-    
+        """
+        )
+
     with col_m7_2:
         st.markdown("### 📊 VIF (Variance Inflation Factor)")
-        
+
         if show_formulas:
             st.latex(r"VIF_k = \frac{1}{1 - R_k^2}")
-            st.markdown("""
+            st.markdown(
+                """
             Wo R²ₖ das R² ist, wenn wir xₖ durch alle anderen Prädiktoren vorhersagen.
-            """)
-        
+            """
+            )
+
         # Berechne VIF
         from statsmodels.stats.outliers_influence import variance_inflation_factor
+
         X_for_vif = np.column_stack([x2_preis, x3_werbung])
-        vif_data = pd.DataFrame({
-            'Variable': [x1_name.split('(')[0].strip(), x2_name.split('(')[0].strip()],
-            'VIF': [variance_inflation_factor(X_for_vif, i) for i in range(X_for_vif.shape[1])]
-        })
-        
-        st.dataframe(vif_data, width='stretch', hide_index=True)
-        
-        st.markdown("""
+        vif_data = pd.DataFrame(
+            {
+                "Variable": [x1_name.split("(")[0].strip(), x2_name.split("(")[0].strip()],
+                "VIF": [variance_inflation_factor(X_for_vif, i) for i in range(X_for_vif.shape[1])],
+            }
+        )
+
+        st.dataframe(vif_data, width="stretch", hide_index=True)
+
+        st.markdown(
+            """
         **Interpretation:**
         - VIF < 5: Keine Multikollinearität ✅
         - 5 < VIF < 10: Moderate Multikollinearität ⚠️
         - VIF > 10: Starke Multikollinearität ❌
-        """)
-        
-        st.warning("""
+        """
+        )
+
+        st.warning(
+            """
         **⚠️ Konsequenzen von Multikollinearität:**
-        
+
         1. **Standardfehler steigen** → unsichere Schätzungen
         2. **Koeffizienten instabil** → ändern sich stark bei kleinen Datenänderungen
         3. **t-Tests unzuverlässig** → falsche Schlüsse über Signifikanz
         4. **Interpretation schwierig** → "ceteris paribus" fraglich
-        
+
         **Lösungen:**
         - Variable(n) entfernen
         - Mehr Daten sammeln
         - Ridge/Lasso Regression
         - Hauptkomponentenanalyse
-        """)
+        """
+        )
 
     # =========================================================
     # M8: RESIDUEN-DIAGNOSTIK
     # =========================================================
     st.markdown("---")
-    st.markdown('<p class="section-header">M8. Residuen-Diagnostik: Modellprüfung</p>', unsafe_allow_html=True)
-    
-    st.markdown("""
+    st.markdown(
+        '<p class="section-header">M8. Residuen-Diagnostik: Modellprüfung</p>',
+        unsafe_allow_html=True,
+    )
+
+    st.markdown(
+        """
     Bevor wir unserem Modell vertrauen, müssen wir die **Gauss-Markov Annahmen** prüfen!
-    """)
-    
+    """
+    )
+
     # Diagnostik-Plots using plotly subplots
     from scipy.stats import probplot
     from statsmodels.stats.outliers_influence import OLSInfluence
-    
+
     fig_diag = make_subplots(
-        rows=2, cols=2,
-        subplot_titles=('Residuals vs Fitted<br>(Linearität & Homoskedastizität)',
-                       'Normal Q-Q<br>(Normalität)',
-                       'Scale-Location<br>(Homoskedastizität)',
-                       'Residuals vs Leverage<br>(Einflussreiche Punkte)')
+        rows=2,
+        cols=2,
+        subplot_titles=(
+            "Residuals vs Fitted<br>(Linearität & Homoskedastizität)",
+            "Normal Q-Q<br>(Normalität)",
+            "Scale-Location<br>(Homoskedastizität)",
+            "Residuals vs Leverage<br>(Einflussreiche Punkte)",
+        ),
     )
-    
+
     # 1. Residuen vs. Fitted
     fig_diag.add_trace(
-        go.Scatter(x=y_pred_mult, y=model_mult.resid,
-                  mode='markers',
-                  marker=dict(size=6, opacity=0.6),
-                  showlegend=False),
-        row=1, col=1
+        go.Scatter(
+            x=y_pred_mult,
+            y=model_mult.resid,
+            mode="markers",
+            marker=dict(size=6, opacity=0.6),
+            showlegend=False,
+        ),
+        row=1,
+        col=1,
     )
-    fig_diag.add_hline(y=0, line_dash='dash', line_color='red', line_width=2,
-                      row=1, col=1)
-    
+    fig_diag.add_hline(y=0, line_dash="dash", line_color="red", line_width=2, row=1, col=1)
+
     # 2. Q-Q Plot
     qq = probplot(model_mult.resid, dist="norm")
     fig_diag.add_trace(
-        go.Scatter(x=qq[0][0], y=qq[0][1],
-                  mode='markers',
-                  marker=dict(size=6, opacity=0.6),
-                  showlegend=False),
-        row=1, col=2
+        go.Scatter(
+            x=qq[0][0],
+            y=qq[0][1],
+            mode="markers",
+            marker=dict(size=6, opacity=0.6),
+            showlegend=False,
+        ),
+        row=1,
+        col=2,
     )
     # Add reference line
     fig_diag.add_trace(
-        go.Scatter(x=qq[0][0], y=qq[1][1] + qq[1][0]*qq[0][0],
-                  mode='lines',
-                  line=dict(color='red', dash='dash'),
-                  showlegend=False),
-        row=1, col=2
+        go.Scatter(
+            x=qq[0][0],
+            y=qq[1][1] + qq[1][0] * qq[0][0],
+            mode="lines",
+            line=dict(color="red", dash="dash"),
+            showlegend=False,
+        ),
+        row=1,
+        col=2,
     )
-    
+
     # 3. Scale-Location
     standardized_resid = model_mult.resid / np.std(model_mult.resid)
     fig_diag.add_trace(
-        go.Scatter(x=y_pred_mult, y=np.sqrt(np.abs(standardized_resid)),
-                  mode='markers',
-                  marker=dict(size=6, opacity=0.6),
-                  showlegend=False),
-        row=2, col=1
+        go.Scatter(
+            x=y_pred_mult,
+            y=np.sqrt(np.abs(standardized_resid)),
+            mode="markers",
+            marker=dict(size=6, opacity=0.6),
+            showlegend=False,
+        ),
+        row=2,
+        col=1,
     )
-    
+
     # 4. Residuals vs Leverage
     influence = OLSInfluence(model_mult)
     leverage = influence.hat_matrix_diag
     fig_diag.add_trace(
-        go.Scatter(x=leverage, y=standardized_resid,
-                  mode='markers',
-                  marker=dict(size=6, opacity=0.6),
-                  showlegend=False),
-        row=2, col=2
+        go.Scatter(
+            x=leverage,
+            y=standardized_resid,
+            mode="markers",
+            marker=dict(size=6, opacity=0.6),
+            showlegend=False,
+        ),
+        row=2,
+        col=2,
     )
-    fig_diag.add_hline(y=0, line_dash='dash', line_color='red', line_width=2,
-                      row=2, col=2)
-    
+    fig_diag.add_hline(y=0, line_dash="dash", line_color="red", line_width=2, row=2, col=2)
+
     # Update axes labels
     fig_diag.update_xaxes(title_text="Fitted values", row=1, col=1)
     fig_diag.update_yaxes(title_text="Residuals", row=1, col=1)
-    
+
     fig_diag.update_xaxes(title_text="Theoretical Quantiles", row=1, col=2)
     fig_diag.update_yaxes(title_text="Sample Quantiles", row=1, col=2)
-    
+
     fig_diag.update_xaxes(title_text="Fitted values", row=2, col=1)
     fig_diag.update_yaxes(title_text="√|Standardized residuals|", row=2, col=1)
-    
+
     fig_diag.update_xaxes(title_text="Leverage", row=2, col=2)
     fig_diag.update_yaxes(title_text="Standardized residuals", row=2, col=2)
-    
-    fig_diag.update_layout(height=800, template='plotly_white', showlegend=False)
-    
+
+    fig_diag.update_layout(height=800, template="plotly_white", showlegend=False)
+
     st.plotly_chart(fig_diag, use_container_width=True)
-        
+
     col_m8_1, col_m8_2 = st.columns([1, 1])
-    
+
     with col_m8_1:
         st.markdown("### ✅ Was wir suchen")
-        st.markdown("""
+        st.markdown(
+            """
         **Plot 1 (Residuals vs Fitted):**
         - Zufällige Streuung um 0
         - Keine Muster (Kurven, Trichter)
-        
+
         **Plot 2 (Q-Q):**
         - Punkte auf der Diagonale
         - Zeigt Normalverteilung der Residuen
-        
+
         **Plot 3 (Scale-Location):**
         - Horizontales Band
         - Konstante Varianz (Homoskedastizität)
-        
+
         **Plot 4 (Residuals vs Leverage):**
         - Keine Punkte ausserhalb Cook's Distance
         - Zeigt einflussreiche Beobachtungen
-        """)
-    
+        """
+        )
+
     with col_m8_2:
         st.markdown("### 📊 Statistische Tests")
-        
+
         # Jarque-Bera Test (Normalität)
         from scipy.stats import jarque_bera
+
         jb_stat, jb_pval = jarque_bera(model_mult.resid)
-        
+
         # Breusch-Pagan Test (Heteroskedastizität)
         from statsmodels.stats.diagnostic import het_breuschpagan
+
         bp_stat, bp_pval, _, _ = het_breuschpagan(model_mult.resid, X_mult)
-        
-        st.info(f"""
+
+        st.info(
+            f"""
         **Jarque-Bera Test (Normalität):**
         - Statistik: {jb_stat:.3f}
         - p-Wert: {jb_pval:.4f}
         - {'✅ H₀ nicht verwerfen → Normalität OK' if jb_pval > 0.05 else '❌ H₀ verwerfen → Nicht normalverteilt'}
-        
+
         **Breusch-Pagan Test (Homoskedastizität):**
         - Statistik: {bp_stat:.3f}
         - p-Wert: {bp_pval:.4f}
         - {'✅ H₀ nicht verwerfen → Homoskedastizität OK' if bp_pval > 0.05 else '❌ H₀ verwerfen → Heteroskedastizität'}
-        """)
-    
+        """
+        )
+
     # 3D Residual Diagnostics
     st.markdown("### 🎲 3D-Visualisierung: Residuen im Prädiktorraum")
-    
+
     # Create 3D residual plot with plotly
     # Create zero plane for residual visualization
     X1_mesh, X2_mesh, Z_zero = create_zero_plane(
-        [x2_preis.min(), x2_preis.max()],
-        [x3_werbung.min(), x3_werbung.max()]
+        [x2_preis.min(), x2_preis.max()], [x3_werbung.min(), x3_werbung.max()]
     )
-    
+
     fig_3d_resid_m8 = go.Figure()
-    
+
     # Add zero plane
-    fig_3d_resid_m8.add_trace(go.Surface(
-        x=X1_mesh, y=X2_mesh, z=Z_zero,
-        colorscale=[[0, 'gray'], [1, 'gray']],
-        opacity=0.3,
-        showscale=False,
-        name='Zero Plane'
-    ))
-    
+    fig_3d_resid_m8.add_trace(
+        go.Surface(
+            x=X1_mesh,
+            y=X2_mesh,
+            z=Z_zero,
+            colorscale=[[0, "gray"], [1, "gray"]],
+            opacity=0.3,
+            showscale=False,
+            name="Zero Plane",
+        )
+    )
+
     # Add scatter plot with residuals colored
-    fig_3d_resid_m8.add_trace(go.Scatter3d(
-        x=x2_preis, y=x3_werbung, z=model_mult.resid,
-        mode='markers',
-        marker=dict(
-            size=7,
-            color=model_mult.resid,
-            colorscale='RdBu_r',
-            opacity=0.8,
-            showscale=True,
-            colorbar=dict(title='Residuengrösse'),
-            line=dict(width=1, color='black')
-        ),
-        name='Residuals'
-    ))
-    
+    fig_3d_resid_m8.add_trace(
+        go.Scatter3d(
+            x=x2_preis,
+            y=x3_werbung,
+            z=model_mult.resid,
+            mode="markers",
+            marker=dict(
+                size=7,
+                color=model_mult.resid,
+                colorscale="RdBu_r",
+                opacity=0.8,
+                showscale=True,
+                colorbar=dict(title="Residuengrösse"),
+                line=dict(width=1, color="black"),
+            ),
+            name="Residuals",
+        )
+    )
+
     fig_3d_resid_m8.update_layout(
-        title='Residuen über Prädiktorraum<br>(Muster → Modellverletzungen)',
+        title="Residuen über Prädiktorraum<br>(Muster → Modellverletzungen)",
         scene=dict(
             xaxis_title=x1_name,
             yaxis_title=x2_name,
-            zaxis_title='Residuen',
-            camera=dict(eye=dict(x=1.5, y=-1.5, z=1.2))
+            zaxis_title="Residuen",
+            camera=dict(eye=dict(x=1.5, y=-1.5, z=1.2)),
         ),
-        template='plotly_white',
-        height=600
+        template="plotly_white",
+        height=600,
     )
-    
-    
+
     st.plotly_chart(fig_3d_resid_m8, use_container_width=True)
-            
-    st.info("""
+
+    st.info(
+        """
     **💡 3D-Interpretation:**
-    
+
     - **Graue Ebene** = Null-Linie (perfekte Vorhersage)
     - **Rote Punkte** = Positive Residuen (Modell unterschätzt)
     - **Blaue Punkte** = Negative Residuen (Modell überschätzt)
     - **Zufällige Verteilung** = Gutes Modell ✅
     - **Systematische Muster** = Modellprobleme (Nonlinearität, fehlende Variablen) ❌
     - **Cluster in Bereichen** = Heteroskedastizität ⚠️
-    """)
+    """
+    )
 
     # =========================================================
     # M9: ZUSAMMENFASSUNG
     # =========================================================
     st.markdown("---")
-    st.markdown('<p class="section-header">M9. Zusammenfassung: Multiple Regression</p>', unsafe_allow_html=True)
-    
-    st.markdown("""
+    st.markdown(
+        '<p class="section-header">M9. Zusammenfassung: Multiple Regression</p>',
+        unsafe_allow_html=True,
+    )
+
+    st.markdown(
+        """
     Sie haben die **multiple Regression** von Grund auf verstanden! 🎉
-    
+
     Fassen wir die wichtigsten Konzepte zusammen:
-    """)
-    
+    """
+    )
+
     # Vollständiger R-Output
     st.markdown("### 💻 Vollständiger Modell-Output")
     st.code(model_mult.summary().as_text(), language=None)
-    
+
     col_m9_1, col_m9_2 = st.columns([1, 1])
-    
+
     with col_m9_1:
         st.markdown("### 📋 Kernkonzepte")
-        concepts_table = pd.DataFrame({
-            'Konzept': [
-                'Grundmodell',
-                'OLS-Schätzer',
-                'R²',
-                'Adjustiertes R²',
-                't-Test',
-                'F-Test',
-                'Partielle Koeffizienten',
-                'Dummy-Variablen',
-                'Multikollinearität',
-                'VIF'
-            ],
-            'Status': ['✅'] * 10
-        })
-        st.dataframe(concepts_table, width='stretch', hide_index=True)
-    
+        concepts_table = pd.DataFrame(
+            {
+                "Konzept": [
+                    "Grundmodell",
+                    "OLS-Schätzer",
+                    "R²",
+                    "Adjustiertes R²",
+                    "t-Test",
+                    "F-Test",
+                    "Partielle Koeffizienten",
+                    "Dummy-Variablen",
+                    "Multikollinearität",
+                    "VIF",
+                ],
+                "Status": ["✅"] * 10,
+            }
+        )
+        st.dataframe(concepts_table, width="stretch", hide_index=True)
+
     with col_m9_2:
         st.markdown("### 📊 Unser Modell")
-        st.success(f"""
+        st.success(
+            f"""
         **Modellgleichung:**
-        
-        {y_name.split('(')[0].strip()} = {model_mult.params[0]:.2f} 
-                 {model_mult.params[1]:+.2f} · {x1_name.split('(')[0].strip()} 
+
+        {y_name.split('(')[0].strip()} = {model_mult.params[0]:.2f}
+                 {model_mult.params[1]:+.2f} · {x1_name.split('(')[0].strip()}
                  {model_mult.params[2]:+.2f} · {x2_name.split('(')[0].strip()}
-        
+
         **Modellgüte:**
         - R² = {model_mult.rsquared:.4f}
         - R²_adj = {model_mult.rsquared_adj:.4f}
         - F = {model_mult.fvalue:.2f} (p < 0.001)
-        
+
         **Interpretation:**
         - Pro Einheit {x1_name.split('(')[0].strip()}: {model_mult.params[1]:.2f} Einheiten {y_name.split('(')[0].strip()}
         - Pro Einheit {x2_name.split('(')[0].strip()}: {model_mult.params[2]:+.2f} Einheiten {y_name.split('(')[0].strip()}
-        
+
         Beide Effekte sind **statistisch signifikant** (p < 0.05)!
-        """)
-    
+        """
+        )
+
     st.markdown("### 🎯 Wichtigste Erkenntnisse")
-    st.markdown("""
+    st.markdown(
+        """
     1. **Multiple Regression** erlaubt uns, den Einfluss **mehrerer Variablen gleichzeitig** zu untersuchen
-    
+
     2. **Partielle Koeffizienten** messen den Effekt **ceteris paribus** (bei Konstanthaltung der anderen)
-    
+
     3. **Adjustiertes R²** ist besser als R² für Modellvergleiche (bestraft Komplexität)
-    
+
     4. **Multikollinearität** ist ein Problem - prüfen mit Korrelationen und VIF
-    
+
     5. **Residuen-Diagnostik** ist essentiell - Annahmen müssen erfüllt sein!
-    
+
     6. **Dummy-Variablen** ermöglichen kategoriale Prädiktoren
-    
+
     7. **F-Test** prüft Gesamtsignifikanz, **t-Tests** prüfen einzelne Koeffizienten
-    """)
-    
-    st.info("""
+    """
+    )
+
+    st.info(
+        """
     **🚀 Nächste Schritte:**
-    
+
     - Experimentieren Sie mit den Parametern
     - Vergleichen Sie einfache vs. multiple Regression
     - Prüfen Sie die Residuen-Diagnostik
     - Erkunden Sie Prognosen für verschiedene Szenarien
-    """)
+    """
+    )
 
 # =========================================================
 # TAB 1: EINFACHE (LINEAR) REGRESSION
@@ -1512,276 +1871,373 @@ with tab1:
     # =========================================================
     # KAPITEL 1: EINLEITUNG
     # =========================================================
-    st.markdown(f'<p style="{CSS_STYLES["main_header"]}">📖 Umfassender Leitfaden zur Linearen Regression</p>', unsafe_allow_html=True)
+    st.markdown(
+        f'<p style="{CSS_STYLES["main_header"]}">📖 Umfassender Leitfaden zur Linearen Regression</p>',
+        unsafe_allow_html=True,
+    )
     st.markdown("### Von der Frage zur validierten Erkenntnis – Ein interaktiver Lernpfad")
 
     st.markdown("---")
-    st.markdown('<p class="section-header">1.0 Einleitung: Die Analyse von Zusammenhängen</p>', unsafe_allow_html=True)
+    st.markdown(
+        '<p class="section-header">1.0 Einleitung: Die Analyse von Zusammenhängen</p>',
+        unsafe_allow_html=True,
+    )
 
     col_intro1, col_intro2 = st.columns([2, 1])
 
     with col_intro1:
-        st.markdown("""
-        Von der Vorhersage von Unternehmensumsätzen bis hin zur Aufdeckung wissenschaftlicher 
-        Zusammenhänge – die Fähigkeit, Beziehungen in Daten zu quantifizieren, ist eine 
+        st.markdown(
+            """
+        Von der Vorhersage von Unternehmensumsätzen bis hin zur Aufdeckung wissenschaftlicher
+        Zusammenhänge – die Fähigkeit, Beziehungen in Daten zu quantifizieren, ist eine
         **Kernkompetenz** in der modernen Analyse.
-    
-        Die **Regressionsanalyse** ist das universelle Werkzeug für diese Aufgabe. Sie geht über 
-        die blosse Feststellung *ob* Variablen zusammenhängen hinaus und erklärt präzise, 
+
+        Die **Regressionsanalyse** ist das universelle Werkzeug für diese Aufgabe. Sie geht über
+        die blosse Feststellung *ob* Variablen zusammenhängen hinaus und erklärt präzise,
         **wie** sie sich gegenseitig beeinflussen.
-    
-        > ⚠️ **Wichtig:** Die Regression allein beweist keine Kausalität! Sie quantifiziert die 
-        > Stärke einer *potenziellen* Ursache-Wirkungs-Beziehung, die durch das Studiendesign 
+
+        > ⚠️ **Wichtig:** Die Regression allein beweist keine Kausalität! Sie quantifiziert die
+        > Stärke einer *potenziellen* Ursache-Wirkungs-Beziehung, die durch das Studiendesign
         > gestützt werden muss.
-        """)
+        """
+        )
 
     with col_intro2:
-        st.info("""
+        st.info(
+            """
         **Korrelation vs. Regression:**
-    
+
         | Korrelation | Regression |
         |-------------|------------|
         | *Ungerichtet* | *Gerichtet* |
         | Wie stark? | Um wieviel? |
         | r ∈ [-1, 1] | ŷ = b₀ + b₁x |
-        """)
+        """
+        )
 
     # =========================================================
     # KAPITEL 1.5: MEHRDIMENSIONALE VERTEILUNGEN (NEU)
     # =========================================================
     st.markdown("---")
-    st.markdown('<p class="section-header">1.5 Mehrdimensionale Verteilungen: Das Fundament für Zusammenhänge</p>', unsafe_allow_html=True)
+    st.markdown(
+        '<p class="section-header">1.5 Mehrdimensionale Verteilungen: Das Fundament für Zusammenhänge</p>',
+        unsafe_allow_html=True,
+    )
 
-    st.markdown("""
-    Bevor wir Zusammenhänge zwischen Variablen analysieren können, müssen wir verstehen, 
-    wie **zwei Zufallsvariablen gemeinsam** verteilt sein können. Dies ist die mathematische 
+    st.markdown(
+        """
+    Bevor wir Zusammenhänge zwischen Variablen analysieren können, müssen wir verstehen,
+    wie **zwei Zufallsvariablen gemeinsam** verteilt sein können. Dies ist die mathematische
     Grundlage für alles, was folgt.
-    """)
+    """
+    )
 
     # --- Interaktive Parameter für Mehrdimensionale Verteilungen ---
-    st.markdown('<p class="subsection-header">🎲 Gemeinsame Verteilung f(X,Y)</p>', unsafe_allow_html=True)
+    st.markdown(
+        '<p class="subsection-header">🎲 Gemeinsame Verteilung f(X,Y)</p>', unsafe_allow_html=True
+    )
 
     col_joint1, col_joint2 = st.columns([2, 1])
 
     with col_joint1:
         # Slider für Korrelation in der bivariaten Normalverteilung
-        demo_corr = st.slider("Korrelation ρ zwischen X und Y", min_value=-0.95, max_value=0.95, value=0.7, step=0.05,
-                              help="Bewege den Slider um zu sehen, wie sich die gemeinsame Verteilung verändert",
-                              key="demo_corr_slider")
-    
+        demo_corr = st.slider(
+            "Korrelation ρ zwischen X und Y",
+            min_value=-0.95,
+            max_value=0.95,
+            value=0.7,
+            step=0.05,
+            help="Bewege den Slider um zu sehen, wie sich die gemeinsame Verteilung verändert",
+            key="demo_corr_slider",
+        )
+
         # Bivariate Normalverteilung generieren
         from scipy.stats import multivariate_normal
-    
+
         mean = [0, 0]
         cov_matrix = [[1, demo_corr], [demo_corr, 1]]
-    
+
         x_grid = np.linspace(-3, 3, 100)
         y_grid = np.linspace(-3, 3, 100)
         X_grid, Y_grid = np.meshgrid(x_grid, y_grid)
         pos = np.dstack((X_grid, Y_grid))
-    
+
         rv = multivariate_normal(mean, cov_matrix)
         Z = rv.pdf(pos)
-    
+
         # === 3D VERSION ===
         fig_joint_3d = make_subplots(
-            rows=1, cols=3,
-            specs=[[{'type': 'surface'}, {'type': 'scatter3d'}, {'type': 'surface'}]],
+            rows=1,
+            cols=3,
+            specs=[[{"type": "surface"}, {"type": "scatter3d"}, {"type": "surface"}]],
             subplot_titles=(
-                f'Gemeinsame Verteilung<br>ρ = {demo_corr:.2f}',
-                'Randverteilung f_X(x)',
-                f'Bedingte Verteilung<br>E(Y|X=1) = {demo_corr * 1.0:.2f}'
-            )
+                f"Gemeinsame Verteilung<br>ρ = {demo_corr:.2f}",
+                "Randverteilung f_X(x)",
+                f"Bedingte Verteilung<br>E(Y|X=1) = {demo_corr * 1.0:.2f}",
+            ),
         )
-    
+
         # 1. 3D Surface Plot der gemeinsamen Verteilung
         fig_joint_3d.add_trace(
-            go.Surface(x=X_grid, y=Y_grid, z=Z, colorscale='Blues', opacity=0.8, showscale=False),
-            row=1, col=1
+            go.Surface(x=X_grid, y=Y_grid, z=Z, colorscale="Blues", opacity=0.8, showscale=False),
+            row=1,
+            col=1,
         )
-        
+
         # Stichprobe als Punkte auf z=0
         np.random.seed(42)
         sample = np.random.multivariate_normal(mean, cov_matrix, 100)
         fig_joint_3d.add_trace(
-            go.Scatter3d(x=sample[:, 0], y=sample[:, 1], z=np.zeros(100),
-                       mode='markers', marker=dict(size=2, color='red', opacity=0.3),
-                       showlegend=False),
-            row=1, col=1
+            go.Scatter3d(
+                x=sample[:, 0],
+                y=sample[:, 1],
+                z=np.zeros(100),
+                mode="markers",
+                marker=dict(size=2, color="red", opacity=0.3),
+                showlegend=False,
+            ),
+            row=1,
+            col=1,
         )
-    
+
         # 2. Randverteilung als 3D
         x_marg = np.linspace(-3, 3, 100)
         y_marg_pdf = stats.norm.pdf(x_marg, 0, 1)
-        
+
         # Main curve at z=0
         fig_joint_3d.add_trace(
-            go.Scatter3d(x=x_marg, y=y_marg_pdf, z=np.zeros_like(x_marg),
-                       mode='lines', line=dict(color='blue', width=4),
-                       showlegend=False),
-            row=1, col=2
+            go.Scatter3d(
+                x=x_marg,
+                y=y_marg_pdf,
+                z=np.zeros_like(x_marg),
+                mode="lines",
+                line=dict(color="blue", width=4),
+                showlegend=False,
+            ),
+            row=1,
+            col=2,
         )
-        
+
         # Vertical lines
         for i in range(0, len(x_marg), 5):
             fig_joint_3d.add_trace(
-                go.Scatter3d(x=[x_marg[i], x_marg[i]], y=[0, 0], z=[0, y_marg_pdf[i]],
-                           mode='lines', line=dict(color='blue', width=1),
-                           opacity=0.3, showlegend=False),
-                row=1, col=2
+                go.Scatter3d(
+                    x=[x_marg[i], x_marg[i]],
+                    y=[0, 0],
+                    z=[0, y_marg_pdf[i]],
+                    mode="lines",
+                    line=dict(color="blue", width=1),
+                    opacity=0.3,
+                    showlegend=False,
+                ),
+                row=1,
+                col=2,
             )
-    
+
         # 3. Bedingte Verteilung als 3D-Schnitt
         x_cond = 1.0
         cond_mean = demo_corr * x_cond
         cond_var = max(1 - demo_corr**2, 0.01)
         cond_std = np.sqrt(cond_var)
-    
+
         y_cond_grid = np.linspace(-3, 3, 100)
         pdf_cond = stats.norm.pdf(y_cond_grid, cond_mean, cond_std)
-    
+
         # Bedingte Verteilung Kurve
         fig_joint_3d.add_trace(
-            go.Scatter3d(x=np.full_like(y_cond_grid, x_cond), y=y_cond_grid, z=pdf_cond,
-                       mode='lines', line=dict(color='green', width=4),
-                       showlegend=False),
-            row=1, col=3
+            go.Scatter3d(
+                x=np.full_like(y_cond_grid, x_cond),
+                y=y_cond_grid,
+                z=pdf_cond,
+                mode="lines",
+                line=dict(color="green", width=4),
+                showlegend=False,
+            ),
+            row=1,
+            col=3,
         )
-        
+
         # Vertical lines
         for i in range(0, len(y_cond_grid), 5):
             fig_joint_3d.add_trace(
-                go.Scatter3d(x=[x_cond, x_cond], y=[y_cond_grid[i], y_cond_grid[i]], z=[0, pdf_cond[i]],
-                           mode='lines', line=dict(color='green', width=1),
-                           opacity=0.3, showlegend=False),
-                row=1, col=3
+                go.Scatter3d(
+                    x=[x_cond, x_cond],
+                    y=[y_cond_grid[i], y_cond_grid[i]],
+                    z=[0, pdf_cond[i]],
+                    mode="lines",
+                    line=dict(color="green", width=1),
+                    opacity=0.3,
+                    showlegend=False,
+                ),
+                row=1,
+                col=3,
             )
-        
+
         # Fläche füllen
         fig_joint_3d.add_trace(
-            go.Surface(x=X_grid, y=Y_grid, z=Z, colorscale='Blues', opacity=0.3, showscale=False),
-            row=1, col=3
+            go.Surface(x=X_grid, y=Y_grid, z=Z, colorscale="Blues", opacity=0.3, showscale=False),
+            row=1,
+            col=3,
         )
-    
+
         # Update layout
         fig_joint_3d.update_layout(
             height=500,
             showlegend=False,
-            scene1=dict(xaxis_title='X', yaxis_title='Y', zaxis_title='f(X,Y)',
-                       camera=CAMERA_PRESETS["default"]),
-            scene2=dict(xaxis_title='X', yaxis_title='', zaxis_title='f_X(x)',
-                       camera=CAMERA_PRESETS["close_up"]),
-            scene3=dict(xaxis_title='X', yaxis_title='Y', zaxis_title='f(Y|X=1)',
-                       camera=dict(eye=dict(x=1.5, y=-1.8, z=1.0)))
+            scene1=dict(
+                xaxis_title="X",
+                yaxis_title="Y",
+                zaxis_title="f(X,Y)",
+                camera=CAMERA_PRESETS["default"],
+            ),
+            scene2=dict(
+                xaxis_title="X",
+                yaxis_title="",
+                zaxis_title="f_X(x)",
+                camera=CAMERA_PRESETS["close_up"],
+            ),
+            scene3=dict(
+                xaxis_title="X",
+                yaxis_title="Y",
+                zaxis_title="f(Y|X=1)",
+                camera=dict(eye=dict(x=1.5, y=-1.8, z=1.0)),
+            ),
         )
-    
-        fig_joint_3d.update_layout(
-        )
-        
+
+        fig_joint_3d.update_layout()
+
         st.plotly_chart(fig_joint_3d, use_container_width=True)
-            
+
     with col_joint2:
         if show_formulas:
             st.markdown("### Gemeinsame Verteilung")
             st.latex(r"f_{X,Y}(x,y) = P(X=x, Y=y)")
-        
+
             st.markdown("### Randverteilung")
             st.latex(r"f_X(x) = \sum_y f_{X,Y}(x,y)")
-        
+
             st.markdown("### Bedingte Verteilung")
             st.latex(r"f_{Y|X}(y|x) = \frac{f_{X,Y}(x,y)}{f_X(x)}")
-    
-        st.info(f"""
+
+        st.info(
+            f"""
         **Beobachte:**
-    
+
         Bei ρ = {demo_corr:.2f}:
         - Die Punktewolke ist {"stark" if abs(demo_corr) > 0.7 else "schwach"} {"positiv" if demo_corr > 0 else "negativ" if demo_corr < 0 else "un"}korreliert
         - E(Y|X=1) = {demo_corr:.2f} (nicht 0!)
         - Die bedingte Varianz ist {max(1 - demo_corr**2, 0.01):.2f} < 1
-    
+
         **→ Je höher |ρ|, desto mehr "wissen" wir über Y, wenn wir X kennen!**
-        """)
+        """
+        )
 
     # Stochastische Unabhängigkeit
-    st.markdown('<p class="subsection-header">🔗 Stochastische Unabhängigkeit</p>', unsafe_allow_html=True)
+    st.markdown(
+        '<p class="subsection-header">🔗 Stochastische Unabhängigkeit</p>', unsafe_allow_html=True
+    )
 
     col_indep1, col_indep2 = st.columns([1, 1])
 
     with col_indep1:
-        st.markdown("""
+        st.markdown(
+            """
         Zwei Zufallsvariablen X und Y sind **stochastisch unabhängig**, wenn:
-        """)
+        """
+        )
         st.latex(r"f_{X,Y}(x,y) = f_X(x) \cdot f_Y(y)")
-        st.markdown("""
+        st.markdown(
+            """
         Das bedeutet: Die gemeinsame Wahrscheinlichkeit ist einfach das **Produkt** der Einzelwahrscheinlichkeiten.
-    
+
         **Konsequenz:** Bei Unabhängigkeit gilt:
         - $E(Y|X=x) = E(Y)$ – X sagt nichts über Y aus!
         - $Cov(X,Y) = 0$
         - $ρ = 0$
-        """)
+        """
+        )
 
     with col_indep2:
         # Create 2-panel independence visualization with plotly
-        
+
         np.random.seed(123)
         # Unabhängig (ρ=0)
         x_ind = np.random.normal(0, 1, 200)
         y_ind = np.random.normal(0, 1, 200)
-        
+
         # Abhängig (ρ=0.8)
         cov_dep = [[1, 0.8], [0.8, 1]]
         sample_dep = np.random.multivariate_normal([0, 0], cov_dep, 200)
-        
+
         fig_indep = make_subplots(
-            rows=1, cols=2,
-            subplot_titles=('Unabhängig (ρ = 0)<br>"Keine Struktur"',
-                           'Abhängig (ρ = 0.8)<br>"Klare Struktur"')
+            rows=1,
+            cols=2,
+            subplot_titles=(
+                'Unabhängig (ρ = 0)<br>"Keine Struktur"',
+                'Abhängig (ρ = 0.8)<br>"Klare Struktur"',
+            ),
         )
-        
+
         # Left panel: Independent
         fig_indep.add_trace(
-            go.Scatter(x=x_ind, y=y_ind, mode='markers',
-                      marker=dict(size=5, color='gray', opacity=0.5),
-                      showlegend=False),
-            row=1, col=1
+            go.Scatter(
+                x=x_ind,
+                y=y_ind,
+                mode="markers",
+                marker=dict(size=5, color="gray", opacity=0.5),
+                showlegend=False,
+            ),
+            row=1,
+            col=1,
         )
-        
+
         # Right panel: Dependent
         fig_indep.add_trace(
-            go.Scatter(x=sample_dep[:, 0], y=sample_dep[:, 1], mode='markers',
-                      marker=dict(size=5, color='blue', opacity=0.5),
-                      showlegend=False),
-            row=1, col=2
+            go.Scatter(
+                x=sample_dep[:, 0],
+                y=sample_dep[:, 1],
+                mode="markers",
+                marker=dict(size=5, color="blue", opacity=0.5),
+                showlegend=False,
+            ),
+            row=1,
+            col=2,
         )
-        
+
         fig_indep.update_xaxes(title_text="X", row=1, col=1)
         fig_indep.update_yaxes(title_text="Y", row=1, col=1)
         fig_indep.update_xaxes(title_text="X", row=1, col=2)
         fig_indep.update_yaxes(title_text="Y", row=1, col=2)
-        
-        fig_indep.update_layout(height=400, template='plotly_white')
-    
+
+        fig_indep.update_layout(height=400, template="plotly_white")
+
         st.plotly_chart(fig_indep, use_container_width=True)
-        
-    st.success("""
-    **Merke:** Die Regression nutzt genau diese Struktur! Wenn X und Y abhängig sind, 
+
+    st.success(
+        """
+    **Merke:** Die Regression nutzt genau diese Struktur! Wenn X und Y abhängig sind,
     können wir $E(Y|X=x)$ als Funktion von x modellieren – das ist die Regressionsgerade!
-    """)
+    """
+    )
 
     # =========================================================
     # KAPITEL 2: DAS FUNDAMENT
     # =========================================================
     st.markdown("---")
-    st.markdown('<p class="section-header">2.0 Das Fundament: Das einfache lineare Regressionsmodell</p>', unsafe_allow_html=True)
+    st.markdown(
+        '<p class="section-header">2.0 Das Fundament: Das einfache lineare Regressionsmodell</p>',
+        unsafe_allow_html=True,
+    )
 
-    st.markdown("""
-    Das Verständnis des einfachen linearen Regressionsmodells ist der entscheidende erste Schritt. 
+    st.markdown(
+        """
+    Das Verständnis des einfachen linearen Regressionsmodells ist der entscheidende erste Schritt.
     Die Rollen der Variablen werden klar definiert:
 
     - **Abhängige Variable (Y):** Die Zielvariable – was wir erklären/vorhersagen wollen
     - **Unabhängige Variable (X):** Der Prädiktor – was die Veränderung erklärt
-    """)
+    """
+    )
 
     col_model1, col_model2 = st.columns([1.2, 1])
 
@@ -1789,105 +2245,142 @@ with tab1:
         st.markdown("### Das grundlegende Modell:")
         if show_formulas:
             st.latex(r"y_i = \beta_0 + \beta_1 \cdot x_i + \varepsilon_i")
-    
-        st.markdown("""
+
+        st.markdown(
+            """
         | Symbol | Bedeutung |
         |--------|-----------|
         | **β₀** | Wahrer Achsenabschnitt (unbekannt) |
         | **β₁** | Wahre Steigung (unbekannt) – Änderung in Y pro Einheit X |
         | **εᵢ** | Zufällige Störgrösse – alle anderen Einflüsse |
-        """)
+        """
+        )
 
     with col_model2:
-        st.warning(f"""
+        st.warning(
+            f"""
         ### 🎯 Praxisbeispiel: {context_title}
-    
+
         {context_description}
-        """)
+        """
+        )
 
     # Erste Visualisierung: Die Rohdaten
-    st.markdown(f'<p class="subsection-header">📊 Unsere Daten: {n} Beobachtungen</p>', unsafe_allow_html=True)
+    st.markdown(
+        f'<p class="subsection-header">📊 Unsere Daten: {n} Beobachtungen</p>',
+        unsafe_allow_html=True,
+    )
 
     col_data1, col_data2 = st.columns([1, 2])
 
     with col_data1:
-        st.dataframe(df.style.format({x_label: '{:.2f}', y_label: '{:.2f}'}), 
-                     height=min(400, n * 35 + 50), width='stretch')
+        st.dataframe(
+            df.style.format({x_label: "{:.2f}", y_label: "{:.2f}"}),
+            height=min(400, n * 35 + 50),
+            width="stretch",
+        )
 
     with col_data2:
         # Create scatter plot with plotly
         fig_scatter1 = go.Figure()
-        
-        fig_scatter1.add_trace(go.Scatter(
-            x=x, y=y,
-            mode='markers',
-            marker=dict(size=12, color='#1f77b4', opacity=0.7,
-                       line=dict(width=2, color='white')),
-            name='Datenpunkte'
-        ))
-        
+
+        fig_scatter1.add_trace(
+            go.Scatter(
+                x=x,
+                y=y,
+                mode="markers",
+                marker=dict(
+                    size=12, color="#1f77b4", opacity=0.7, line=dict(width=2, color="white")
+                ),
+                name="Datenpunkte",
+            )
+        )
+
         # Mean lines
-        fig_scatter1.add_hline(y=y_mean_val, line_dash='dash', line_color='orange',
-                              opacity=0.5, annotation_text=f'ȳ = {y_mean_val:.2f}',
-                              annotation_position="right")
-        fig_scatter1.add_vline(x=x_mean, line_dash='dash', line_color='green',
-                              opacity=0.5, annotation_text=f'x̄ = {x_mean:.2f}',
-                              annotation_position="top")
-        
+        fig_scatter1.add_hline(
+            y=y_mean_val,
+            line_dash="dash",
+            line_color="orange",
+            opacity=0.5,
+            annotation_text=f"ȳ = {y_mean_val:.2f}",
+            annotation_position="right",
+        )
+        fig_scatter1.add_vline(
+            x=x_mean,
+            line_dash="dash",
+            line_color="green",
+            opacity=0.5,
+            annotation_text=f"x̄ = {x_mean:.2f}",
+            annotation_position="top",
+        )
+
         # Center point
-        fig_scatter1.add_trace(go.Scatter(
-            x=[x_mean], y=[y_mean_val],
-            mode='markers',
-            marker=dict(size=18, color='red', symbol='x'),
-            name='Schwerpunkt (x̄, ȳ)'
-        ))
-        
+        fig_scatter1.add_trace(
+            go.Scatter(
+                x=[x_mean],
+                y=[y_mean_val],
+                mode="markers",
+                marker=dict(size=18, color="red", symbol="x"),
+                name="Schwerpunkt (x̄, ȳ)",
+            )
+        )
+
         fig_scatter1.update_layout(
             title='Schritt 1: Visualisierung der Rohdaten<br>"Gibt es einen Zusammenhang?"',
             xaxis_title=x_label,
             yaxis_title=y_label,
-            template='plotly_white',
-            hovermode='closest'
+            template="plotly_white",
+            hovermode="closest",
         )
-    
+
         st.plotly_chart(fig_scatter1, use_container_width=True)
-        
-    st.success(f"""
-    **Beobachtung:** Die Punkte scheinen einem aufsteigenden Trend zu folgen! 
+
+    st.success(
+        f"""
+    **Beobachtung:** Die Punkte scheinen einem aufsteigenden Trend zu folgen!
     Der Schwerpunkt liegt bei ({x_mean:.2f}, {y_mean_val:.2f}).
     Jetzt müssen wir die "beste" Gerade finden, die diesen Trend beschreibt.
-    """)
+    """
+    )
 
     # =========================================================
     # KAPITEL 2.5: KOVARIANZ & KORRELATION (NEU)
     # =========================================================
     st.markdown("---")
-    st.markdown('<p class="section-header">2.5 Kovarianz & Korrelation: Die Bausteine der Regression</p>', unsafe_allow_html=True)
+    st.markdown(
+        '<p class="section-header">2.5 Kovarianz & Korrelation: Die Bausteine der Regression</p>',
+        unsafe_allow_html=True,
+    )
 
-    st.markdown("""
-    Bevor wir die Regressionsgerade berechnen, müssen wir verstehen, **wie** wir den Zusammenhang 
+    st.markdown(
+        """
+    Bevor wir die Regressionsgerade berechnen, müssen wir verstehen, **wie** wir den Zusammenhang
     zwischen X und Y messen. Die **Kovarianz** und der **Korrelationskoeffizient** sind die Werkzeuge dafür.
-    """)
+    """
+    )
 
     # --- KOVARIANZ ---
-    st.markdown('<p class="subsection-header">📐 Die Kovarianz: Richtung und Stärke des Zusammenhangs</p>', unsafe_allow_html=True)
+    st.markdown(
+        '<p class="subsection-header">📐 Die Kovarianz: Richtung und Stärke des Zusammenhangs</p>',
+        unsafe_allow_html=True,
+    )
 
     col_cov1, col_cov2 = st.columns([2, 1])
 
     with col_cov1:
         # 3D Visualisierung: Vertikale Säulen
         fig_cov = go.Figure()
-    
+
         x_mean_val = x.mean()
         y_mean_val_local = y.mean()
-    
+
         # Daten-Säulen als 3D bars (using mesh3d for bars)
         for i in range(len(x)):
             dx = x[i] - x_mean_val
             dy = y[i] - y_mean_val_local
             product = dx * dy
-            color = 'green' if product > 0 else 'red'
-        
+            color = "green" if product > 0 else "red"
+
             # Create bar as mesh3d (simplified box)
             bar_width = 0.3
             if product > 0:
@@ -1896,96 +2389,111 @@ with tab1:
             else:
                 z_base = product
                 z_height = abs(product)
-            
+
             # Simple vertical line representation
-            fig_cov.add_trace(go.Scatter3d(
-                x=[x[i], x[i]], y=[y[i], y[i]], z=[0, product],
-                mode='lines',
-                line=dict(color=color, width=8),
-                opacity=0.7,
-                showlegend=False
-            ))
-        
+            fig_cov.add_trace(
+                go.Scatter3d(
+                    x=[x[i], x[i]],
+                    y=[y[i], y[i]],
+                    z=[0, product],
+                    mode="lines",
+                    line=dict(color=color, width=8),
+                    opacity=0.7,
+                    showlegend=False,
+                )
+            )
+
             # Datenpunkt oben
-            fig_cov.add_trace(go.Scatter3d(
-                x=[x[i]], y=[y[i]], z=[product],
-                mode='markers',
-                marker=dict(size=8, color=color, line=dict(color='white', width=1)),
-                showlegend=False
-            ))
-    
+            fig_cov.add_trace(
+                go.Scatter3d(
+                    x=[x[i]],
+                    y=[y[i]],
+                    z=[product],
+                    mode="markers",
+                    marker=dict(size=8, color=color, line=dict(color="white", width=1)),
+                    showlegend=False,
+                )
+            )
+
         # Schwerpunkt
-        fig_cov.add_trace(go.Scatter3d(
-            x=[x_mean_val], y=[y_mean_val_local], z=[0],
-            mode='markers',
-            marker=dict(size=12, color='black', symbol='x', line=dict(color='white', width=2)),
-            name='Schwerpunkt',
-            showlegend=True
-        ))
-    
-        fig_cov.update_layout(
-            title='3D Kovarianz-Visualisierung: Säulenhöhe = Produkt der Abweichungen',
-            scene=dict(
-                xaxis_title=f'{x_label} (X)',
-                yaxis_title=f'{y_label} (Y)',
-                zaxis_title='(X - X̄)(Y - Ȳ)',
-                camera=CAMERA_PRESETS["default"]
-            ),
-            height=600
+        fig_cov.add_trace(
+            go.Scatter3d(
+                x=[x_mean_val],
+                y=[y_mean_val_local],
+                z=[0],
+                mode="markers",
+                marker=dict(size=12, color="black", symbol="x", line=dict(color="white", width=2)),
+                name="Schwerpunkt",
+                showlegend=True,
+            )
         )
-    
-        
+
+        fig_cov.update_layout(
+            title="3D Kovarianz-Visualisierung: Säulenhöhe = Produkt der Abweichungen",
+            scene=dict(
+                xaxis_title=f"{x_label} (X)",
+                yaxis_title=f"{y_label} (Y)",
+                zaxis_title="(X - X̄)(Y - Ȳ)",
+                camera=CAMERA_PRESETS["default"],
+            ),
+            height=600,
+        )
+
         st.plotly_chart(fig_cov, use_container_width=True)
-            
+
     with col_cov2:
         if show_formulas:
             st.markdown("### Kovarianz (Population)")
             st.latex(r"Cov(X,Y) = E(XY) - E(X) \cdot E(Y)")
-        
+
             st.markdown("### Kovarianz (Stichprobe)")
             st.latex(r"s_{xy} = \frac{\sum_{i=1}^n (x_i - \bar{x})(y_i - \bar{y})}{n-1}")
-    
+
         # Berechnung zeigen
         products = [(x[i] - x_mean) * (y[i] - y_mean_val) for i in range(len(x))]
         pos_sum = sum(p for p in products if p > 0)
         neg_sum = sum(p for p in products if p < 0)
-    
+
         st.metric("Positive Rechtecke Σ", f"{pos_sum:.3f}", delta="grün")
         st.metric("Negative Rechtecke Σ", f"{neg_sum:.3f}", delta="rot", delta_color="inverse")
         st.metric("Kovarianz Cov(X,Y)", f"{cov_xy:.4f}")
-    
+
         if cov_xy > 0:
             st.success("✅ Positive Kovarianz → X↑ bedeutet tendenziell Y↑")
         else:
             st.error("❌ Negative Kovarianz → X↑ bedeutet tendenziell Y↓")
 
     # --- KORRELATION ---
-    st.markdown('<p class="subsection-header">📊 Der Korrelationskoeffizient: Standardisierte Stärke</p>', unsafe_allow_html=True)
+    st.markdown(
+        '<p class="subsection-header">📊 Der Korrelationskoeffizient: Standardisierte Stärke</p>',
+        unsafe_allow_html=True,
+    )
 
-    st.markdown("""
-    Die Kovarianz hat ein Problem: Sie hängt von den **Einheiten** ab! Eine Kovarianz von 5.2 
+    st.markdown(
+        """
+    Die Kovarianz hat ein Problem: Sie hängt von den **Einheiten** ab! Eine Kovarianz von 5.2
     zwischen Fläche (qm) und Umsatz (Mio. €) ist schwer zu interpretieren.
 
     Die Lösung: **Normierung** durch die Standardabweichungen → Der Korrelationskoeffizient r ∈ [-1, +1]
-    """)
+    """
+    )
 
     col_corr1, col_corr2 = st.columns([2, 1])
 
     with col_corr1:
         # Verschiedene Korrelationen zeigen mit plotly subplots
-        
+
         example_corrs = [-0.95, -0.5, 0, 0.5, 0.8, 0.95]
         np.random.seed(42)
-        
+
         fig_corr_examples = make_subplots(
-            rows=2, cols=3,
-            subplot_titles=[f'r = {r:.2f}' for r in example_corrs]
+            rows=2, cols=3, subplot_titles=[f"r = {r:.2f}" for r in example_corrs]
         )
-    
+
         for idx, r in enumerate(example_corrs):
             row = idx // 3 + 1
             col = idx % 3 + 1
-        
+
             # Daten generieren
             if r == 0:
                 ex_x = np.random.normal(0, 1, 100)
@@ -1994,60 +2502,69 @@ with tab1:
                 cov_ex = [[1, r], [r, 1]]
                 sample_ex = np.random.multivariate_normal([0, 0], cov_ex, 100)
                 ex_x, ex_y = sample_ex[:, 0], sample_ex[:, 1]
-        
+
             # Farbe basierend auf r
             if r > 0:
-                color = f'rgba(0, {int(128 + abs(r)*127)}, 0, 0.6)'
+                color = f"rgba(0, {int(128 + abs(r)*127)}, 0, 0.6)"
             elif r < 0:
-                color = f'rgba({int(128 + abs(r)*127)}, 0, 0, 0.6)'
+                color = f"rgba({int(128 + abs(r)*127)}, 0, 0, 0.6)"
             else:
-                color = 'rgba(128, 128, 128, 0.6)'
-        
+                color = "rgba(128, 128, 128, 0.6)"
+
             fig_corr_examples.add_trace(
-                go.Scatter(x=ex_x, y=ex_y, mode='markers',
-                          marker=dict(size=5, color=color),
-                          showlegend=False),
-                row=row, col=col
+                go.Scatter(
+                    x=ex_x,
+                    y=ex_y,
+                    mode="markers",
+                    marker=dict(size=5, color=color),
+                    showlegend=False,
+                ),
+                row=row,
+                col=col,
             )
-            
+
             # Regressionslinie wenn r ≠ 0
             if r != 0:
                 try:
                     with warnings.catch_warnings():
-                        warnings.simplefilter('ignore')
+                        warnings.simplefilter("ignore")
                         z = np.polyfit(ex_x, ex_y, 1)
                         p = np.poly1d(z)
                         fig_corr_examples.add_trace(
-                            go.Scatter(x=[-3, 3], y=[p(-3), p(3)],
-                                     mode='lines',
-                                     line=dict(color='black', dash='dash', width=1),
-                                     showlegend=False),
-                            row=row, col=col
+                            go.Scatter(
+                                x=[-3, 3],
+                                y=[p(-3), p(3)],
+                                mode="lines",
+                                line=dict(color="black", dash="dash", width=1),
+                                showlegend=False,
+                            ),
+                            row=row,
+                            col=col,
                         )
                 except (np.linalg.LinAlgError, ValueError):
                     pass
-                
+
             fig_corr_examples.update_xaxes(range=[-3, 3], row=row, col=col)
             fig_corr_examples.update_yaxes(range=[-3, 3], row=row, col=col)
-    
+
         fig_corr_examples.update_layout(
-            title_text='Der Korrelationskoeffizient r: Von -1 (perfekt negativ) bis +1 (perfekt positiv)',
+            title_text="Der Korrelationskoeffizient r: Von -1 (perfekt negativ) bis +1 (perfekt positiv)",
             height=600,
-            template='plotly_white'
+            template="plotly_white",
         )
-        
+
         st.plotly_chart(fig_corr_examples, use_container_width=True)
-        
+
     with col_corr2:
         if show_formulas:
             st.markdown("### Korrelation (Pearson)")
             st.latex(r"\rho_{X,Y} = \frac{Cov(X,Y)}{\sigma_X \cdot \sigma_Y}")
-        
+
             st.markdown("### Stichproben-Korrelation")
             st.latex(r"r = \frac{s_{xy}}{s_x \cdot s_y}")
-    
+
         st.metric("Unsere Korrelation r", f"{corr_xy:.4f}")
-    
+
         # Interpretation
         if abs(corr_xy) > 0.8:
             strength = "sehr stark"
@@ -2057,88 +2574,107 @@ with tab1:
             strength = "schwach"
         else:
             strength = "sehr schwach"
-    
+
         direction = "positiv" if corr_xy > 0 else "negativ"
-    
-        st.info(f"""
+
+        st.info(
+            f"""
         **Interpretation:**
-    
-        r = {corr_xy:.3f} zeigt einen **{strength}en {direction}en** 
+
+        r = {corr_xy:.3f} zeigt einen **{strength}en {direction}en**
         linearen Zusammenhang.
-    
+
         **Wichtig:** Bei einfacher Regression gilt:
-    
+
         **R² = r²** = {corr_xy**2:.4f}
-    
+
         Das ist identisch mit unserem späteren Bestimmtheitsmass!
-        """)
+        """
+        )
 
     # --- t-Test für Korrelation ---
-    st.markdown('<p class="subsection-header">🔬 Signifikanztest für die Korrelation</p>', unsafe_allow_html=True)
+    st.markdown(
+        '<p class="subsection-header">🔬 Signifikanztest für die Korrelation</p>',
+        unsafe_allow_html=True,
+    )
 
     col_ttest_corr1, col_ttest_corr2 = st.columns([2, 1])
 
     with col_ttest_corr1:
         # t-Statistik für Korrelation
         t_corr = abs(corr_xy) * np.sqrt((n - 2) / max(1 - corr_xy**2, 0.001))
-        p_corr = 2 * (1 - stats.t.cdf(t_corr, df=n-2))
-    
+        p_corr = 2 * (1 - stats.t.cdf(t_corr, df=n - 2))
+
         # Create t-distribution plot with plotly
         x_t = np.linspace(-5, max(5, t_corr + 1), 300)
-        y_t = stats.t.pdf(x_t, df=n-2)
-        
+        y_t = stats.t.pdf(x_t, df=n - 2)
+
         fig_t_corr = go.Figure()
-        
+
         # Main distribution curve
-        fig_t_corr.add_trace(go.Scatter(
-            x=x_t, y=y_t,
-            mode='lines',
-            line=dict(color='black', width=2),
-            name=f't-Verteilung (df={n-2})'
-        ))
-        
+        fig_t_corr.add_trace(
+            go.Scatter(
+                x=x_t,
+                y=y_t,
+                mode="lines",
+                line=dict(color="black", width=2),
+                name=f"t-Verteilung (df={n-2})",
+            )
+        )
+
         # Shaded p-value regions
         mask = abs(x_t) > t_corr
-        fig_t_corr.add_trace(go.Scatter(
-            x=x_t[mask], y=y_t[mask],
-            fill='tozeroy',
-            fillcolor='rgba(255, 0, 0, 0.3)',
-            line=dict(width=0),
-            name=f'p-Wert = {p_corr:.4f}',
-            showlegend=True
-        ))
-        
-        # Critical values
-        t_crit = stats.t.ppf(0.975, df=n-2)
-        fig_t_corr.add_vline(x=t_crit, line_dash='dash', line_color='orange', opacity=0.7)
-        fig_t_corr.add_vline(x=-t_crit, line_dash='dash', line_color='orange', opacity=0.7,
-                            annotation_text=f'Kritisch: ±{t_crit:.2f}')
-        
-        # Observed t-values
-        fig_t_corr.add_vline(x=t_corr, line_color='blue', line_width=3,
-                            annotation_text=f't = {t_corr:.2f}')
-        fig_t_corr.add_vline(x=-t_corr, line_color='blue', line_width=2, opacity=0.5)
-        
-        fig_t_corr.update_layout(
-            title=f'H₀: ρ = 0 (kein Zusammenhang) vs. H₁: ρ ≠ 0',
-            xaxis_title='t-Wert',
-            yaxis_title='Dichte',
-            template='plotly_white',
-            hovermode='x'
+        fig_t_corr.add_trace(
+            go.Scatter(
+                x=x_t[mask],
+                y=y_t[mask],
+                fill="tozeroy",
+                fillcolor="rgba(255, 0, 0, 0.3)",
+                line=dict(width=0),
+                name=f"p-Wert = {p_corr:.4f}",
+                showlegend=True,
+            )
         )
-    
+
+        # Critical values
+        t_crit = stats.t.ppf(0.975, df=n - 2)
+        fig_t_corr.add_vline(x=t_crit, line_dash="dash", line_color="orange", opacity=0.7)
+        fig_t_corr.add_vline(
+            x=-t_crit,
+            line_dash="dash",
+            line_color="orange",
+            opacity=0.7,
+            annotation_text=f"Kritisch: ±{t_crit:.2f}",
+        )
+
+        # Observed t-values
+        fig_t_corr.add_vline(
+            x=t_corr, line_color="blue", line_width=3, annotation_text=f"t = {t_corr:.2f}"
+        )
+        fig_t_corr.add_vline(x=-t_corr, line_color="blue", line_width=2, opacity=0.5)
+
+        fig_t_corr.update_layout(
+            title=f"H₀: ρ = 0 (kein Zusammenhang) vs. H₁: ρ ≠ 0",
+            xaxis_title="t-Wert",
+            yaxis_title="Dichte",
+            template="plotly_white",
+            hovermode="x",
+        )
+
         st.plotly_chart(fig_t_corr, use_container_width=True)
-        
+
     with col_ttest_corr2:
         if show_formulas:
             st.markdown("### Teststatistik")
             st.latex(r"t = |r| \cdot \sqrt{\frac{n-2}{1-r^2}}")
-            st.latex(f"t = |{corr_xy:.4f}| \\cdot \\sqrt{{\\frac{{{n}-2}}{{1-{corr_xy:.4f}^2}}}} = {t_corr:.2f}")
-    
+            st.latex(
+                f"t = |{corr_xy:.4f}| \\cdot \\sqrt{{\\frac{{{n}-2}}{{1-{corr_xy:.4f}^2}}}} = {t_corr:.2f}"
+            )
+
         st.metric("t-Wert", f"{t_corr:.3f}")
         st.metric("p-Wert", f"{p_corr:.4f}")
         st.metric("Signifikanz", get_signif_stars(p_corr))
-    
+
         if p_corr < 0.05:
             st.success("✅ Der Zusammenhang ist **signifikant**!")
         else:
@@ -2147,62 +2683,79 @@ with tab1:
     # --- Spearman Rangkorrelation ---
     with st.expander("📊 Bonus: Spearman Rangkorrelation (für nicht-lineare Zusammenhänge)"):
         col_sp1, col_sp2 = st.columns([2, 1])
-    
+
         with col_sp1:
             # Ränge berechnen
             from scipy.stats import spearmanr
+
             rho_spearman, p_spearman = spearmanr(x, y)
-        
+
             # Create 2-panel plot with plotly subplots
-            
+
             fig_spear = make_subplots(
-                rows=1, cols=2,
-                subplot_titles=(f'Original-Daten<br>Pearson r = {corr_xy:.3f}',
-                               f'Rang-Daten<br>Spearman ρ = {rho_spearman:.3f}')
+                rows=1,
+                cols=2,
+                subplot_titles=(
+                    f"Original-Daten<br>Pearson r = {corr_xy:.3f}",
+                    f"Rang-Daten<br>Spearman ρ = {rho_spearman:.3f}",
+                ),
             )
-            
+
             # Original data
             fig_spear.add_trace(
-                go.Scatter(x=x, y=y, mode='markers',
-                          marker=dict(size=8, color='blue', opacity=0.7),
-                          showlegend=False),
-                row=1, col=1
+                go.Scatter(
+                    x=x,
+                    y=y,
+                    mode="markers",
+                    marker=dict(size=8, color="blue", opacity=0.7),
+                    showlegend=False,
+                ),
+                row=1,
+                col=1,
             )
-            
+
             # Rank data
             rank_x = stats.rankdata(x)
             rank_y = stats.rankdata(y)
             fig_spear.add_trace(
-                go.Scatter(x=rank_x, y=rank_y, mode='markers',
-                          marker=dict(size=8, color='green', opacity=0.7),
-                          showlegend=False),
-                row=1, col=2
+                go.Scatter(
+                    x=rank_x,
+                    y=rank_y,
+                    mode="markers",
+                    marker=dict(size=8, color="green", opacity=0.7),
+                    showlegend=False,
+                ),
+                row=1,
+                col=2,
             )
-            
+
             fig_spear.update_xaxes(title_text="X", row=1, col=1)
             fig_spear.update_yaxes(title_text="Y", row=1, col=1)
             fig_spear.update_xaxes(title_text="Rang(X)", row=1, col=2)
             fig_spear.update_yaxes(title_text="Rang(Y)", row=1, col=2)
-            
-            fig_spear.update_layout(height=400, template='plotly_white')
-        
+
+            fig_spear.update_layout(height=400, template="plotly_white")
+
             st.plotly_chart(fig_spear, use_container_width=True)
-                
+
         with col_sp2:
             st.latex(r"r_s = 1 - \frac{6 \sum d_i^2}{n(n^2-1)}")
             st.markdown("wobei $d_i$ = Differenz der Ränge")
-        
+
             st.metric("Spearman ρ", f"{rho_spearman:.4f}")
             st.metric("p-Wert", f"{p_spearman:.4f}")
-        
-            st.info("""
+
+            st.info(
+                """
             **Wann Spearman?**
             - Ordinale Daten
             - Nicht-lineare monotone Zusammenhänge
             - Ausreisser-robust
-            """)
+            """
+            )
 
-    st.success(f"""
+    st.success(
+        f"""
     **Zusammenfassung Kapitel 2.5:**
 
     Wir haben die Bausteine für die Regression verstanden:
@@ -2210,20 +2763,26 @@ with tab1:
     - **Korrelation** r = {corr_xy:.4f} → Standardisierte Stärke
 
     Im nächsten Kapitel sehen wir: **b₁ = Cov(X,Y) / Var(X)** – die Steigung ist direkt aus der Kovarianz abgeleitet!
-    """)
+    """
+    )
 
     # =========================================================
     # KAPITEL 3: DIE METHODE (OLS)
     # =========================================================
     st.markdown("---")
-    st.markdown('<p class="section-header">3.0 Die Methode: Schätzung mittels OLS</p>', unsafe_allow_html=True)
+    st.markdown(
+        '<p class="section-header">3.0 Die Methode: Schätzung mittels OLS</p>',
+        unsafe_allow_html=True,
+    )
 
-    st.markdown("""
+    st.markdown(
+        """
     Die **Methode der kleinsten Quadrate (Ordinary Least Squares, OLS)** findet die optimale Gerade.
 
-    **Das Kernprinzip:** Wähle jene Gerade, welche die **Summe der quadrierten vertikalen Abweichungen** 
+    **Das Kernprinzip:** Wähle jene Gerade, welche die **Summe der quadrierten vertikalen Abweichungen**
     (Residuen) zwischen Datenpunkten und Gerade **minimiert**.
-    """)
+    """
+    )
 
     # OLS Visualisierung
     col_ols1, col_ols2 = st.columns([2, 1])
@@ -2231,101 +2790,122 @@ with tab1:
     with col_ols1:
         # Create OLS plot with plotly
         fig_ols = go.Figure()
-        
+
         # Data points
-        fig_ols.add_trace(go.Scatter(
-            x=x, y=y,
-            mode='markers',
-            marker=dict(size=10, color='#1f77b4', opacity=0.7,
-                       line=dict(width=2, color='white')),
-            name='Datenpunkte'
-        ))
-        
+        fig_ols.add_trace(
+            go.Scatter(
+                x=x,
+                y=y,
+                mode="markers",
+                marker=dict(
+                    size=10, color="#1f77b4", opacity=0.7, line=dict(width=2, color="white")
+                ),
+                name="Datenpunkte",
+            )
+        )
+
         # OLS regression line
-        fig_ols.add_trace(go.Scatter(
-            x=x, y=y_pred,
-            mode='lines',
-            line=dict(color='red', width=3),
-            name=f'OLS-Gerade: ŷ = {b0:.3f} + {b1:.3f}x'
-        ))
-        
+        fig_ols.add_trace(
+            go.Scatter(
+                x=x,
+                y=y_pred,
+                mode="lines",
+                line=dict(color="red", width=3),
+                name=f"OLS-Gerade: ŷ = {b0:.3f} + {b1:.3f}x",
+            )
+        )
+
         # True line if shown
         if show_true_line:
-            fig_ols.add_trace(go.Scatter(
-                x=x, y=true_intercept + true_beta * x,
-                mode='lines',
-                line=dict(color='green', width=2, dash='dash'),
-                opacity=0.7,
-                name=f'Wahre Gerade: y = {true_intercept:.2f} + {true_beta:.2f}x'
-            ))
-        
+            fig_ols.add_trace(
+                go.Scatter(
+                    x=x,
+                    y=true_intercept + true_beta * x,
+                    mode="lines",
+                    line=dict(color="green", width=2, dash="dash"),
+                    opacity=0.7,
+                    name=f"Wahre Gerade: y = {true_intercept:.2f} + {true_beta:.2f}x",
+                )
+            )
+
         # Residual lines (for first 10 points)
         for i in range(min(len(x), 10)):
             resid = y[i] - y_pred[i]
-            fig_ols.add_trace(go.Scatter(
-                x=[x[i], x[i]],
-                y=[y[i], y_pred[i]],
-                mode='lines',
-                line=dict(color='red', width=1.5),
-                opacity=0.5,
-                showlegend=False
-            ))
-            
+            fig_ols.add_trace(
+                go.Scatter(
+                    x=[x[i], x[i]],
+                    y=[y[i], y_pred[i]],
+                    mode="lines",
+                    line=dict(color="red", width=1.5),
+                    opacity=0.5,
+                    showlegend=False,
+                )
+            )
+
             # Add rectangles for squared residuals (as shapes)
             if abs(resid) > 0.05:
                 size = min(abs(resid), 1.5)
                 fig_ols.add_shape(
-                    type='rect',
-                    x0=x[i], x1=x[i] + size,
-                    y0=min(y[i], y_pred[i]), y1=min(y[i], y_pred[i]) + abs(resid),
-                    fillcolor='red',
+                    type="rect",
+                    x0=x[i],
+                    x1=x[i] + size,
+                    y0=min(y[i], y_pred[i]),
+                    y1=min(y[i], y_pred[i]) + abs(resid),
+                    fillcolor="red",
                     opacity=0.2,
-                    line=dict(color='red', width=1)
+                    line=dict(color="red", width=1),
                 )
-        
+
         fig_ols.update_layout(
-            title='OLS minimiert die Fläche aller roten Quadrate (= SSE)',
+            title="OLS minimiert die Fläche aller roten Quadrate (= SSE)",
             xaxis_title=x_label,
             yaxis_title=y_label,
-            template='plotly_white',
-            hovermode='closest'
+            template="plotly_white",
+            hovermode="closest",
         )
-    
+
         st.plotly_chart(fig_ols, use_container_width=True)
-        
+
     with col_ols2:
         if show_formulas:
             st.markdown("### OLS-Schätzer:")
             st.latex(r"b_1 = \frac{\sum(x_i - \bar{x})(y_i - \bar{y})}{\sum(x_i - \bar{x})^2}")
             st.latex(r"b_0 = \bar{y} - b_1 \cdot \bar{x}")
-        
+
             st.markdown("### Mit unseren Werten:")
             st.latex(f"b_1 = \\frac{{{cov_xy*(n-1):.2f}}}{{{var_x*(n-1):.2f}}} = {b1:.4f}")
             st.latex(f"b_0 = {y_mean_val:.2f} - {b1:.4f} \\times {x_mean:.2f} = {b0:.4f}")
-    
-        st.success(f"""
+
+        st.success(
+            f"""
         ### 📐 Ergebnis:
-    
+
         **ŷ = {b0:.4f} + {b1:.4f} · x**
-        """)
+        """
+        )
 
     # =========================================================
     # KAPITEL 3.1: DAS REGRESSIONSMODELL IM DETAIL
     # =========================================================
-    st.markdown('<p class="subsection-header">3.1 Das Regressionsmodell im Detail: Anatomie & Unsicherheit</p>', unsafe_allow_html=True)
+    st.markdown(
+        '<p class="subsection-header">3.1 Das Regressionsmodell im Detail: Anatomie & Unsicherheit</p>',
+        unsafe_allow_html=True,
+    )
 
-    st.markdown("""
+    st.markdown(
+        """
     Dieses Dashboard zeigt die **komplette Anatomie** des Regressionsmodells:
     - **Steigungsdreieck**: Visualisiert b₁ = Δy/Δx
     - **Fehlerterm εᵢ**: Die Abweichung zwischen Beobachtung und Modell
     - **Konfidenzintervall**: Die Unsicherheit der Vorhersage
-    """)
+    """
+    )
 
     # Berechne Konfidenzintervall mit der stabilen get_prediction() API
     predictions = model.get_prediction(X)
     pred_frame = predictions.summary_frame(alpha=0.05)
-    iv_l = pred_frame['obs_ci_lower'].values
-    iv_u = pred_frame['obs_ci_upper'].values
+    iv_l = pred_frame["obs_ci_lower"].values
+    iv_u = pred_frame["obs_ci_upper"].values
     residuals = model.resid
 
     # 3D Visualisierung: Anatomie im 3D Raum
@@ -2333,29 +2913,41 @@ with tab1:
 
     # Fehlerterme als vertikale Linien
     for i in range(len(x)):
-        fig_detail.add_trace(go.Scatter3d(
-            x=[x[i], x[i]], y=[y_pred[i], y_pred[i]], z=[y_pred[i], y[i]],
-            mode='lines',
-            line=dict(color='red', width=2),
-            opacity=0.3,
-            showlegend=False
-        ))
+        fig_detail.add_trace(
+            go.Scatter3d(
+                x=[x[i], x[i]],
+                y=[y_pred[i], y_pred[i]],
+                z=[y_pred[i], y[i]],
+                mode="lines",
+                line=dict(color="red", width=2),
+                opacity=0.3,
+                showlegend=False,
+            )
+        )
 
     # Regressionslinie in 3D
-    fig_detail.add_trace(go.Scatter3d(
-        x=x, y=y_pred, z=y_pred,
-        mode='lines',
-        line=dict(color='blue', width=4),
-        name='Regressionsgerade'
-    ))
+    fig_detail.add_trace(
+        go.Scatter3d(
+            x=x,
+            y=y_pred,
+            z=y_pred,
+            mode="lines",
+            line=dict(color="blue", width=4),
+            name="Regressionsgerade",
+        )
+    )
 
     # Datenpunkte
-    fig_detail.add_trace(go.Scatter3d(
-        x=x, y=y_pred, z=y,
-        mode='markers',
-        marker=dict(size=6, color='#1f77b4', opacity=0.7, line=dict(color='white', width=1)),
-        name='Beobachtungen (y)'
-    ))
+    fig_detail.add_trace(
+        go.Scatter3d(
+            x=x,
+            y=y_pred,
+            z=y,
+            mode="markers",
+            marker=dict(size=6, color="#1f77b4", opacity=0.7, line=dict(color="white", width=1)),
+            name="Beobachtungen (y)",
+        )
+    )
 
     # Konfidenzintervall als Linien
     x_sorted_idx = np.argsort(x)
@@ -2364,320 +2956,421 @@ with tab1:
     iv_u_sorted = iv_u[x_sorted_idx]
     iv_l_sorted = iv_l[x_sorted_idx]
 
-    fig_detail.add_trace(go.Scatter3d(
-        x=x_sorted, y=y_pred_sorted, z=iv_u_sorted,
-        mode='lines',
-        line=dict(color='blue', width=2, dash='dash'),
-        opacity=0.5,
-        name='95% KI (upper)',
-        showlegend=True
-    ))
-    fig_detail.add_trace(go.Scatter3d(
-        x=x_sorted, y=y_pred_sorted, z=iv_l_sorted,
-        mode='lines',
-        line=dict(color='blue', width=2, dash='dash'),
-        opacity=0.5,
-        name='95% KI (lower)',
-        showlegend=False
-    ))
-
-    # Schwerpunkt
-    fig_detail.add_trace(go.Scatter3d(
-        x=[x_mean], y=[y_mean_val], z=[y_mean_val],
-        mode='markers',
-        marker=dict(size=10, color='orange', symbol='diamond', line=dict(color='black', width=2)),
-        name='Schwerpunkt'
-    ))
-
-    fig_detail.update_layout(
-        title='3D Anatomie: Datenpunkte, Regressionslinie & Fehlerterme',
-        scene=dict(
-            xaxis_title=f'{x_label} (X)',
-            yaxis_title='ŷ (Vorhersage)',
-            zaxis_title=f'{y_label} (Y)',
-            camera=dict(eye=dict(x=1.5, y=-1.5, z=1.2))
-        ),
-        height=600,
-        showlegend=True
+    fig_detail.add_trace(
+        go.Scatter3d(
+            x=x_sorted,
+            y=y_pred_sorted,
+            z=iv_u_sorted,
+            mode="lines",
+            line=dict(color="blue", width=2, dash="dash"),
+            opacity=0.5,
+            name="95% KI (upper)",
+            showlegend=True,
+        )
+    )
+    fig_detail.add_trace(
+        go.Scatter3d(
+            x=x_sorted,
+            y=y_pred_sorted,
+            z=iv_l_sorted,
+            mode="lines",
+            line=dict(color="blue", width=2, dash="dash"),
+            opacity=0.5,
+            name="95% KI (lower)",
+            showlegend=False,
+        )
     )
 
+    # Schwerpunkt
+    fig_detail.add_trace(
+        go.Scatter3d(
+            x=[x_mean],
+            y=[y_mean_val],
+            z=[y_mean_val],
+            mode="markers",
+            marker=dict(
+                size=10, color="orange", symbol="diamond", line=dict(color="black", width=2)
+            ),
+            name="Schwerpunkt",
+        )
+    )
+
+    fig_detail.update_layout(
+        title="3D Anatomie: Datenpunkte, Regressionslinie & Fehlerterme",
+        scene=dict(
+            xaxis_title=f"{x_label} (X)",
+            yaxis_title="ŷ (Vorhersage)",
+            zaxis_title=f"{y_label} (Y)",
+            camera=dict(eye=dict(x=1.5, y=-1.5, z=1.2)),
+        ),
+        height=600,
+        showlegend=True,
+    )
 
     st.plotly_chart(fig_detail, use_container_width=True)
-        
+
     # Erklärungstext
     col_exp1, col_exp2, col_exp3 = st.columns(3)
 
     with col_exp1:
         st.markdown("### 📐 Steigungsdreieck")
-        st.markdown(rf"""
+        st.markdown(
+            rf"""
         Das gestrichelte Dreieck zeigt visuell:
-    
+
         $b_1 = \frac{{\Delta y}}{{\Delta x}} = \frac{{{b1*2:.2f}}}{{2}} = {b1:.2f}$
-    
-        **Interpretation:** Pro Einheit mehr x 
+
+        **Interpretation:** Pro Einheit mehr x
         steigt y um {b1:.2f} Einheiten.
-        """)
+        """
+        )
 
     with col_exp2:
         st.markdown("### ⭐ Schwerpunkt")
-        st.markdown(f"""
+        st.markdown(
+            f"""
         Der orangene Stern markiert (x̄, ȳ).
-    
+
         **Wichtig:** Die Regressionsgerade geht
         **immer** durch den Schwerpunkt!
-    
+
         Dies folgt aus: $b_0 = \\bar{{y}} - b_1 \\bar{{x}}$
-        """)
+        """
+        )
 
     with col_exp3:
         st.markdown("### 🔴 Fehlerterm εᵢ")
-        st.markdown(f"""
+        st.markdown(
+            f"""
         Die rote Linie zeigt das **Residuum**:
-    
-        $\\epsilon_i = y_i - \\hat{{y}}_i$
-    
-        Das Modell erklärt nicht alles – 
-        dieser Rest ist der "Fehler".
-        """)
 
-    st.info("""
+        $\\epsilon_i = y_i - \\hat{{y}}_i$
+
+        Das Modell erklärt nicht alles –
+        dieser Rest ist der "Fehler".
+        """
+        )
+
+    st.info(
+        """
     **Das Konfidenzintervall (hellblauer Bereich):**
 
-    Der 95%-Bereich zeigt die Unsicherheit unserer Vorhersage. Je weiter wir vom Schwerpunkt 
+    Der 95%-Bereich zeigt die Unsicherheit unserer Vorhersage. Je weiter wir vom Schwerpunkt
     entfernt sind, desto **breiter** wird das Intervall (mehr Unsicherheit bei Extrapolation).
-    """)
+    """
+    )
 
     # Die vollständige OLS-Herleitung
-    with st.expander("🧮 Mathematische Herleitung der OLS-Schätzer", expanded=UI_DEFAULTS["expander_expanded"]):
+    with st.expander(
+        "🧮 Mathematische Herleitung der OLS-Schätzer", expanded=UI_DEFAULTS["expander_expanded"]
+    ):
         st.markdown("### Schritt 1: Das Optimierungsproblem")
-        st.latex(r"\min_{b_0, b_1} \sum_{i=1}^{n} (y_i - b_0 - b_1 \cdot x_i)^2 = \min_{b_0, b_1} SSE")
+        st.latex(
+            r"\min_{b_0, b_1} \sum_{i=1}^{n} (y_i - b_0 - b_1 \cdot x_i)^2 = \min_{b_0, b_1} SSE"
+        )
         st.caption("Wir suchen b₀ und b₁, die die Summe der quadrierten Abweichungen minimieren")
-    
+
         st.markdown("### Schritt 2: Bedingungen erster Ordnung (FOC)")
-        st.latex(r"\frac{\partial SSE}{\partial b_0} = -2 \sum_{i=1}^{n}(y_i - b_0 - b_1 x_i) \stackrel{!}{=} 0")
-        st.latex(r"\frac{\partial SSE}{\partial b_1} = -2 \sum_{i=1}^{n}(y_i - b_0 - b_1 x_i) \cdot x_i \stackrel{!}{=} 0")
-    
+        st.latex(
+            r"\frac{\partial SSE}{\partial b_0} = -2 \sum_{i=1}^{n}(y_i - b_0 - b_1 x_i) \stackrel{!}{=} 0"
+        )
+        st.latex(
+            r"\frac{\partial SSE}{\partial b_1} = -2 \sum_{i=1}^{n}(y_i - b_0 - b_1 x_i) \cdot x_i \stackrel{!}{=} 0"
+        )
+
         st.markdown("### Schritt 3: Aus FOC für b₀ (Normalgleichung 1)")
         st.latex(r"\sum y_i = n \cdot b_0 + b_1 \sum x_i")
         st.latex(r"\Rightarrow b_0 = \bar{y} - b_1 \bar{x}")
-        st.info("📍 **Wichtige Erkenntnis:** Die Regressionsgerade geht immer durch den Schwerpunkt (x̄, ȳ)!")
-    
+        st.info(
+            "📍 **Wichtige Erkenntnis:** Die Regressionsgerade geht immer durch den Schwerpunkt (x̄, ȳ)!"
+        )
+
         st.markdown("### Schritt 4: Einsetzen in FOC für b₁")
         st.latex(r"\sum(y_i - \bar{y} + b_1 \bar{x} - b_1 x_i) \cdot x_i = 0")
         st.latex(r"\sum(y_i - \bar{y}) x_i = b_1 \sum(x_i - \bar{x}) x_i")
-    
+
         st.markdown("### Schritt 5: Lösung für b₁")
-        st.latex(r"b_1 = \frac{\sum(x_i - \bar{x})(y_i - \bar{y})}{\sum(x_i - \bar{x})^2} = \frac{Cov(x,y)}{Var(x)}")
-    
-        st.success("""
+        st.latex(
+            r"b_1 = \frac{\sum(x_i - \bar{x})(y_i - \bar{y})}{\sum(x_i - \bar{x})^2} = \frac{Cov(x,y)}{Var(x)}"
+        )
+
+        st.success(
+            """
         **Zusammenfassung:** Die OLS-Schätzer ergeben sich aus der Ableitung des Minimierungsproblems!
-    
+
         Dies zeigt auch: Je grösser die Varianz von x (der Nenner), desto **präziser** kann b₁ geschätzt werden.
-        """)
+        """
+        )
 
     # Interpretation der Koeffizienten
-    st.markdown('<p class="subsection-header">📖 Interpretation der Ergebnisse</p>', unsafe_allow_html=True)
+    st.markdown(
+        '<p class="subsection-header">📖 Interpretation der Ergebnisse</p>', unsafe_allow_html=True
+    )
 
     col_int1, col_int2, col_int3 = st.columns(3)
 
     with col_int1:
         st.metric("Steigung b₁", f"{b1:.4f}")
-        st.markdown(f"""
-        **Interpretation:** 
-    
-        Im Durchschnitt verändert sich Y um **{b1:.2f} {y_unit}** 
+        st.markdown(
+            f"""
+        **Interpretation:**
+
+        Im Durchschnitt verändert sich Y um **{b1:.2f} {y_unit}**
         pro Einheit mehr X ({x_unit}).
-        """)
+        """
+        )
 
     with col_int2:
         st.metric("Achsenabschnitt b₀", f"{b0:.4f}")
-        st.markdown(f"""
-        **Interpretation:** 
-    
-        Theoretisch der Y-Wert bei x=0. Praktisch ist b₀ oft **nicht direkt interpretierbar**, 
+        st.markdown(
+            f"""
+        **Interpretation:**
+
+        Theoretisch der Y-Wert bei x=0. Praktisch ist b₀ oft **nicht direkt interpretierbar**,
         weil x=0 ausserhalb des beobachteten Datenbereichs liegt (hier: X von {x.min():.1f} bis {x.max():.1f}).
-    
+
         **Warum existiert b₀ trotzdem?**
-        
+
         Die Regressionsgerade geht immer durch den Schwerpunkt (x̄={x_mean:.2f}, ȳ={y_mean_val:.2f}).
         Da die Steigung b₁ festliegt, ergibt sich b₀ automatisch aus: b₀ = ȳ - b₁·x̄
-        
+
         Merke: b₀ sichert, dass die Gerade korrekt positioniert ist.
-        """)
+        """
+        )
 
     with col_int3:
         # Prognose für einen Beispielwert
         x_new = np.percentile(x, 75)  # 75%-Perzentil von X
         y_new = b0 + b1 * x_new
         st.metric(f"Prognose (X={x_new:.1f})", f"{y_new:.2f} {y_unit}")
-        st.markdown(f"""
+        st.markdown(
+            f"""
         **Für X = {x_new:.1f}:**
-    
+
         ŷ = {b0:.2f} + {b1:.2f} × {x_new:.1f} = **{y_new:.2f}**
-        """)
+        """
+        )
 
     # =========================================================
     # KAPITEL 4: DIE GÜTEPRÜFUNG
     # =========================================================
     st.markdown("---")
-    st.markdown('<p class="section-header">4.0 Die Güteprüfung: Validierung des Regressionsmodells</p>', unsafe_allow_html=True)
+    st.markdown(
+        '<p class="section-header">4.0 Die Güteprüfung: Validierung des Regressionsmodells</p>',
+        unsafe_allow_html=True,
+    )
 
-    st.markdown("""
+    st.markdown(
+        """
     Wir haben ein Modell – aber **wie gut** passt es wirklich? Die folgenden Gütemasse quantifizieren die Anpassung.
-    """)
+    """
+    )
 
     # 4.1 Standardfehler der Regression
-    st.markdown('<p class="subsection-header">4.1 Standardfehler der Regression (sₑ): Die durchschnittliche Prognoseabweichung</p>', unsafe_allow_html=True)
+    st.markdown(
+        '<p class="subsection-header">4.1 Standardfehler der Regression (sₑ): Die durchschnittliche Prognoseabweichung</p>',
+        unsafe_allow_html=True,
+    )
 
     col_se1, col_se2 = st.columns([2, 1])
 
     with col_se1:
         # Create standard error plot with plotly
         fig_se = go.Figure()
-        
+
         # Data points
-        fig_se.add_trace(go.Scatter(
-            x=x, y=y,
-            mode='markers',
-            marker=dict(size=8, color='#1f77b4', opacity=0.6,
-                       line=dict(width=1, color='white')),
-            name='Data'
-        ))
-        
+        fig_se.add_trace(
+            go.Scatter(
+                x=x,
+                y=y,
+                mode="markers",
+                marker=dict(
+                    size=8, color="#1f77b4", opacity=0.6, line=dict(width=1, color="white")
+                ),
+                name="Data",
+            )
+        )
+
         # Regression line
-        fig_se.add_trace(go.Scatter(
-            x=x, y=y_pred,
-            mode='lines',
-            line=dict(color='red', width=3),
-            name='Regressionsgerade'
-        ))
-        
+        fig_se.add_trace(
+            go.Scatter(
+                x=x,
+                y=y_pred,
+                mode="lines",
+                line=dict(color="red", width=3),
+                name="Regressionsgerade",
+            )
+        )
+
         # ±2 se band
-        fig_se.add_trace(go.Scatter(
-            x=np.concatenate([x, x[::-1]]),
-            y=np.concatenate([y_pred + 2*se_regression, (y_pred - 2*se_regression)[::-1]]),
-            fill='toself',
-            fillcolor='rgba(255, 0, 0, 0.1)',
-            line=dict(width=0),
-            name=f'±2·sₑ',
-            showlegend=True
-        ))
-        
+        fig_se.add_trace(
+            go.Scatter(
+                x=np.concatenate([x, x[::-1]]),
+                y=np.concatenate([y_pred + 2 * se_regression, (y_pred - 2 * se_regression)[::-1]]),
+                fill="toself",
+                fillcolor="rgba(255, 0, 0, 0.1)",
+                line=dict(width=0),
+                name=f"±2·sₑ",
+                showlegend=True,
+            )
+        )
+
         # ±1 se band
-        fig_se.add_trace(go.Scatter(
-            x=np.concatenate([x, x[::-1]]),
-            y=np.concatenate([y_pred + se_regression, (y_pred - se_regression)[::-1]]),
-            fill='toself',
-            fillcolor='rgba(255, 0, 0, 0.2)',
-            line=dict(width=0),
-            name=f'±1·sₑ = ±{se_regression:.3f}',
-            showlegend=True
-        ))
-        
+        fig_se.add_trace(
+            go.Scatter(
+                x=np.concatenate([x, x[::-1]]),
+                y=np.concatenate([y_pred + se_regression, (y_pred - se_regression)[::-1]]),
+                fill="toself",
+                fillcolor="rgba(255, 0, 0, 0.2)",
+                line=dict(width=0),
+                name=f"±1·sₑ = ±{se_regression:.3f}",
+                showlegend=True,
+            )
+        )
+
         fig_se.update_layout(
-            title=f'Der Standardfehler sₑ = {se_regression:.4f} zeigt die typische Streuung um die Linie',
+            title=f"Der Standardfehler sₑ = {se_regression:.4f} zeigt die typische Streuung um die Linie",
             xaxis_title=x_label,
             yaxis_title=y_label,
-            template='plotly_white',
-            hovermode='closest'
+            template="plotly_white",
+            hovermode="closest",
         )
-    
+
         st.plotly_chart(fig_se, use_container_width=True)
-        
+
     with col_se2:
         if show_formulas:
             st.latex(r"s_e = \sqrt{\frac{SSE}{n-2}} = \sqrt{\frac{\sum(y_i - \hat{y}_i)^2}{n-2}}")
             st.latex(f"s_e = \\sqrt{{\\frac{{{sse:.4f}}}{{{n}-2}}}} = {se_regression:.4f}")
-    
-        st.info(f"""
+
+        st.info(
+            f"""
         **Interpretation:**
-    
-        Im Durchschnitt weichen die tatsächlichen Y-Werte um ca. **{se_regression:.3f} {y_unit}** 
+
+        Im Durchschnitt weichen die tatsächlichen Y-Werte um ca. **{se_regression:.3f} {y_unit}**
         von den vorhergesagten Werten ab.
-    
+
         Ein **kleinerer** Wert = bessere Anpassung.
-        """)
-        
+        """
+        )
+
         with st.expander("Warum n-2? (Degrees of Freedom)", expanded=False):
-            st.markdown(f"""
+            st.markdown(
+                f"""
             **Freiheitsgrade (df) = n - 2 = {n} - 2 = {n-2}**
-            
+
             Wir teilen SSE durch (n-2), nicht durch n. Der Grund:
-            
-            1. **Wir haben 2 Parameter geschaetzt** (b₀ und b₁), 
+
+            1. **Wir haben 2 Parameter geschaetzt** (b₀ und b₁),
                die aus den Daten berechnet wurden.
-            
+
             2. **Jeder geschaetzte Parameter "verbraucht" einen Freiheitsgrad.**
-               Die Residuen sind nicht mehr voellig frei – sie muessen sich 
+               Die Residuen sind nicht mehr voellig frei – sie muessen sich
                zu Null addieren und um die geschaetzte Linie streuen.
-            
+
             3. **Konsequenz bei kleinem n:**
                Bei n=10 haben wir nur df=8. Die Schaetzung von sₑ wird unsicherer,
                t-Werte werden extremer bewertet, Konfidenzintervalle breiter.
-            
+
             **Faustregel:** Bei n < 30 wirkt sich die Korrektur spuerbar aus.
-            """)
+            """
+            )
 
     # --- Unsicherheit der Koeffizienten s_b₀ und s_b₁ ---
-    st.markdown('<p class="subsection-header">4.1b Standardfehler der Koeffizienten: Die Unsicherheit von b₀ und b₁</p>', unsafe_allow_html=True)
+    st.markdown(
+        '<p class="subsection-header">4.1b Standardfehler der Koeffizienten: Die Unsicherheit von b₀ und b₁</p>',
+        unsafe_allow_html=True,
+    )
 
-    st.markdown("""
-    Der Standardfehler **sₑ** beschreibt die Streuung der Punkte um die Linie. Aber wie **sicher** sind 
+    st.markdown(
+        """
+    Der Standardfehler **sₑ** beschreibt die Streuung der Punkte um die Linie. Aber wie **sicher** sind
     wir uns über die Steigung (b₁) und den Achsenabschnitt (b₀) selbst? Das zeigen uns **s_b₀** und **s_b₁**.
-    """)
+    """
+    )
 
     col_sb1, col_sb2 = st.columns([2, 1])
 
     with col_sb1:
         # Create 2-panel standard error comparison with plotly
-        
+
         fig_sb = make_subplots(
-            rows=1, cols=2,
-            subplot_titles=(f'sₑ = {se_regression:.4f}<br>(Streuung der PUNKTE um die Linie)',
-                           f's_b₁ = {sb1:.4f}<br>(Unsicherheit der STEIGUNG)')
+            rows=1,
+            cols=2,
+            subplot_titles=(
+                f"sₑ = {se_regression:.4f}<br>(Streuung der PUNKTE um die Linie)",
+                f"s_b₁ = {sb1:.4f}<br>(Unsicherheit der STEIGUNG)",
+            ),
         )
-        
+
         # Left panel: se (residual standard error)
         fig_sb.add_trace(
-            go.Scatter(x=x, y=y, mode='markers',
-                      marker=dict(size=6, color='gray', opacity=0.5),
-                      showlegend=False),
-            row=1, col=1
+            go.Scatter(
+                x=x,
+                y=y,
+                mode="markers",
+                marker=dict(size=6, color="gray", opacity=0.5),
+                showlegend=False,
+            ),
+            row=1,
+            col=1,
         )
-        
+
         fig_sb.add_trace(
-            go.Scatter(x=x, y=y_pred, mode='lines',
-                      line=dict(color='blue', width=3),
-                      name='Unsere Schätzung'),
-            row=1, col=1
+            go.Scatter(
+                x=x,
+                y=y_pred,
+                mode="lines",
+                line=dict(color="blue", width=3),
+                name="Unsere Schätzung",
+            ),
+            row=1,
+            col=1,
         )
-        
+
         # ±2 se band
         fig_sb.add_trace(
-            go.Scatter(x=np.concatenate([x, x[::-1]]),
-                      y=np.concatenate([y_pred + 2*se_regression, (y_pred - 2*se_regression)[::-1]]),
-                      fill='toself', fillcolor='rgba(0, 0, 255, 0.1)',
-                      line=dict(width=0), name=f'±2·sₑ', showlegend=True),
-            row=1, col=1
+            go.Scatter(
+                x=np.concatenate([x, x[::-1]]),
+                y=np.concatenate([y_pred + 2 * se_regression, (y_pred - 2 * se_regression)[::-1]]),
+                fill="toself",
+                fillcolor="rgba(0, 0, 255, 0.1)",
+                line=dict(width=0),
+                name=f"±2·sₑ",
+                showlegend=True,
+            ),
+            row=1,
+            col=1,
         )
-        
+
         # ±1 se band
         fig_sb.add_trace(
-            go.Scatter(x=np.concatenate([x, x[::-1]]),
-                      y=np.concatenate([y_pred + se_regression, (y_pred - se_regression)[::-1]]),
-                      fill='toself', fillcolor='rgba(0, 0, 255, 0.2)',
-                      line=dict(width=0), name=f'±1·sₑ = ±{se_regression:.3f}', showlegend=True),
-            row=1, col=1
+            go.Scatter(
+                x=np.concatenate([x, x[::-1]]),
+                y=np.concatenate([y_pred + se_regression, (y_pred - se_regression)[::-1]]),
+                fill="toself",
+                fillcolor="rgba(0, 0, 255, 0.2)",
+                line=dict(width=0),
+                name=f"±1·sₑ = ±{se_regression:.3f}",
+                showlegend=True,
+            ),
+            row=1,
+            col=1,
         )
-        
+
         # Right panel: sb1 (standard error of slope)
         fig_sb.add_trace(
-            go.Scatter(x=x, y=y, mode='markers',
-                      marker=dict(size=4, color='gray', opacity=0.4),
-                      showlegend=False),
-            row=1, col=2
+            go.Scatter(
+                x=x,
+                y=y,
+                mode="markers",
+                marker=dict(size=4, color="gray", opacity=0.4),
+                showlegend=False,
+            ),
+            row=1,
+            col=2,
         )
-        
+
         # Simulate multiple regression lines
         np.random.seed(456)
         x_sim = np.linspace(min(x), max(x), 100)
@@ -2685,189 +3378,231 @@ with tab1:
             sim_slope = np.random.normal(b1, sb1)
             sim_intercept = np.random.normal(b0, sb0)
             fig_sb.add_trace(
-                go.Scatter(x=x_sim, y=sim_intercept + sim_slope * x_sim,
-                          mode='lines', line=dict(color='green', width=0.5),
-                          opacity=0.05, showlegend=False),
-                row=1, col=2
+                go.Scatter(
+                    x=x_sim,
+                    y=sim_intercept + sim_slope * x_sim,
+                    mode="lines",
+                    line=dict(color="green", width=0.5),
+                    opacity=0.05,
+                    showlegend=False,
+                ),
+                row=1,
+                col=2,
             )
-        
+
         fig_sb.add_trace(
-            go.Scatter(x=x, y=y_pred, mode='lines',
-                      line=dict(color='black', width=3),
-                      name='Unsere Schätzung'),
-            row=1, col=2
+            go.Scatter(
+                x=x,
+                y=y_pred,
+                mode="lines",
+                line=dict(color="black", width=3),
+                name="Unsere Schätzung",
+            ),
+            row=1,
+            col=2,
         )
-        
+
         fig_sb.update_xaxes(title_text=x_label, row=1, col=1)
         fig_sb.update_yaxes(title_text=y_label, row=1, col=1)
         fig_sb.update_xaxes(title_text=x_label, row=1, col=2)
-        
-        fig_sb.update_layout(height=400, template='plotly_white', showlegend=True)
-    
+
+        fig_sb.update_layout(height=400, template="plotly_white", showlegend=True)
+
         st.plotly_chart(fig_sb, use_container_width=True)
-        
+
     with col_sb2:
         if show_formulas:
             st.markdown("### s_b₁ (Std. Error Steigung)")
             st.latex(r"s_{b_1} = \frac{s_e}{\sqrt{(n-1) \cdot s_x^2}} = \frac{s_e}{\sqrt{SS_x}}")
             st.latex(f"s_{{b_1}} = {sb1:.4f}")
-        
+
             st.markdown("### s_b₀ (Std. Error Achsenabschnitt)")
             st.latex(f"s_{{b_0}} = {sb0:.4f}")
-    
-        st.warning(f"""
+
+        st.warning(
+            f"""
         **Wichtiger Unterschied:**
         - **sₑ = {se_regression:.4f}** → Wie stark streuen die **Punkte** um die Linie?
         - **s_b₁ = {sb1:.4f}** → Wie genau ist unsere geschätzte **Steigung**?
         - **s_b₀ = {sb0:.4f}** → Wie genau ist unser **Achsenabschnitt**?
-    
-        Die grünen Linien rechts zeigen: Mit anderen Stichproben hätten wir 
+
+        Die grünen Linien rechts zeigen: Mit anderen Stichproben hätten wir
         etwas andere Steigungen bekommen!
-        """)
+        """
+        )
 
     # 4.2 Bestimmtheitsmass R²
-    st.markdown('<p class="subsection-header">4.2 Bestimmtheitsmass (R²): Der Anteil der erklärten Varianz</p>', unsafe_allow_html=True)
+    st.markdown(
+        '<p class="subsection-header">4.2 Bestimmtheitsmass (R²): Der Anteil der erklärten Varianz</p>',
+        unsafe_allow_html=True,
+    )
 
     col_r2_1, col_r2_2 = st.columns([2, 1])
 
     with col_r2_1:
         # 3D Visualisierung: Würfel für SST, SSR, SSE using plotly
-        
+
         fig_var = make_subplots(
-            rows=1, cols=3,
-            specs=[[{'type': 'scatter3d'}, {'type': 'scatter3d'}, {'type': 'scatter3d'}]],
+            rows=1,
+            cols=3,
+            specs=[[{"type": "scatter3d"}, {"type": "scatter3d"}, {"type": "scatter3d"}]],
             subplot_titles=(
-                f'SST = {sst:.2f}<br>(Gesamte Variation)',
-                f'SSR = {ssr:.2f}<br>(Durch Modell erklärt)',
-                f'SSE = {sse:.2f}<br>(Unerklärt/Residuen)'
-            )
+                f"SST = {sst:.2f}<br>(Gesamte Variation)",
+                f"SSR = {ssr:.2f}<br>(Durch Modell erklärt)",
+                f"SSE = {sse:.2f}<br>(Unerklärt/Residuen)",
+            ),
         )
-    
+
         # Normalisierung für Visualisierung
         sst_norm = sst
         ssr_norm = ssr / sst_norm
         sse_norm = sse / sst_norm
-    
+
         # Helper function to create cube mesh
         def create_cube(height, color, row, col):
             # Cube vertices
             x = [0, 1, 1, 0, 0, 1, 1, 0]
             y = [0, 0, 1, 1, 0, 0, 1, 1]
             z = [0, 0, 0, 0, height, height, height, height]
-            
+
             # Cube faces (triangles)
             i = [7, 0, 0, 0, 4, 4, 6, 6, 4, 0, 3, 2]
             j = [3, 4, 1, 2, 5, 6, 5, 2, 0, 1, 6, 3]
             k = [0, 7, 2, 3, 6, 7, 1, 1, 5, 5, 7, 6]
-            
+
             fig_var.add_trace(
-                go.Mesh3d(x=x, y=y, z=z, i=i, j=j, k=k,
-                        color=color, opacity=0.3, flatshading=True,
-                        showscale=False, showlegend=False),
-                row=row, col=col
+                go.Mesh3d(
+                    x=x,
+                    y=y,
+                    z=z,
+                    i=i,
+                    j=j,
+                    k=k,
+                    color=color,
+                    opacity=0.3,
+                    flatshading=True,
+                    showscale=False,
+                    showlegend=False,
+                ),
+                row=row,
+                col=col,
             )
-        
+
         # 1. SST (full cube)
-        create_cube(1.0, 'orange', 1, 1)
-        
+        create_cube(1.0, "orange", 1, 1)
+
         # 2. SSR (cube with ssr_norm height)
-        create_cube(ssr_norm, 'green', 1, 2)
-        
+        create_cube(ssr_norm, "green", 1, 2)
+
         # 3. SSE (cube with sse_norm height)
-        create_cube(sse_norm, 'red', 1, 3)
-    
+        create_cube(sse_norm, "red", 1, 3)
+
         # Update layout
         fig_var.update_layout(
-            title_text=f'3D Varianzzerlegung: SST = SSR + SSE → R² = {model.rsquared:.1%}',
+            title_text=f"3D Varianzzerlegung: SST = SSR + SSE → R² = {model.rsquared:.1%}",
             title_font_size=14,
             height=500,
-            showlegend=False
+            showlegend=False,
         )
-        
+
         # Update all 3D scenes - use update_layout with individual scene specifications
         fig_var.update_layout(
             scene=dict(
-                xaxis=dict(title='X', range=[0, 1]),
-                yaxis=dict(title='Y', range=[0, 1]),
-                zaxis=dict(title='Varianz', range=[0, 1]),
-                camera=CAMERA_PRESETS["top_down"]
+                xaxis=dict(title="X", range=[0, 1]),
+                yaxis=dict(title="Y", range=[0, 1]),
+                zaxis=dict(title="Varianz", range=[0, 1]),
+                camera=CAMERA_PRESETS["top_down"],
             ),
             scene2=dict(
-                xaxis=dict(title='X', range=[0, 1]),
-                yaxis=dict(title='Y', range=[0, 1]),
-                zaxis=dict(title='Varianz', range=[0, 1]),
-                camera=CAMERA_PRESETS["top_down"]
+                xaxis=dict(title="X", range=[0, 1]),
+                yaxis=dict(title="Y", range=[0, 1]),
+                zaxis=dict(title="Varianz", range=[0, 1]),
+                camera=CAMERA_PRESETS["top_down"],
             ),
             scene3=dict(
-                xaxis=dict(title='X', range=[0, 1]),
-                yaxis=dict(title='Y', range=[0, 1]),
-                zaxis=dict(title='Varianz', range=[0, 1]),
-                camera=CAMERA_PRESETS["top_down"]
-            )
+                xaxis=dict(title="X", range=[0, 1]),
+                yaxis=dict(title="Y", range=[0, 1]),
+                zaxis=dict(title="Varianz", range=[0, 1]),
+                camera=CAMERA_PRESETS["top_down"],
+            ),
         )
-    
-        fig_var.update_layout(
-        )
-        
+
+        fig_var.update_layout()
+
         st.plotly_chart(fig_var, use_container_width=True)
-            
+
     with col_r2_2:
         if show_formulas:
             st.latex(r"R^2 = \frac{SSR}{SST} = 1 - \frac{SSE}{SST}")
             st.latex(f"R^2 = \\frac{{{ssr:.2f}}}{{{sst:.2f}}} = {model.rsquared:.4f}")
-    
+
         # R² als Balken
         fig_r2bar = create_plotly_bar(
-            categories=['SST\n(Total)', 'SSR\n(Erklärt)', 'SSE\n(Unerklärt)'],
+            categories=["SST\n(Total)", "SSR\n(Erklärt)", "SSE\n(Unerklärt)"],
             values=[sst, ssr, sse],
-            colors=['gray', 'green', 'red'],
-            title=f"R² = {model.rsquared:.1%}"
+            colors=["gray", "green", "red"],
+            title=f"R² = {model.rsquared:.1%}",
         )
         st.plotly_chart(fig_r2bar, use_container_width=True)
-        
-        st.success(f"""
-        **{model.rsquared:.1%}** der Varianz in Y 
+
+        st.success(
+            f"""
+        **{model.rsquared:.1%}** der Varianz in Y
         wird durch X erklärt!
-        """)
+        """
+        )
 
     # =========================================================
     # KAPITEL 5: DIE SIGNIFIKANZ
     # =========================================================
     st.markdown("---")
-    st.markdown('<p class="section-header">5.0 Die Signifikanz: Statistische Inferenz und Hypothesentests</p>', unsafe_allow_html=True)
+    st.markdown(
+        '<p class="section-header">5.0 Die Signifikanz: Statistische Inferenz und Hypothesentests</p>',
+        unsafe_allow_html=True,
+    )
 
-    st.markdown("""
+    st.markdown(
+        """
     Unser R² von {:.1%} sieht beeindruckend aus. Aber basiert es nur auf einer **Zufallsstichprobe**?
     Können wir sicher sein, dass dieser Zusammenhang auch in der **Grundgesamtheit** gilt?
 
     Dafür brauchen wir **Hypothesentests**!
-    """.format(model.rsquared))
+    """.format(
+            model.rsquared
+        )
+    )
 
     # Annahmen
-    st.markdown('<p class="subsection-header">📋 Voraussetzungen für valide Inferenz: Die Gauss-Markov Annahmen</p>', unsafe_allow_html=True)
+    st.markdown(
+        '<p class="subsection-header">📋 Voraussetzungen für valide Inferenz: Die Gauss-Markov Annahmen</p>',
+        unsafe_allow_html=True,
+    )
 
-    st.markdown("""
-    Die OLS-Schätzung liefert **unverzerrte (erwartungstreue) Schätzer** für β₀ und β₁. 
+    st.markdown(
+        """
+    Die OLS-Schätzung liefert **unverzerrte (erwartungstreue) Schätzer** für β₀ und β₁.
     Für die Durchführung von Hypothesentests werden aber weitere Annahmen benötigt:
-    """)
+    """
+    )
 
     # Visualisierung aller 4 Annahmen: Korrekt vs. Verletzt
     fig_assumptions = make_subplots(
-        rows=4, cols=2,
+        rows=4,
+        cols=2,
         subplot_titles=(
-            '✅ (1) E(εᵢ|xᵢ) = 0<br>Fehler symmetrisch um Null',
-            '❌ E(εᵢ|xᵢ) ≠ 0<br>Nicht-linearer Zusammenhang ignoriert',
-            '✅ (2) Var(εᵢ) = σ² (konstant)<br>Homoskedastizität',
-            '❌ Var(εᵢ|xᵢ) = f(xᵢ)<br>Heteroskedastizität (Trichter)',
-            '✅ (3) Cov(εᵢ, εⱼ) = 0<br>Keine Autokorrelation',
-            '❌ Cov(εᵢ, εⱼ) ≠ 0<br>Autokorrelation (Muster in Residuen)',
-            '✅ (4) ε ~ N(0, σ²)<br>Normalverteilte Residuen',
-            '❌ ε nicht normalverteilt<br>Schiefe Verteilung'
+            "✅ (1) E(εᵢ|xᵢ) = 0<br>Fehler symmetrisch um Null",
+            "❌ E(εᵢ|xᵢ) ≠ 0<br>Nicht-linearer Zusammenhang ignoriert",
+            "✅ (2) Var(εᵢ) = σ² (konstant)<br>Homoskedastizität",
+            "❌ Var(εᵢ|xᵢ) = f(xᵢ)<br>Heteroskedastizität (Trichter)",
+            "✅ (3) Cov(εᵢ, εⱼ) = 0<br>Keine Autokorrelation",
+            "❌ Cov(εᵢ, εⱼ) ≠ 0<br>Autokorrelation (Muster in Residuen)",
+            "✅ (4) ε ~ N(0, σ²)<br>Normalverteilte Residuen",
+            "❌ ε nicht normalverteilt<br>Schiefe Verteilung",
         ),
         vertical_spacing=0.08,
-        horizontal_spacing=0.1
+        horizontal_spacing=0.1,
     )
-    
+
     np.random.seed(123)
     n_demo = 100
     x_demo = np.linspace(1, 10, n_demo)
@@ -2876,38 +3611,67 @@ with tab1:
     # Korrekt
     y_correct_1 = 2 + 0.5 * x_demo + np.random.normal(0, 1, n_demo)
     fig_assumptions.add_trace(
-        go.Scatter(x=x_demo, y=y_correct_1, mode='markers',
-                  marker=dict(size=4, color='green', opacity=0.5),
-                  showlegend=False),
-        row=1, col=1
+        go.Scatter(
+            x=x_demo,
+            y=y_correct_1,
+            mode="markers",
+            marker=dict(size=4, color="green", opacity=0.5),
+            showlegend=False,
+        ),
+        row=1,
+        col=1,
     )
     fig_assumptions.add_trace(
-        go.Scatter(x=x_demo, y=2 + 0.5 * x_demo, mode='lines',
-                  line=dict(color='blue', width=2), showlegend=False),
-        row=1, col=1
+        go.Scatter(
+            x=x_demo,
+            y=2 + 0.5 * x_demo,
+            mode="lines",
+            line=dict(color="blue", width=2),
+            showlegend=False,
+        ),
+        row=1,
+        col=1,
     )
-    fig_assumptions.add_hline(y=2 + 0.5 * 5.5, line_dash="dash", line_color="gray",
-                             opacity=0.5, row=1, col=1)
+    fig_assumptions.add_hline(
+        y=2 + 0.5 * 5.5, line_dash="dash", line_color="gray", opacity=0.5, row=1, col=1
+    )
 
     # Verletzt
-    y_violated_1 = 2 + 0.5 * x_demo + 0.1 * (x_demo - 5)**2 + np.random.normal(0, 0.5, n_demo)
+    y_violated_1 = 2 + 0.5 * x_demo + 0.1 * (x_demo - 5) ** 2 + np.random.normal(0, 0.5, n_demo)
     fig_assumptions.add_trace(
-        go.Scatter(x=x_demo, y=y_violated_1, mode='markers',
-                  marker=dict(size=4, color='red', opacity=0.5),
-                  showlegend=False),
-        row=1, col=2
+        go.Scatter(
+            x=x_demo,
+            y=y_violated_1,
+            mode="markers",
+            marker=dict(size=4, color="red", opacity=0.5),
+            showlegend=False,
+        ),
+        row=1,
+        col=2,
     )
     fig_assumptions.add_trace(
-        go.Scatter(x=x_demo, y=2 + 0.5 * x_demo, mode='lines',
-                  line=dict(color='blue', width=2),
-                  name='Lineares Modell', showlegend=False),
-        row=1, col=2
+        go.Scatter(
+            x=x_demo,
+            y=2 + 0.5 * x_demo,
+            mode="lines",
+            line=dict(color="blue", width=2),
+            name="Lineares Modell",
+            showlegend=False,
+        ),
+        row=1,
+        col=2,
     )
     fig_assumptions.add_trace(
-        go.Scatter(x=x_demo, y=2 + 0.5 * x_demo + 0.1 * (x_demo - 5)**2,
-                  mode='lines', line=dict(color='green', width=2, dash='dash'),
-                  name='Wahrer Zusammenhang', showlegend=False),
-        row=1, col=2
+        go.Scatter(
+            x=x_demo,
+            y=2 + 0.5 * x_demo + 0.1 * (x_demo - 5) ** 2,
+            mode="lines",
+            line=dict(color="green", width=2, dash="dash"),
+            name="Wahrer Zusammenhang",
+            showlegend=False,
+        ),
+        row=1,
+        col=2,
     )
 
     # === ANNAHME 2: Var(εᵢ) = σ² (Homoskedastizität) ===
@@ -2915,44 +3679,68 @@ with tab1:
     y_correct_2 = 2 + 0.5 * x_demo + np.random.normal(0, 1, n_demo)
     y_line_2 = 2 + 0.5 * x_demo
     fig_assumptions.add_trace(
-        go.Scatter(x=np.concatenate([x_demo, x_demo[::-1]]),
-                  y=np.concatenate([y_line_2 + 2, (y_line_2 - 2)[::-1]]),
-                  fill='toself', fillcolor='rgba(0,0,255,0.2)',
-                  line=dict(width=0), showlegend=False),
-        row=2, col=1
+        go.Scatter(
+            x=np.concatenate([x_demo, x_demo[::-1]]),
+            y=np.concatenate([y_line_2 + 2, (y_line_2 - 2)[::-1]]),
+            fill="toself",
+            fillcolor="rgba(0,0,255,0.2)",
+            line=dict(width=0),
+            showlegend=False,
+        ),
+        row=2,
+        col=1,
     )
     fig_assumptions.add_trace(
-        go.Scatter(x=x_demo, y=y_correct_2, mode='markers',
-                  marker=dict(size=4, color='green', opacity=0.5),
-                  showlegend=False),
-        row=2, col=1
+        go.Scatter(
+            x=x_demo,
+            y=y_correct_2,
+            mode="markers",
+            marker=dict(size=4, color="green", opacity=0.5),
+            showlegend=False,
+        ),
+        row=2,
+        col=1,
     )
     fig_assumptions.add_trace(
-        go.Scatter(x=x_demo, y=y_line_2, mode='lines',
-                  line=dict(color='blue', width=2), showlegend=False),
-        row=2, col=1
+        go.Scatter(
+            x=x_demo, y=y_line_2, mode="lines", line=dict(color="blue", width=2), showlegend=False
+        ),
+        row=2,
+        col=1,
     )
 
     # Verletzt
     hetero_noise = np.random.normal(0, 0.3 * x_demo, n_demo)
     y_violated_2 = 2 + 0.5 * x_demo + hetero_noise
     fig_assumptions.add_trace(
-        go.Scatter(x=np.concatenate([x_demo, x_demo[::-1]]),
-                  y=np.concatenate([y_line_2 + 0.6 * x_demo, (y_line_2 - 0.6 * x_demo)[::-1]]),
-                  fill='toself', fillcolor='rgba(255,0,0,0.2)',
-                  line=dict(width=0), showlegend=False),
-        row=2, col=2
+        go.Scatter(
+            x=np.concatenate([x_demo, x_demo[::-1]]),
+            y=np.concatenate([y_line_2 + 0.6 * x_demo, (y_line_2 - 0.6 * x_demo)[::-1]]),
+            fill="toself",
+            fillcolor="rgba(255,0,0,0.2)",
+            line=dict(width=0),
+            showlegend=False,
+        ),
+        row=2,
+        col=2,
     )
     fig_assumptions.add_trace(
-        go.Scatter(x=x_demo, y=y_violated_2, mode='markers',
-                  marker=dict(size=4, color='red', opacity=0.5),
-                  showlegend=False),
-        row=2, col=2
+        go.Scatter(
+            x=x_demo,
+            y=y_violated_2,
+            mode="markers",
+            marker=dict(size=4, color="red", opacity=0.5),
+            showlegend=False,
+        ),
+        row=2,
+        col=2,
     )
     fig_assumptions.add_trace(
-        go.Scatter(x=x_demo, y=y_line_2, mode='lines',
-                  line=dict(color='blue', width=2), showlegend=False),
-        row=2, col=2
+        go.Scatter(
+            x=x_demo, y=y_line_2, mode="lines", line=dict(color="blue", width=2), showlegend=False
+        ),
+        row=2,
+        col=2,
     )
 
     # === ANNAHME 3: Cov(εᵢ, εⱼ) = 0 (Keine Autokorrelation) ===
@@ -2960,12 +3748,16 @@ with tab1:
     y_correct_3 = 2 + 0.5 * x_demo + np.random.normal(0, 1, n_demo)
     resid_correct_3 = y_correct_3 - (2 + 0.5 * x_demo)
     fig_assumptions.add_trace(
-        go.Scatter(x=list(range(n_demo-1)), y=resid_correct_3[:-1],
-                  mode='markers',
-                  marker=dict(size=4, color=resid_correct_3[1:],
-                            colorscale='RdBu', showscale=False),
-                  opacity=0.7, showlegend=False),
-        row=3, col=1
+        go.Scatter(
+            x=list(range(n_demo - 1)),
+            y=resid_correct_3[:-1],
+            mode="markers",
+            marker=dict(size=4, color=resid_correct_3[1:], colorscale="RdBu", showscale=False),
+            opacity=0.7,
+            showlegend=False,
+        ),
+        row=3,
+        col=1,
     )
     fig_assumptions.add_hline(y=0, line_dash="dash", line_color="gray", row=3, col=1)
 
@@ -2973,14 +3765,19 @@ with tab1:
     auto_error = np.zeros(n_demo)
     auto_error[0] = np.random.normal(0, 1)
     for i in range(1, n_demo):
-        auto_error[i] = 0.8 * auto_error[i-1] + np.random.normal(0, 0.5)
+        auto_error[i] = 0.8 * auto_error[i - 1] + np.random.normal(0, 0.5)
     fig_assumptions.add_trace(
-        go.Scatter(x=list(range(n_demo)), y=auto_error,
-                  mode='lines+markers',
-                  line=dict(color='red', width=1.5),
-                  marker=dict(size=3, color='red'),
-                  opacity=0.7, showlegend=False),
-        row=3, col=2
+        go.Scatter(
+            x=list(range(n_demo)),
+            y=auto_error,
+            mode="lines+markers",
+            line=dict(color="red", width=1.5),
+            marker=dict(size=3, color="red"),
+            opacity=0.7,
+            showlegend=False,
+        ),
+        row=3,
+        col=2,
     )
     fig_assumptions.add_hline(y=0, line_dash="dash", line_color="gray", row=3, col=2)
 
@@ -2988,32 +3785,55 @@ with tab1:
     # Korrekt
     normal_resid = np.random.normal(0, 1, n_demo)
     fig_assumptions.add_trace(
-        go.Histogram(x=normal_resid, histnorm='probability density',
-                    marker_color='green', opacity=0.7, nbinsx=20,
-                    showlegend=False),
-        row=4, col=1
+        go.Histogram(
+            x=normal_resid,
+            histnorm="probability density",
+            marker_color="green",
+            opacity=0.7,
+            nbinsx=20,
+            showlegend=False,
+        ),
+        row=4,
+        col=1,
     )
     x_norm = np.linspace(-4, 4, 100)
     fig_assumptions.add_trace(
-        go.Scatter(x=x_norm, y=stats.norm.pdf(x_norm, 0, 1),
-                  mode='lines', line=dict(color='blue', width=2),
-                  showlegend=False),
-        row=4, col=1
+        go.Scatter(
+            x=x_norm,
+            y=stats.norm.pdf(x_norm, 0, 1),
+            mode="lines",
+            line=dict(color="blue", width=2),
+            showlegend=False,
+        ),
+        row=4,
+        col=1,
     )
 
     # Verletzt
     skewed_resid = np.random.exponential(1, n_demo) - 1
     fig_assumptions.add_trace(
-        go.Histogram(x=skewed_resid, histnorm='probability density',
-                    marker_color='red', opacity=0.7, nbinsx=20,
-                    showlegend=False),
-        row=4, col=2
+        go.Histogram(
+            x=skewed_resid,
+            histnorm="probability density",
+            marker_color="red",
+            opacity=0.7,
+            nbinsx=20,
+            showlegend=False,
+        ),
+        row=4,
+        col=2,
     )
     fig_assumptions.add_trace(
-        go.Scatter(x=x_norm, y=stats.norm.pdf(x_norm, 0, 1),
-                  mode='lines', line=dict(color='blue', width=2, dash='dash'),
-                  name='Normalverteilung', showlegend=False),
-        row=4, col=2
+        go.Scatter(
+            x=x_norm,
+            y=stats.norm.pdf(x_norm, 0, 1),
+            mode="lines",
+            line=dict(color="blue", width=2, dash="dash"),
+            name="Normalverteilung",
+            showlegend=False,
+        ),
+        row=4,
+        col=2,
     )
 
     # Update axes labels
@@ -3032,117 +3852,138 @@ with tab1:
     fig_assumptions.update_xaxes(title_text="Residuum", row=4, col=2)
 
     fig_assumptions.update_layout(
-        title_text='Die 4 Gauss-Markov Annahmen: Korrekt (links) vs. Verletzt (rechts)',
+        title_text="Die 4 Gauss-Markov Annahmen: Korrekt (links) vs. Verletzt (rechts)",
         title_font_size=16,
         height=1400,
-        showlegend=False
+        showlegend=False,
     )
 
     st.plotly_chart(fig_assumptions, use_container_width=True)
-    
+
     # Erklärungstext zu den Konsequenzen
     col_gm1, col_gm2 = st.columns(2)
 
     with col_gm1:
-        st.success("""
+        st.success(
+            """
         **Wenn alle Annahmen erfüllt sind:**
-    
+
         Nach dem **Satz von Gauss-Markov** ist der OLS-Schätzer dann **BLUE**:
         - **B**est = kleinste Varianz
         - **L**inear = lineare Funktion der Daten
         - **U**nbiased = erwartungstreu
         - **E**stimator = Schätzer
-    
+
         → Es gibt keinen anderen linearen Schätzer mit kleinerer Varianz!
-        """)
+        """
+        )
 
     with col_gm2:
-        st.error("""
+        st.error(
+            """
         **Konsequenzen bei Verletzungen:**
-    
+
         | Verletzung | Problem |
         |------------|---------|
         | **(1) E(ε|x) ≠ 0** | Schätzer **verzerrt** (biased) |
         | **(2) Heteroskedastizität** | Standardfehler **falsch** → t/F-Tests ungültig |
         | **(3) Autokorrelation** | Standardfehler **falsch** → Tests ungültig |
         | **(4) Nicht-Normalität** | Bei kleinem n: Tests **ungültig** |
-        """)
+        """
+        )
 
     # Unsere Daten prüfen
     with st.expander("🔍 Diagnose: Erfüllen unsere Daten die Annahmen?"):
         col_diag1, col_diag2 = st.columns(2)
-    
+
         with col_diag1:
             # Create residual plot with plotly
             fig_diag1 = go.Figure()
-            
-            fig_diag1.add_trace(go.Scatter(
-                x=y_pred, y=model.resid,
-                mode='markers',
-                marker=dict(size=7, color='blue', opacity=0.6),
-                showlegend=False
-            ))
-            
-            fig_diag1.add_hline(y=0, line_dash='dash', line_color='red', line_width=2)
-            
-            fig_diag1.update_layout(
-                title='Residuenplot: Prüfung (1) & (2)',
-                xaxis_title='Vorhergesagte Werte (ŷ)',
-                yaxis_title='Residuen (e)',
-                template='plotly_white',
-                hovermode='closest'
+
+            fig_diag1.add_trace(
+                go.Scatter(
+                    x=y_pred,
+                    y=model.resid,
+                    mode="markers",
+                    marker=dict(size=7, color="blue", opacity=0.6),
+                    showlegend=False,
+                )
             )
-            
+
+            fig_diag1.add_hline(y=0, line_dash="dash", line_color="red", line_width=2)
+
+            fig_diag1.update_layout(
+                title="Residuenplot: Prüfung (1) & (2)",
+                xaxis_title="Vorhergesagte Werte (ŷ)",
+                yaxis_title="Residuen (e)",
+                template="plotly_white",
+                hovermode="closest",
+            )
+
             st.plotly_chart(fig_diag1, use_container_width=True)
-                    
-            st.markdown("""
+
+            st.markdown(
+                """
             **Interpretation:**
             - Punkte sollten **zufällig** um 0 streuen
             - Kein Muster/Trichter → Homoskedastizität ✓
             - Kein Bogen → Linearität ✓
-            """)
-    
+            """
+            )
+
         with col_diag2:
             # Q-Q Plot (Normalität) with plotly
             from scipy.stats import probplot
+
             qq = probplot(model.resid, dist="norm")
-            
+
             fig_diag2 = go.Figure()
-            
-            fig_diag2.add_trace(go.Scatter(
-                x=qq[0][0], y=qq[0][1],
-                mode='markers',
-                marker=dict(size=6, color='blue', opacity=0.6),
-                name='Data'
-            ))
-            
-            # Add reference line
-            fig_diag2.add_trace(go.Scatter(
-                x=qq[0][0], y=qq[1][1] + qq[1][0]*qq[0][0],
-                mode='lines',
-                line=dict(color='red', dash='dash', width=2),
-                name='Reference Line'
-            ))
-            
-            fig_diag2.update_layout(
-                title='Q-Q Plot: Prüfung (4) Normalität',
-                xaxis_title='Theoretical Quantiles',
-                yaxis_title='Sample Quantiles',
-                template='plotly_white',
-                showlegend=False
+
+            fig_diag2.add_trace(
+                go.Scatter(
+                    x=qq[0][0],
+                    y=qq[0][1],
+                    mode="markers",
+                    marker=dict(size=6, color="blue", opacity=0.6),
+                    name="Data",
+                )
             )
-            
+
+            # Add reference line
+            fig_diag2.add_trace(
+                go.Scatter(
+                    x=qq[0][0],
+                    y=qq[1][1] + qq[1][0] * qq[0][0],
+                    mode="lines",
+                    line=dict(color="red", dash="dash", width=2),
+                    name="Reference Line",
+                )
+            )
+
+            fig_diag2.update_layout(
+                title="Q-Q Plot: Prüfung (4) Normalität",
+                xaxis_title="Theoretical Quantiles",
+                yaxis_title="Sample Quantiles",
+                template="plotly_white",
+                showlegend=False,
+            )
+
             st.plotly_chart(fig_diag2, use_container_width=True)
-                    
-            st.markdown("""
+
+            st.markdown(
+                """
             **Interpretation:**
             - Punkte sollten auf der **Diagonale** liegen
             - Abweichungen → Nicht-Normalität
             - Bei n > 30: Weniger kritisch (CLT)
-            """)
+            """
+            )
 
     # t-Test
-    st.markdown('<p class="subsection-header">🔬 Der t-Test: Ist die Steigung signifikant von Null verschieden?</p>', unsafe_allow_html=True)
+    st.markdown(
+        '<p class="subsection-header">🔬 Der t-Test: Ist die Steigung signifikant von Null verschieden?</p>',
+        unsafe_allow_html=True,
+    )
 
     col_t1, col_t2 = st.columns([2, 1])
 
@@ -3150,62 +3991,73 @@ with tab1:
         # Create t-distribution plot with plotly
         x_t = np.linspace(-5, max(5, abs(t_val) + 2), 300)
         y_t = stats.t.pdf(x_t, df=df_resid)
-        
+
         fig_t = go.Figure()
-        
+
         # Main distribution curve
-        fig_t.add_trace(go.Scatter(
-            x=x_t, y=y_t,
-            mode='lines',
-            line=dict(color='black', width=3),
-            name=f't-Verteilung (df={df_resid})'
-        ))
-        
+        fig_t.add_trace(
+            go.Scatter(
+                x=x_t,
+                y=y_t,
+                mode="lines",
+                line=dict(color="black", width=3),
+                name=f"t-Verteilung (df={df_resid})",
+            )
+        )
+
         # Shaded p-value regions
         mask = abs(x_t) > abs(t_val)
-        fig_t.add_trace(go.Scatter(
-            x=x_t[mask], y=y_t[mask],
-            fill='tozeroy',
-            fillcolor='rgba(255, 0, 0, 0.3)',
-            line=dict(width=0),
-            name=f'p-Wert = {model.pvalues[1]:.4g}',
-            showlegend=True
-        ))
-        
+        fig_t.add_trace(
+            go.Scatter(
+                x=x_t[mask],
+                y=y_t[mask],
+                fill="tozeroy",
+                fillcolor="rgba(255, 0, 0, 0.3)",
+                line=dict(width=0),
+                name=f"p-Wert = {model.pvalues[1]:.4g}",
+                showlegend=True,
+            )
+        )
+
         # Critical values
         t_crit = stats.t.ppf(0.975, df=df_resid)
-        fig_t.add_vline(x=t_crit, line_dash='dash', line_color='orange',
-                       line_width=2, opacity=0.7)
-        fig_t.add_vline(x=-t_crit, line_dash='dash', line_color='orange',
-                       line_width=2, opacity=0.7,
-                       annotation_text=f'Kritische Werte: ±{t_crit:.2f}')
-        
-        # Observed t-value
-        fig_t.add_vline(x=t_val, line_color='blue', line_width=4,
-                       annotation_text=f'Unser t-Wert = {t_val:.2f}')
-        
-        fig_t.update_layout(
-            title=f'H₀: β₁ = 0 vs. H₁: β₁ ≠ 0<br>t = b₁/s_b₁ = {b1:.4f}/{sb1:.4f} = {t_val:.2f}',
-            xaxis_title='t-Wert',
-            yaxis_title='Dichte',
-            template='plotly_white',
-            hovermode='x'
+        fig_t.add_vline(x=t_crit, line_dash="dash", line_color="orange", line_width=2, opacity=0.7)
+        fig_t.add_vline(
+            x=-t_crit,
+            line_dash="dash",
+            line_color="orange",
+            line_width=2,
+            opacity=0.7,
+            annotation_text=f"Kritische Werte: ±{t_crit:.2f}",
         )
-    
+
+        # Observed t-value
+        fig_t.add_vline(
+            x=t_val, line_color="blue", line_width=4, annotation_text=f"Unser t-Wert = {t_val:.2f}"
+        )
+
+        fig_t.update_layout(
+            title=f"H₀: β₁ = 0 vs. H₁: β₁ ≠ 0<br>t = b₁/s_b₁ = {b1:.4f}/{sb1:.4f} = {t_val:.2f}",
+            xaxis_title="t-Wert",
+            yaxis_title="Dichte",
+            template="plotly_white",
+            hovermode="x",
+        )
+
         st.plotly_chart(fig_t, use_container_width=True)
-        
+
     with col_t2:
         if show_formulas:
             st.latex(r"t = \frac{b_1 - 0}{s_{b_1}}")
             st.latex(f"t = \\frac{{{b1:.4f}}}{{{sb1:.4f}}} = {t_val:.2f}")
-    
+
         stars = get_signif_stars(model.pvalues[1])
         p_val = model.pvalues[1]
-    
+
         st.metric("t-Wert", f"{t_val:.3f}")
         st.metric("p-Wert", f"{p_val:.4g}")
         st.metric("Signifikanz", stars)
-    
+
         if p_val < 0.001:
             st.success("✅ **Höchst signifikant!** H₀ wird verworfen.")
         elif p_val < 0.05:
@@ -3214,7 +4066,10 @@ with tab1:
             st.error("❌ **Nicht signifikant.** H₀ kann nicht verworfen werden.")
 
     # F-Test
-    st.markdown('<p class="subsection-header">⚖️ Der F-Test: Erklärt das Modell signifikant Varianz?</p>', unsafe_allow_html=True)
+    st.markdown(
+        '<p class="subsection-header">⚖️ Der F-Test: Erklärt das Modell signifikant Varianz?</p>',
+        unsafe_allow_html=True,
+    )
 
     col_f1, col_f2 = st.columns([2, 1])
 
@@ -3222,93 +4077,119 @@ with tab1:
         # Create F-distribution plot with plotly
         x_f = np.linspace(0, max(10, f_val + 5), 300)
         y_f = stats.f.pdf(x_f, dfn=1, dfd=df_resid)
-        
+
         fig_f = go.Figure()
-        
+
         # Main distribution curve
-        fig_f.add_trace(go.Scatter(
-            x=x_f, y=y_f,
-            mode='lines',
-            line=dict(color='black', width=3),
-            name=f'F-Verteilung (df₁=1, df₂={df_resid})'
-        ))
-        
+        fig_f.add_trace(
+            go.Scatter(
+                x=x_f,
+                y=y_f,
+                mode="lines",
+                line=dict(color="black", width=3),
+                name=f"F-Verteilung (df₁=1, df₂={df_resid})",
+            )
+        )
+
         # Shaded p-value region
         mask = x_f > f_val
-        fig_f.add_trace(go.Scatter(
-            x=x_f[mask], y=y_f[mask],
-            fill='tozeroy',
-            fillcolor='rgba(128, 0, 128, 0.3)',
-            line=dict(width=0),
-            name=f'p-Wert = {model.f_pvalue:.4g}',
-            showlegend=True
-        ))
-        
+        fig_f.add_trace(
+            go.Scatter(
+                x=x_f[mask],
+                y=y_f[mask],
+                fill="tozeroy",
+                fillcolor="rgba(128, 0, 128, 0.3)",
+                line=dict(width=0),
+                name=f"p-Wert = {model.f_pvalue:.4g}",
+                showlegend=True,
+            )
+        )
+
         # Critical value
         f_crit = stats.f.ppf(0.95, dfn=1, dfd=df_resid)
-        fig_f.add_vline(x=f_crit, line_dash='dash', line_color='orange',
-                       line_width=2, opacity=0.7,
-                       annotation_text=f'Kritisch: {f_crit:.2f}')
-        
-        # Observed F-value
-        fig_f.add_vline(x=f_val, line_color='purple', line_width=4,
-                       annotation_text=f'Unser F-Wert = {f_val:.2f}')
-        
-        fig_f.update_layout(
-            title=f'H₀: R² = 0 (Modell erklärt nichts)<br>F = MSR/MSE = {msr:.2f}/{mse:.2f} = {f_val:.2f}',
-            xaxis_title='F-Wert',
-            yaxis_title='Dichte',
-            xaxis_range=[0, max(15, f_val + 5)],
-            template='plotly_white',
-            hovermode='x'
+        fig_f.add_vline(
+            x=f_crit,
+            line_dash="dash",
+            line_color="orange",
+            line_width=2,
+            opacity=0.7,
+            annotation_text=f"Kritisch: {f_crit:.2f}",
         )
-    
+
+        # Observed F-value
+        fig_f.add_vline(
+            x=f_val,
+            line_color="purple",
+            line_width=4,
+            annotation_text=f"Unser F-Wert = {f_val:.2f}",
+        )
+
+        fig_f.update_layout(
+            title=f"H₀: R² = 0 (Modell erklärt nichts)<br>F = MSR/MSE = {msr:.2f}/{mse:.2f} = {f_val:.2f}",
+            xaxis_title="F-Wert",
+            yaxis_title="Dichte",
+            xaxis_range=[0, max(15, f_val + 5)],
+            template="plotly_white",
+            hovermode="x",
+        )
+
         st.plotly_chart(fig_f, use_container_width=True)
-        
+
     with col_f2:
         if show_formulas:
             st.latex(r"F = \frac{MSR}{MSE} = \frac{SSR/df_1}{SSE/df_2}")
             st.latex(f"F = \\frac{{{ssr:.2f}/1}}{{{sse:.2f}/{n-2}}} = {f_val:.2f}")
-    
+
         st.metric("F-Wert", f"{f_val:.2f}")
         st.metric("p-Wert", f"{model.f_pvalue:.4g}")
-    
-        st.info(f"""
+
+        st.info(
+            f"""
         **Bei einfacher Regression gilt:**
-    
+
         t² = F
-    
+
         {t_val:.2f}² = {t_val**2:.2f} ≈ {f_val:.2f} ✓
-    
+
         Beide Tests führen zum **gleichen Schluss**!
-        """)
+        """
+        )
 
     # ANOVA-Tabelle
-    st.markdown('<p class="subsection-header">📊 Die vollständige ANOVA-Tabelle</p>', unsafe_allow_html=True)
+    st.markdown(
+        '<p class="subsection-header">📊 Die vollständige ANOVA-Tabelle</p>', unsafe_allow_html=True
+    )
 
-    anova_df = pd.DataFrame({
-        'Quelle': ['Regression (SSR)', 'Residuen (SSE)', 'Total (SST)'],
-        'Quadratsumme': [f'{ssr:.4f}', f'{sse:.4f}', f'{sst:.4f}'],
-        'df': [1, n-2, n-1],
-        'Mittlere Quadratsumme': [f'{msr:.4f}', f'{mse:.4f}', '—'],
-        'F-Wert': [f'{f_val:.2f}', '—', '—'],
-        'p-Wert': [f'{model.f_pvalue:.4g} {get_signif_stars(model.f_pvalue)}', '—', '—']
-    })
+    anova_df = pd.DataFrame(
+        {
+            "Quelle": ["Regression (SSR)", "Residuen (SSE)", "Total (SST)"],
+            "Quadratsumme": [f"{ssr:.4f}", f"{sse:.4f}", f"{sst:.4f}"],
+            "df": [1, n - 2, n - 1],
+            "Mittlere Quadratsumme": [f"{msr:.4f}", f"{mse:.4f}", "—"],
+            "F-Wert": [f"{f_val:.2f}", "—", "—"],
+            "p-Wert": [f"{model.f_pvalue:.4g} {get_signif_stars(model.f_pvalue)}", "—", "—"],
+        }
+    )
 
-    st.dataframe(anova_df, width='stretch', hide_index=True)
+    st.dataframe(anova_df, width="stretch", hide_index=True)
 
     # R-Style Output mit Annotationen
-    st.markdown('<p class="subsection-header">💻 Der komplette R-Style Output mit Annotationen</p>', unsafe_allow_html=True)
+    st.markdown(
+        '<p class="subsection-header">💻 Der komplette R-Style Output mit Annotationen</p>',
+        unsafe_allow_html=True,
+    )
 
-    st.markdown("""
-    Dies ist das Herzstück unserer Analyse: Die **vollständige Zusammenfassung** des Regressionsmodells 
+    st.markdown(
+        """
+    Dies ist das Herzstück unserer Analyse: Die **vollständige Zusammenfassung** des Regressionsmodells
     im R-Stil – aber mit **farbigen Annotationen**, die jedes Element erklären!
-    """)
+    """
+    )
 
     # Die annotierte R-Output Figur
     fig_r_output = create_r_output_figure(model, feature_name=x_label, figsize=(18, 13))
     st.plotly_chart(fig_r_output, use_container_width=True)
-    
+
     # Zusätzlich noch den textuellen Output
     with st.expander("📜 Reiner Text-Output (zum Kopieren)"):
         st.code(model.summary().as_text(), language=None)
@@ -3317,23 +4198,41 @@ with tab1:
     # KAPITEL 5.5: ANOVA FÜR GRUPPENVERGLEICHE (NEU)
     # =========================================================
     st.markdown("---")
-    st.markdown('<p class="section-header">5.5 ANOVA für Gruppenvergleiche: Mehr als zwei Gruppen</p>', unsafe_allow_html=True)
+    st.markdown(
+        '<p class="section-header">5.5 ANOVA für Gruppenvergleiche: Mehr als zwei Gruppen</p>',
+        unsafe_allow_html=True,
+    )
 
-    st.markdown("""
-    Der F-Test, den wir gerade gesehen haben, ist ein **Spezialfall der ANOVA** (Analysis of Variance). 
+    st.markdown(
+        """
+    Der F-Test, den wir gerade gesehen haben, ist ein **Spezialfall der ANOVA** (Analysis of Variance).
     Die ANOVA erweitert den Vergleich auf **mehr als zwei Gruppen**.
 
-    **Praxisbeispiel:** Unser Elektronikmarkt hat Filialen in **3 Regionen** (Nord, Mitte, Süd). 
+    **Praxisbeispiel:** Unser Elektronikmarkt hat Filialen in **3 Regionen** (Nord, Mitte, Süd).
     Unterscheiden sich die durchschnittlichen Umsätze zwischen den Regionen signifikant?
-    """)
+    """
+    )
 
     # --- Interaktive ANOVA-Parameter ---
     st.sidebar.markdown("---")
     with st.sidebar.expander("🧪 ANOVA-Beispiel", expanded=False):
-        anova_effect = st.slider("Effektstärke Regionen", 0.0, 2.0, 0.8, 0.1,
-                                help="Wie stark unterscheiden sich die Regionsmittelwerte?")
-        anova_noise_level = st.slider("Streuung innerhalb Gruppen", 0.5, 2.0, 1.0, 0.1, key="anova_noise",
-                                      help="Varianz innerhalb jeder Gruppe")
+        anova_effect = st.slider(
+            "Effektstärke Regionen",
+            0.0,
+            2.0,
+            0.8,
+            0.1,
+            help="Wie stark unterscheiden sich die Regionsmittelwerte?",
+        )
+        anova_noise_level = st.slider(
+            "Streuung innerhalb Gruppen",
+            0.5,
+            2.0,
+            1.0,
+            0.1,
+            key="anova_noise",
+            help="Varianz innerhalb jeder Gruppe",
+        )
 
     # Daten für 3 Regionen generieren
     np.random.seed(int(seed) + 100)
@@ -3350,137 +4249,174 @@ with tab1:
     region_sued = np.random.normal(mu_sued, anova_noise_level, n_per_group)
 
     # DataFrame erstellen
-    df_anova = pd.DataFrame({
-        'Umsatz': np.concatenate([region_nord, region_mitte, region_sued]),
-        'Region': ['Nord'] * n_per_group + ['Mitte'] * n_per_group + ['Süd'] * n_per_group
-    })
+    df_anova = pd.DataFrame(
+        {
+            "Umsatz": np.concatenate([region_nord, region_mitte, region_sued]),
+            "Region": ["Nord"] * n_per_group + ["Mitte"] * n_per_group + ["Süd"] * n_per_group,
+        }
+    )
 
     # ANOVA berechnen
     from statsmodels.formula.api import ols as ols_formula
 
-    model_anova = ols_formula('Umsatz ~ C(Region)', data=df_anova).fit()
+    model_anova = ols_formula("Umsatz ~ C(Region)", data=df_anova).fit()
     anova_table = sm.stats.anova_lm(model_anova, typ=2)
 
     # Kennzahlen extrahieren (typ-sicher)
-    grand_mean_anova = df_anova['Umsatz'].mean()
-    group_means = df_anova.groupby('Region')['Umsatz'].mean()
-    sstr_anova = safe_scalar(anova_table.loc['C(Region)', 'sum_sq'])
-    sse_anova = safe_scalar(anova_table.loc['Residual', 'sum_sq'])
+    grand_mean_anova = df_anova["Umsatz"].mean()
+    group_means = df_anova.groupby("Region")["Umsatz"].mean()
+    sstr_anova = safe_scalar(anova_table.loc["C(Region)", "sum_sq"])
+    sse_anova = safe_scalar(anova_table.loc["Residual", "sum_sq"])
     sst_anova = sstr_anova + sse_anova
-    f_anova = safe_scalar(anova_table.loc['C(Region)', 'F'])
-    p_anova = safe_scalar(anova_table.loc['C(Region)', 'PR(>F)'])
+    f_anova = safe_scalar(anova_table.loc["C(Region)", "F"])
+    p_anova = safe_scalar(anova_table.loc["C(Region)", "PR(>F)"])
 
     col_anova1, col_anova2 = st.columns([2, 1])
 
     with col_anova1:
         # 3D Landscape Visualisierung: Berglandschaft für jede Gruppe
         from scipy.stats import norm
-    
+
         fig_anova_viz = make_subplots(
-            rows=1, cols=2,
-            specs=[[{'type': 'scatter3d'}, {'type': 'bar'}]],
-            subplot_titles=('3D Landscape: Gruppen als Verteilungshuegel',
-                          f'SST = SSTR + SSE = {sst_anova:.2f}')
+            rows=1,
+            cols=2,
+            specs=[[{"type": "scatter3d"}, {"type": "bar"}]],
+            subplot_titles=(
+                "3D Landscape: Gruppen als Verteilungshuegel",
+                f"SST = SSTR + SSE = {sst_anova:.2f}",
+            ),
         )
-    
+
         # 1. 3D Surface für Gruppen-Verteilungen
-        regions = ['Nord', 'Mitte', 'Süd']
-        colors_list = ['#3498db', '#2ecc71', '#e74c3c']
-    
+        regions = ["Nord", "Mitte", "Süd"]
+        colors_list = ["#3498db", "#2ecc71", "#e74c3c"]
+
         # X-Achse: Umsatz-Werte
-        x_vals = np.linspace(
-            min(df_anova['Umsatz']) - 1,
-            max(df_anova['Umsatz']) + 1,
-            100
-        )
-    
+        x_vals = np.linspace(min(df_anova["Umsatz"]) - 1, max(df_anova["Umsatz"]) + 1, 100)
+
         for i, (region, color) in enumerate(zip(regions, colors_list)):
-            data = df_anova[df_anova['Region'] == region]['Umsatz']
+            data = df_anova[df_anova["Region"] == region]["Umsatz"]
             mu = data.mean()
             sigma = data.std()
-        
+
             # Normalverteilung für jede Gruppe
             y_vals = norm.pdf(x_vals, mu, sigma)
-        
+
             # 3D Plot: x-Achse = Umsatz, y-Achse = Region (i), z-Achse = Dichte
             fig_anova_viz.add_trace(
-                go.Scatter3d(x=x_vals, y=np.full_like(x_vals, i), z=y_vals,
-                           mode='lines', line=dict(color=color, width=4),
-                           name=f'{region}'),
-                row=1, col=1
+                go.Scatter3d(
+                    x=x_vals,
+                    y=np.full_like(x_vals, i),
+                    z=y_vals,
+                    mode="lines",
+                    line=dict(color=color, width=4),
+                    name=f"{region}",
+                ),
+                row=1,
+                col=1,
             )
-        
+
             # Bars under curve (simplified as vertical lines)
             for j in range(0, len(x_vals), 10):
                 fig_anova_viz.add_trace(
-                    go.Scatter3d(x=[x_vals[j], x_vals[j]], y=[i, i], z=[0, y_vals[j]],
-                               mode='lines', line=dict(color=color, width=2),
-                               opacity=0.3, showlegend=False),
-                    row=1, col=1
+                    go.Scatter3d(
+                        x=[x_vals[j], x_vals[j]],
+                        y=[i, i],
+                        z=[0, y_vals[j]],
+                        mode="lines",
+                        line=dict(color=color, width=2),
+                        opacity=0.3,
+                        showlegend=False,
+                    ),
+                    row=1,
+                    col=1,
                 )
-    
+
         # Gesamtmittelwert als Linie
-        y_overall = norm.pdf(x_vals, grand_mean_anova, df_anova['Umsatz'].std())
+        y_overall = norm.pdf(x_vals, grand_mean_anova, df_anova["Umsatz"].std())
         fig_anova_viz.add_trace(
-            go.Scatter3d(x=x_vals, y=np.full_like(x_vals, -0.5), z=y_overall,
-                       mode='lines', line=dict(color='black', width=3, dash='dash'),
-                       name='Gesamtverteilung'),
-            row=1, col=1
+            go.Scatter3d(
+                x=x_vals,
+                y=np.full_like(x_vals, -0.5),
+                z=y_overall,
+                mode="lines",
+                line=dict(color="black", width=3, dash="dash"),
+                name="Gesamtverteilung",
+            ),
+            row=1,
+            col=1,
         )
-    
+
         # 2. Varianzzerlegung
         fig_anova_viz.add_trace(
-            go.Bar(y=['Varianzzerlegung'], x=[sstr_anova],
-                  orientation='h', marker_color='green', opacity=0.7,
-                  name=f'SSTR (Zwischen) = {sstr_anova:.2f}',
-                  text=f'{sstr_anova/sst_anova*100:.1f}%',
-                  textposition='inside', textfont=dict(color='white', size=12)),
-            row=1, col=2
+            go.Bar(
+                y=["Varianzzerlegung"],
+                x=[sstr_anova],
+                orientation="h",
+                marker_color="green",
+                opacity=0.7,
+                name=f"SSTR (Zwischen) = {sstr_anova:.2f}",
+                text=f"{sstr_anova/sst_anova*100:.1f}%",
+                textposition="inside",
+                textfont=dict(color="white", size=12),
+            ),
+            row=1,
+            col=2,
         )
         fig_anova_viz.add_trace(
-            go.Bar(y=['Varianzzerlegung'], x=[sse_anova],
-                  orientation='h', marker_color='red', opacity=0.7,
-                  name=f'SSE (Innerhalb) = {sse_anova:.2f}',
-                  text=f'{sse_anova/sst_anova*100:.1f}%',
-                  textposition='inside', textfont=dict(color='white', size=12)),
-            row=1, col=2
+            go.Bar(
+                y=["Varianzzerlegung"],
+                x=[sse_anova],
+                orientation="h",
+                marker_color="red",
+                opacity=0.7,
+                name=f"SSE (Innerhalb) = {sse_anova:.2f}",
+                text=f"{sse_anova/sst_anova*100:.1f}%",
+                textposition="inside",
+                textfont=dict(color="white", size=12),
+            ),
+            row=1,
+            col=2,
         )
-    
+
         # Update layout
         fig_anova_viz.update_layout(
             height=500,
-            barmode='stack',
+            barmode="stack",
             showlegend=True,
             scene=dict(
                 xaxis_title=y_label,
-                yaxis_title='Gruppen',
-                zaxis_title='Dichte',
+                yaxis_title="Gruppen",
+                zaxis_title="Dichte",
                 yaxis=dict(tickvals=[0, 1, 2], ticktext=regions),
-                camera=CAMERA_PRESETS["default"]
-            )
+                camera=CAMERA_PRESETS["default"],
+            ),
         )
-        fig_anova_viz.update_xaxes(title_text='Quadratsumme', row=1, col=2)
-    
+        fig_anova_viz.update_xaxes(title_text="Quadratsumme", row=1, col=2)
+
         st.plotly_chart(fig_anova_viz, use_container_width=True)
-            
+
     with col_anova2:
         if show_formulas:
             st.markdown("### ANOVA-Formeln")
             st.latex(r"SSTR = \sum_{j=1}^{k} n_j (\bar{X}_j - \bar{\bar{X}})^2")
             st.latex(r"SSE = \sum_{j=1}^{k} \sum_{i=1}^{n_j} (X_{ij} - \bar{X}_j)^2")
             st.latex(r"F = \frac{MSTR}{MSE} = \frac{SSTR/(k-1)}{SSE/(n-k)}")
-    
+
         st.metric("F-Wert", f"{f_anova:.2f}")
         st.metric("p-Wert", f"{p_anova:.4f}")
         st.metric("Signifikanz", get_signif_stars(p_anova))
-    
+
         if p_anova < 0.05:
             st.success("✅ Die Regionen unterscheiden sich **signifikant**!")
         else:
             st.warning("⚠️ Kein signifikanter Unterschied zwischen Regionen.")
 
     # ANOVA-Tabelle
-    st.markdown('<p class="subsection-header">📋 Die ANOVA-Tabelle (Gruppenvergleich)</p>', unsafe_allow_html=True)
+    st.markdown(
+        '<p class="subsection-header">📋 Die ANOVA-Tabelle (Gruppenvergleich)</p>',
+        unsafe_allow_html=True,
+    )
 
     k = 3  # Anzahl Gruppen
     n_total = len(df_anova)
@@ -3489,22 +4425,25 @@ with tab1:
     mstr_anova = sstr_anova / df_between
     mse_anova_val = sse_anova / df_within
 
-    anova_display = pd.DataFrame({
-        'Quelle': ['Zwischen Gruppen (SSTR)', 'Innerhalb Gruppen (SSE)', 'Total (SST)'],
-        'Quadratsumme': [f'{sstr_anova:.3f}', f'{sse_anova:.3f}', f'{sst_anova:.3f}'],
-        'df': [df_between, df_within, n_total - 1],
-        'Mittlere QS': [f'{mstr_anova:.3f}', f'{mse_anova_val:.3f}', '—'],
-        'F-Wert': [f'{f_anova:.3f}', '—', '—'],
-        'p-Wert': [f'{p_anova:.4f} {get_signif_stars(p_anova)}', '—', '—']
-    })
+    anova_display = pd.DataFrame(
+        {
+            "Quelle": ["Zwischen Gruppen (SSTR)", "Innerhalb Gruppen (SSE)", "Total (SST)"],
+            "Quadratsumme": [f"{sstr_anova:.3f}", f"{sse_anova:.3f}", f"{sst_anova:.3f}"],
+            "df": [df_between, df_within, n_total - 1],
+            "Mittlere QS": [f"{mstr_anova:.3f}", f"{mse_anova_val:.3f}", "—"],
+            "F-Wert": [f"{f_anova:.3f}", "—", "—"],
+            "p-Wert": [f"{p_anova:.4f} {get_signif_stars(p_anova)}", "—", "—"],
+        }
+    )
 
-    st.dataframe(anova_display, width='stretch', hide_index=True)
+    st.dataframe(anova_display, width="stretch", hide_index=True)
 
     # Verbindung zur Regression
-    st.info(f"""
+    st.info(
+        f"""
     **🔗 Verbindung zur Regression:**
 
-    Die ANOVA ist eigentlich eine **kategoriale Regression**! 
+    Die ANOVA ist eigentlich eine **kategoriale Regression**!
     Wenn wir die Region als Dummy-Variable kodieren, erhalten wir das gleiche Ergebnis.
 
     In der einfachen Regression (1 kontinuierliche Variable) gilt:
@@ -3513,21 +4452,27 @@ with tab1:
     - ANOVA prüft: "Erklärt die Gruppenzugehörigkeit signifikant Varianz in Y?"
 
     **→ Beides sind Spezialfälle des allgemeinen linearen Modells!**
-    """)
+    """
+    )
 
     # =========================================================
     # KAPITEL 5.6: HOMO- vs. HETEROSKEDASTIZITÄT (Das grosse Problem)
     # =========================================================
     st.markdown("---")
-    st.markdown('<p class="section-header">⚠️ Das grosse Problem: Heteroskedastizität</p>', unsafe_allow_html=True)
+    st.markdown(
+        '<p class="section-header">⚠️ Das grosse Problem: Heteroskedastizität</p>',
+        unsafe_allow_html=True,
+    )
 
-    st.markdown("""
-    **Heteroskedastizität** ist einer der häufigsten Gründe, warum die schönen "Sterne" (★★★) 
+    st.markdown(
+        """
+    **Heteroskedastizität** ist einer der häufigsten Gründe, warum die schönen "Sterne" (★★★)
     im R-Output **falsch** sein können!
 
-    Das Problem: Die Varianz der Fehler ist **nicht konstant**. Die Daten "streuen" bei hohen 
+    Das Problem: Die Varianz der Fehler ist **nicht konstant**. Die Daten "streuen" bei hohen
     Werten stärker als bei niedrigen (oder umgekehrt) – der klassische **"Trichter-Effekt"**.
-    """)
+    """
+    )
 
     col_hetero1, col_hetero2 = st.columns([1.5, 1])
 
@@ -3536,167 +4481,242 @@ with tab1:
         np.random.seed(42)
         x_demo = np.linspace(1, 10, 100)
         X_demo = sm.add_constant(x_demo)
-    
+
         # Homoskedastizität
         noise_homo = np.random.normal(0, 2.0, 100)
         y_homo = 2 + 1.5 * x_demo + noise_homo
         model_homo = sm.OLS(y_homo, X_demo).fit()
-    
+
         # Heteroskedastizität
         noise_hetero = np.random.normal(0, 0.8 * x_demo, 100)
         y_hetero = 2 + 1.5 * x_demo + noise_hetero
         model_hetero = sm.OLS(y_hetero, X_demo).fit()
-    
+
         fig_trichter = make_subplots(
-            rows=2, cols=2,
+            rows=2,
+            cols=2,
             subplot_titles=(
-                '✅ Homoskedastizität (Ideal)<br>Gleichmässiger Schlauch',
-                '⚠️ Heteroskedastizität (Problem)<br>Trichter-Effekt!',
-                'Residual-Plot<br>✅ Wolke ohne Muster',
-                'Residual-Plot<br>⚠️ Typische Trichterform!'
+                "✅ Homoskedastizität (Ideal)<br>Gleichmässiger Schlauch",
+                "⚠️ Heteroskedastizität (Problem)<br>Trichter-Effekt!",
+                "Residual-Plot<br>✅ Wolke ohne Muster",
+                "Residual-Plot<br>⚠️ Typische Trichterform!",
             ),
-            vertical_spacing=0.12
+            vertical_spacing=0.12,
         )
-    
+
         # Homo Scatter
         y_pred_homo = model_homo.predict(X_demo)
         fig_trichter.add_trace(
-            go.Scatter(x=np.concatenate([x_demo, x_demo[::-1]]),
-                      y=np.concatenate([y_pred_homo + 4, (y_pred_homo - 4)[::-1]]),
-                      fill='toself', fillcolor='rgba(0,255,0,0.15)',
-                      line=dict(width=0), showlegend=False),
-            row=1, col=1
+            go.Scatter(
+                x=np.concatenate([x_demo, x_demo[::-1]]),
+                y=np.concatenate([y_pred_homo + 4, (y_pred_homo - 4)[::-1]]),
+                fill="toself",
+                fillcolor="rgba(0,255,0,0.15)",
+                line=dict(width=0),
+                showlegend=False,
+            ),
+            row=1,
+            col=1,
         )
         fig_trichter.add_trace(
-            go.Scatter(x=x_demo, y=y_homo, mode='markers',
-                      marker=dict(size=4, color='green', opacity=0.6),
-                      showlegend=False),
-            row=1, col=1
+            go.Scatter(
+                x=x_demo,
+                y=y_homo,
+                mode="markers",
+                marker=dict(size=4, color="green", opacity=0.6),
+                showlegend=False,
+            ),
+            row=1,
+            col=1,
         )
         fig_trichter.add_trace(
-            go.Scatter(x=x_demo, y=y_pred_homo, mode='lines',
-                      line=dict(color='black', width=2),
-                      showlegend=False),
-            row=1, col=1
+            go.Scatter(
+                x=x_demo,
+                y=y_pred_homo,
+                mode="lines",
+                line=dict(color="black", width=2),
+                showlegend=False,
+            ),
+            row=1,
+            col=1,
         )
-    
+
         # Homo Residual
         fig_trichter.add_trace(
-            go.Scatter(x=y_pred_homo, y=model_homo.resid, mode='markers',
-                      marker=dict(size=4, color='green', opacity=0.6),
-                      showlegend=False),
-            row=2, col=1
+            go.Scatter(
+                x=y_pred_homo,
+                y=model_homo.resid,
+                mode="markers",
+                marker=dict(size=4, color="green", opacity=0.6),
+                showlegend=False,
+            ),
+            row=2,
+            col=1,
         )
         fig_trichter.add_hline(y=0, line_dash="dash", line_color="black", row=2, col=1)
-    
+
         # Hetero Scatter
         y_pred_hetero = model_hetero.predict(X_demo)
         fig_trichter.add_trace(
-            go.Scatter(x=np.concatenate([x_demo, x_demo[::-1]]),
-                      y=np.concatenate([y_pred_hetero + (0.8*x_demo)*2,
-                                      (y_pred_hetero - (0.8*x_demo)*2)[::-1]]),
-                      fill='toself', fillcolor='rgba(255,0,0,0.15)',
-                      line=dict(width=0), showlegend=False),
-            row=1, col=2
+            go.Scatter(
+                x=np.concatenate([x_demo, x_demo[::-1]]),
+                y=np.concatenate(
+                    [y_pred_hetero + (0.8 * x_demo) * 2, (y_pred_hetero - (0.8 * x_demo) * 2)[::-1]]
+                ),
+                fill="toself",
+                fillcolor="rgba(255,0,0,0.15)",
+                line=dict(width=0),
+                showlegend=False,
+            ),
+            row=1,
+            col=2,
         )
         fig_trichter.add_trace(
-            go.Scatter(x=x_demo, y=y_hetero, mode='markers',
-                      marker=dict(size=4, color='red', opacity=0.6),
-                      showlegend=False),
-            row=1, col=2
+            go.Scatter(
+                x=x_demo,
+                y=y_hetero,
+                mode="markers",
+                marker=dict(size=4, color="red", opacity=0.6),
+                showlegend=False,
+            ),
+            row=1,
+            col=2,
         )
         fig_trichter.add_trace(
-            go.Scatter(x=x_demo, y=y_pred_hetero, mode='lines',
-                      line=dict(color='black', width=2),
-                      showlegend=False),
-            row=1, col=2
+            go.Scatter(
+                x=x_demo,
+                y=y_pred_hetero,
+                mode="lines",
+                line=dict(color="black", width=2),
+                showlegend=False,
+            ),
+            row=1,
+            col=2,
         )
-    
+
         # Hetero Residual
         fig_trichter.add_trace(
-            go.Scatter(x=y_pred_hetero, y=model_hetero.resid, mode='markers',
-                      marker=dict(size=4, color='red', opacity=0.6),
-                      showlegend=False),
-            row=2, col=2
+            go.Scatter(
+                x=y_pred_hetero,
+                y=model_hetero.resid,
+                mode="markers",
+                marker=dict(size=4, color="red", opacity=0.6),
+                showlegend=False,
+            ),
+            row=2,
+            col=2,
         )
         fig_trichter.add_hline(y=0, line_dash="dash", line_color="black", row=2, col=2)
-        
+
         # Annotations for hetero residual plot
         fig_trichter.add_annotation(
-            x=4, y=1, text='Kleine Fehler',
-            showarrow=True, arrowhead=2, arrowsize=1, arrowcolor='red',
-            ax=6, ay=8, font=dict(size=10, color='red'),
-            row=2, col=2
+            x=4,
+            y=1,
+            text="Kleine Fehler",
+            showarrow=True,
+            arrowhead=2,
+            arrowsize=1,
+            arrowcolor="red",
+            ax=6,
+            ay=8,
+            font=dict(size=10, color="red"),
+            row=2,
+            col=2,
         )
         fig_trichter.add_annotation(
-            x=14, y=8, text='Grosse Fehler',
-            showarrow=True, arrowhead=2, arrowsize=1, arrowcolor='red',
-            ax=12, ay=12, font=dict(size=10, color='red'),
-            row=2, col=2
+            x=14,
+            y=8,
+            text="Grosse Fehler",
+            showarrow=True,
+            arrowhead=2,
+            arrowsize=1,
+            arrowcolor="red",
+            ax=12,
+            ay=12,
+            font=dict(size=10, color="red"),
+            row=2,
+            col=2,
         )
-    
+
         # Update axes
-        fig_trichter.update_yaxes(title_text="Y", row=1, col=1, showgrid=True, gridcolor='lightgray')
-        fig_trichter.update_yaxes(title_text="Residuen", row=2, col=1, showgrid=True, gridcolor='lightgray')
-        fig_trichter.update_xaxes(title_text="Fitted Values", row=2, col=1, showgrid=True, gridcolor='lightgray')
-        fig_trichter.update_yaxes(row=1, col=2, showgrid=True, gridcolor='lightgray')
-        fig_trichter.update_yaxes(title_text="Residuen", row=2, col=2, showgrid=True, gridcolor='lightgray')
-        fig_trichter.update_xaxes(title_text="Fitted Values", row=2, col=2, showgrid=True, gridcolor='lightgray')
-    
+        fig_trichter.update_yaxes(
+            title_text="Y", row=1, col=1, showgrid=True, gridcolor="lightgray"
+        )
+        fig_trichter.update_yaxes(
+            title_text="Residuen", row=2, col=1, showgrid=True, gridcolor="lightgray"
+        )
+        fig_trichter.update_xaxes(
+            title_text="Fitted Values", row=2, col=1, showgrid=True, gridcolor="lightgray"
+        )
+        fig_trichter.update_yaxes(row=1, col=2, showgrid=True, gridcolor="lightgray")
+        fig_trichter.update_yaxes(
+            title_text="Residuen", row=2, col=2, showgrid=True, gridcolor="lightgray"
+        )
+        fig_trichter.update_xaxes(
+            title_text="Fitted Values", row=2, col=2, showgrid=True, gridcolor="lightgray"
+        )
+
         fig_trichter.update_layout(
-            title_text='🔍 Diagnose: Der Blick auf die Residuen',
+            title_text="🔍 Diagnose: Der Blick auf die Residuen",
             title_font_size=16,
             height=800,
-            showlegend=False
+            showlegend=False,
         )
-    
+
         st.plotly_chart(fig_trichter, use_container_width=True)
-        
+
     with col_hetero2:
-        st.error("""
+        st.error(
+            """
         ### ⚠️ Warum ist das schlimm?
-    
+
         Bei Heteroskedastizität:
         - Standardfehler **zu klein** berechnet
         - t-Werte **zu gross**
         - p-Werte **zu klein**
-    
+
         **→ Falsche Sterne! ★★★**
-    
-        Du glaubst, etwas ist signifikant, 
+
+        Du glaubst, etwas ist signifikant,
         aber die Unsicherheit ist viel grösser!
-        """)
-    
-        st.success("""
+        """
+        )
+
+        st.success(
+            """
         ### ✅ Die Lösung
-    
+
         **Robuste Standardfehler (HC3):**
-    
+
         ```python
         model.get_robustcov_results(
             cov_type='HC3'
         ).summary()
         ```
-    
-        Die korrigierten Standardfehler sind 
+
+        Die korrigierten Standardfehler sind
         grösser → ehrlichere p-Werte!
-        """)
+        """
+        )
 
     # Live-Vergleich Normal vs. Robust
-    st.markdown('<p class="subsection-header">📊 Live-Vergleich: Normal vs. Robuste Standardfehler</p>', unsafe_allow_html=True)
+    st.markdown(
+        '<p class="subsection-header">📊 Live-Vergleich: Normal vs. Robuste Standardfehler</p>',
+        unsafe_allow_html=True,
+    )
 
     try:
-        model_robust = model.get_robustcov_results(cov_type='HC3')
-    
+        model_robust = model.get_robustcov_results(cov_type="HC3")
+
         col_norm, col_robust = st.columns(2)
-    
+
         with col_norm:
             st.markdown("### 🔍 Normale OLS")
             st.metric("SE(b₁)", f"{model.bse[1]:.6f}")
             st.metric("t-Wert", f"{model.tvalues[1]:.3f}")
             st.metric("p-Wert", f"{model.pvalues[1]:.6f}")
             st.metric("Signifikanz", get_signif_stars(model.pvalues[1]))
-    
+
         with col_robust:
             se_diff = ((model_robust.bse[1] - model.bse[1]) / model.bse[1]) * 100
             st.markdown("### 🛡️ Robuste HC3")
@@ -3704,7 +4724,7 @@ with tab1:
             st.metric("t-Wert", f"{model_robust.tvalues[1]:.3f}")
             st.metric("p-Wert", f"{model_robust.pvalues[1]:.6f}")
             st.metric("Signifikanz", get_signif_stars(model_robust.pvalues[1]))
-    
+
         if get_signif_stars(model.pvalues[1]) != get_signif_stars(model_robust.pvalues[1]):
             st.warning("🚨 **Signifikanz-Unterschied!** Die normalen Sterne waren zu optimistisch!")
         else:
@@ -3721,34 +4741,38 @@ with tab1:
     col_fazit1, col_fazit2 = st.columns([2, 1])
 
     with col_fazit1:
-        st.markdown(f"""
+        st.markdown(
+            f"""
         Wir begannen mit einer einfachen **Frage**: Wie hängen {x_label} und {y_label} zusammen?
-    
+
         Durch einen rigorosen Prozess aus:
         1. **Modellformulierung** (Y = β₀ + β₁X + ε)
         2. **Parameterschätzung** mittels OLS (b₁ = {b1:.4f})
         3. **Güteprüfung** (R² = {model.rsquared:.1%}, sₑ = {se_regression:.3f})
         4. **Statistische Inferenz** (t = {t_val:.2f}, p = {model.pvalues[1]:.4g})
-    
-        haben wir eine **quantifizierbare, vertrauenswürdige Antwort** mit einem bekannten Grad 
+
+        haben wir eine **quantifizierbare, vertrauenswürdige Antwort** mit einem bekannten Grad
         an Sicherheit entwickelt.
-    
+
         **Diese Reise von der Frage zur validierten Erkenntnis ist die Essenz der angewandten Statistik.**
-        """)
-    
-        st.info("""
+        """
+        )
+
+        st.info(
+            """
         **Korrelation vs. Regression – Der Zusammenhang:**
-    
+
         Bei einfacher linearer Regression gilt: **R² = r²**
-    
-        Diese elegante Beziehung ist einzigartig für die einfache Regression und 
+
+        Diese elegante Beziehung ist einzigartig für die einfache Regression und
         gilt **nicht** mehr in der multiplen Regression!
-        """)
+        """
+        )
 
     with col_fazit2:
         # Zusammenfassende Kennzahlen
         st.markdown("### 📋 Zusammenfassung")
-    
+
         st.metric("Steigung b₁", f"{b1:.4f}", help=f"Veränderung in Y pro Einheit X")
         st.metric("R²", f"{model.rsquared:.2%}", help="Erklärte Varianz")
         st.metric("p-Wert", f"{model.pvalues[1]:.4g}", help="Signifikanz der Steigung")
@@ -3757,87 +4781,107 @@ with tab1:
 
     # 3D Visualisierung der bedingten Verteilung
     st.markdown("---")
-    st.markdown('<p class="subsection-header">🌊 Bonusgrafik: Die bedingte Verteilung f(y|x)</p>', unsafe_allow_html=True)
+    st.markdown(
+        '<p class="subsection-header">🌊 Bonusgrafik: Die bedingte Verteilung f(y|x)</p>',
+        unsafe_allow_html=True,
+    )
 
     col_3d1, col_3d2 = st.columns([2, 1])
 
     with col_3d1:
         fig_3d = go.Figure()
-    
+
         x_line = np.linspace(float(x.min()), float(x.max()), 100)
         y_line = b0 + b1 * x_line
-        
+
         # Regression line at z=0
-        fig_3d.add_trace(go.Scatter3d(
-            x=x_line, y=y_line, z=np.zeros_like(x_line),
-            mode='lines',
-            line=dict(color='blue', width=4),
-            name='E(y|x)'
-        ))
-    
+        fig_3d.add_trace(
+            go.Scatter3d(
+                x=x_line,
+                y=y_line,
+                z=np.zeros_like(x_line),
+                mode="lines",
+                line=dict(color="blue", width=4),
+                name="E(y|x)",
+            )
+        )
+
         x_points = np.linspace(float(x.min()) + 0.5, float(x.max()) - 0.5, 5)
         # Create a color palette similar to plasma
-        plasma_colors = ['#0d0887', '#7e03a8', '#cc4778', '#f89540', '#f0f921']
-    
+        plasma_colors = ["#0d0887", "#7e03a8", "#cc4778", "#f89540", "#f0f921"]
+
         for i, x_point in enumerate(x_points):
             y_exp = b0 + b1 * x_point
             sigma = se_regression * 1.5
-            y_range = np.linspace(y_exp - 3*sigma, y_exp + 3*sigma, 80)
+            y_range = np.linspace(y_exp - 3 * sigma, y_exp + 3 * sigma, 80)
             density = stats.norm.pdf(y_range, y_exp, sigma)
             density = density / density.max() * 1.5
-        
+
             # Distribution curve
-            fig_3d.add_trace(go.Scatter3d(
-                x=np.full_like(y_range, x_point), y=y_range, z=density,
-                mode='lines',
-                line=dict(color=plasma_colors[i], width=3),
-                showlegend=False
-            ))
-            
+            fig_3d.add_trace(
+                go.Scatter3d(
+                    x=np.full_like(y_range, x_point),
+                    y=y_range,
+                    z=density,
+                    mode="lines",
+                    line=dict(color=plasma_colors[i], width=3),
+                    showlegend=False,
+                )
+            )
+
             # Point on regression line
-            fig_3d.add_trace(go.Scatter3d(
-                x=[x_point], y=[y_exp], z=[0],
-                mode='markers',
-                marker=dict(size=6, color=plasma_colors[i]),
-                showlegend=False
-            ))
-    
+            fig_3d.add_trace(
+                go.Scatter3d(
+                    x=[x_point],
+                    y=[y_exp],
+                    z=[0],
+                    mode="markers",
+                    marker=dict(size=6, color=plasma_colors[i]),
+                    showlegend=False,
+                )
+            )
+
         # Data points at z=0
-        fig_3d.add_trace(go.Scatter3d(
-            x=x, y=y, z=np.zeros(len(x)),
-            mode='markers',
-            marker=dict(size=5, color='green', opacity=0.6, symbol='diamond'),
-            name='Daten'
-        ))
-    
+        fig_3d.add_trace(
+            go.Scatter3d(
+                x=x,
+                y=y,
+                z=np.zeros(len(x)),
+                mode="markers",
+                marker=dict(size=5, color="green", opacity=0.6, symbol="diamond"),
+                name="Daten",
+            )
+        )
+
         fig_3d.update_layout(
-            title='Bedingte Verteilung: Fuer jeden X-Wert gibt es eine<br>Verteilung moeglicher Y-Werte',
+            title="Bedingte Verteilung: Fuer jeden X-Wert gibt es eine<br>Verteilung moeglicher Y-Werte",
             scene=dict(
-                xaxis_title=f'X ({x_label})',
-                yaxis_title=f'Y ({y_label})',
-                zaxis_title='f(y|x)',
-                camera=CAMERA_PRESETS["angled_close"]
+                xaxis_title=f"X ({x_label})",
+                yaxis_title=f"Y ({y_label})",
+                zaxis_title="f(y|x)",
+                camera=CAMERA_PRESETS["angled_close"],
             ),
             height=600,
-            showlegend=True
+            showlegend=True,
         )
-    
-        
+
         st.plotly_chart(fig_3d, use_container_width=True)
-        
+
     with col_3d2:
         st.latex(r"Y_i | X_i = x \sim N(\beta_0 + \beta_1 x, \sigma^2)")
-    
-        st.markdown(f"""
+
+        st.markdown(
+            f"""
         **Das zeigt diese Grafik:**
-    
+
         - Für jeden X-Wert gibt es eine **Normalverteilung** möglicher Y-Werte
         - Der **Mittelwert** dieser Verteilung liegt auf der Regressionsgeraden
         - Die **Breite** entspricht σ ≈ sₑ = {se_regression:.3f}
-    
+
         Bei **Homoskedastizität**: Alle Glocken gleich breit
         Bei **Heteroskedastizität**: Glocken werden breiter!
-        """)
+        """
+        )
 
 # =========================================================
 # TAB 3: DATENSÄTZE
@@ -3845,123 +4889,144 @@ with tab1:
 with tab3:
     st.markdown('<p class="main-header">📚 Datensätze-Übersicht</p>', unsafe_allow_html=True)
     st.markdown("### Verfügbare Datensätze für Regression-Analysen")
-    
+
     st.markdown("---")
-    
+
     # Dataset 1: Elektronikmarkt
     st.markdown("## 🏪 Elektronikmarkt (simuliert)")
     col1, col2 = st.columns([2, 1])
     with col1:
-        st.markdown("""
-        **Beschreibung:** Ein simulierter Datensatz zur Analyse des Zusammenhangs zwischen 
+        st.markdown(
+            """
+        **Beschreibung:** Ein simulierter Datensatz zur Analyse des Zusammenhangs zwischen
         Verkaufsfläche und Umsatz von Elektronikfachmärkten.
-        
+
         **Verwendung:** Ideal für **einfache lineare Regression**
-        
+
         **Variablen:**
         - **X (Prädiktor):** Verkaufsfläche (in 100 qm)
         - **Y (Zielvariable):** Umsatz (in Mio. €)
-        
-        **Besonderheit:** Die wahren Parameter (β₀, β₁) sind bekannt, da simuliert. 
+
+        **Besonderheit:** Die wahren Parameter (β₀, β₁) sind bekannt, da simuliert.
         Perfekt zum Lernen und Verstehen der Grundkonzepte!
-        """)
+        """
+        )
     with col2:
-        st.info("""
-        **Stichprobengrösse:** 
+        st.info(
+            """
+        **Stichprobengrösse:**
         - Anpassbar: 8-50 Beobachtungen
-        
+
         **Parameter:**
         - Wahrer Intercept (β₀)
         - Wahre Steigung (β₁)
         - Rauschen-Level (σ)
         - Random Seed
-        """)
-    
+        """
+        )
+
     st.markdown("---")
-    
+
     # Dataset 2: Städte-Umsatzstudie
     st.markdown("## 🏙️ Städte-Umsatzstudie (75 Städte)")
     col1, col2 = st.columns([2, 1])
     with col1:
-        st.markdown("""
-        **Beschreibung:** Reale Daten einer Handelskette, die in 75 Städten den Zusammenhang 
+        st.markdown(
+            """
+        **Beschreibung:** Reale Daten einer Handelskette, die in 75 Städten den Zusammenhang
         zwischen Produktpreis, Werbeausgaben und Umsatz untersucht.
-        
-        **Verwendung:** 
+
+        **Verwendung:**
         - **Einfache Regression:** Nur ein Prädiktor (entweder Preis ODER Werbung)
         - **Multiple Regression:** Beide Prädiktoren gleichzeitig
-        
+
         **Variablen:**
         - **X₁:** Produktpreis (in CHF)
         - **X₂:** Werbeausgaben (in 1'000 CHF)
         - **Y:** Umsatz (in 1'000 CHF)
-        
+
         **Didaktischer Wert:** Zeigt den Unterschied zwischen einfacher und multipler Regression!
         Bei einfacher Regression fehlt ein wichtiger Prädiktor → höherer Fehlerterm.
-        """)
+        """
+        )
     with col2:
-        st.info("""
-        **Stichprobengrösse:** 
+        st.info(
+            """
+        **Stichprobengrösse:**
         - n = 75 Städte (fixiert)
-        
+
         **Statistiken:**
         - Preis: μ=5.69, σ=0.52
         - Werbung: μ=1.84, σ=0.83
         - Umsatz: μ=77.37, σ=6.49
-        """)
-    
+        """
+        )
+
     st.markdown("---")
-    
+
     # Dataset 3: Häuserpreise
     st.markdown("## 🏠 Häuserpreise mit Pool (1000 Häuser)")
     col1, col2 = st.columns([2, 1])
     with col1:
-        st.markdown("""
-        **Beschreibung:** Eine Studie von 1000 Hausverkäufen in einer Universitätsstadt, 
+        st.markdown(
+            """
+        **Beschreibung:** Eine Studie von 1000 Hausverkäufen in einer Universitätsstadt,
         die den Einfluss von Wohnfläche und Pool-Vorhandensein auf den Preis untersucht.
-        
+
         **Verwendung:**
         - **Einfache Regression:** Nur ein Prädiktor (Wohnfläche ODER Pool)
         - **Multiple Regression:** Beide Prädiktoren gleichzeitig
-        
+
         **Variablen:**
         - **X₁:** Wohnfläche (in sqft/10)
         - **X₂:** Pool (Dummy-Variable: 0 = kein Pool, 1 = Pool vorhanden)
         - **Y:** Hauspreis (in USD)
-        
-        **Besonderheit:** Enthält eine **Dummy-Variable** (Pool) - ideal zum Verstehen 
+
+        **Besonderheit:** Enthält eine **Dummy-Variable** (Pool) - ideal zum Verstehen
         kategorialer Variablen in der Regression! 20.4% der Häuser haben einen Pool.
-        """)
+        """
+        )
     with col2:
-        st.info("""
-        **Stichprobengrösse:** 
+        st.info(
+            """
+        **Stichprobengrösse:**
         - n = 1000 Häuser (fixiert)
-        
+
         **Statistiken:**
         - Wohnfläche: μ=25.21, σ=2.92
         - Pool: 20.4% haben Pool
         - Preis: μ=247.66, σ=42.19
-        """)
-    
+        """
+        )
+
     st.markdown("---")
     st.markdown("### 💡 Welchen Datensatz soll ich wählen?")
-    
-    comparison_df = pd.DataFrame({
-        'Datensatz': ['🏪 Elektronikmarkt', '🏙️ Städte-Umsatzstudie', '🏠 Häuserpreise'],
-        'Ideal für': ['Anfänger & Grundkonzepte', 'Vergleich einfach vs. multipel', 'Dummy-Variablen'],
-        'Stichprobe': ['Klein (n=8-50)', 'Mittel (n=75)', 'Gross (n=1000)'],
-        'Prädiktoren': ['1 (nur Fläche)', '2 (Preis, Werbung)', '2 (Fläche, Pool)'],
-        'Wahre Parameter': ['✅ Bekannt', '❌ Unbekannt', '❌ Unbekannt']
-    })
-    
+
+    comparison_df = pd.DataFrame(
+        {
+            "Datensatz": ["🏪 Elektronikmarkt", "🏙️ Städte-Umsatzstudie", "🏠 Häuserpreise"],
+            "Ideal für": [
+                "Anfänger & Grundkonzepte",
+                "Vergleich einfach vs. multipel",
+                "Dummy-Variablen",
+            ],
+            "Stichprobe": ["Klein (n=8-50)", "Mittel (n=75)", "Gross (n=1000)"],
+            "Prädiktoren": ["1 (nur Fläche)", "2 (Preis, Werbung)", "2 (Fläche, Pool)"],
+            "Wahre Parameter": ["✅ Bekannt", "❌ Unbekannt", "❌ Unbekannt"],
+        }
+    )
+
     st.dataframe(comparison_df, use_container_width=True, hide_index=True)
 
 # Footer
 st.markdown("---")
-st.markdown("""
+st.markdown(
+    """
 <div style='text-align: center; color: gray; font-size: 12px; padding: 20px;'>
-    📖 Umfassender Leitfaden zur Linearen Regression | 
+    📖 Umfassender Leitfaden zur Linearen Regression |
     Von der Frage zur validierten Erkenntnis |
     Erstellt mit Streamlit & statsmodels
 </div>
-""", unsafe_allow_html=True)
+""",
+    unsafe_allow_html=True,
+)

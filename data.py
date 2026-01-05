@@ -9,18 +9,15 @@ from typing import Dict, Optional, Union, Any
 import numpy as np
 import pandas as pd
 import streamlit as st
-import requests
 from config import (
     CITIES_DATASET,
     HOUSES_DATASET,
-    ELECTRONICS_DATASET,
-    SIMPLE_REGRESSION,
-    DEFAULT_SEED
 )
 
 # ============================================================================
 # SWISS OPEN GOVERNMENT DATA INTEGRATION
 # ============================================================================
+
 
 @st.cache_data(ttl=3600)  # Cache for 1 hour
 def fetch_bfs_data(table_id: str, variables: Dict[str, list] = None) -> pd.DataFrame:
@@ -42,10 +39,7 @@ def fetch_bfs_data(table_id: str, variables: Dict[str, list] = None) -> pd.DataF
         })
     """
     try:
-        # BFS PX-Web API endpoint
-        base_url = "https://www.pxweb.bfs.admin.ch/api/v1/en"
-
-        # For this demo, we'll use mock data since the actual API requires specific table structures
+        # BFS PX-Web API endpoint (for future implementation)
         # In production, you would use: pxwebpy library or direct API calls
 
         st.info(f"🔄 BFS API Integration: Would fetch table {table_id}")
@@ -66,56 +60,56 @@ def get_swiss_canton_data() -> Dict[str, Dict[str, Any]]:
     """
     # Mock data based on real Swiss statistics - in production, fetch from BFS API
     cantons_data = {
-        'ZH': {  # Zürich
-            'population': 1520968,
-            'area_km2': 1729,
-            'gdp_per_capita': 95600,
-            'unemployment_rate': 3.2,
-            'median_income': 8500,
-            'foreign_population_pct': 28.5,
-            'population_density': 879,
-            'life_expectancy': 84.2
+        "ZH": {  # Zürich
+            "population": 1520968,
+            "area_km2": 1729,
+            "gdp_per_capita": 95600,
+            "unemployment_rate": 3.2,
+            "median_income": 8500,
+            "foreign_population_pct": 28.5,
+            "population_density": 879,
+            "life_expectancy": 84.2,
         },
-        'BE': {  # Bern
-            'population': 1034977,
-            'area_km2': 5959,
-            'gdp_per_capita': 67800,
-            'unemployment_rate': 2.8,
-            'median_income': 7200,
-            'foreign_population_pct': 18.2,
-            'population_density': 174,
-            'life_expectancy': 83.8
+        "BE": {  # Bern
+            "population": 1034977,
+            "area_km2": 5959,
+            "gdp_per_capita": 67800,
+            "unemployment_rate": 2.8,
+            "median_income": 7200,
+            "foreign_population_pct": 18.2,
+            "population_density": 174,
+            "life_expectancy": 83.8,
         },
-        'GE': {  # Geneva
-            'population': 499480,
-            'area_km2': 282,
-            'gdp_per_capita': 89200,
-            'unemployment_rate': 4.1,
-            'median_income': 7800,
-            'foreign_population_pct': 45.8,
-            'population_density': 1770,
-            'life_expectancy': 84.5
+        "GE": {  # Geneva
+            "population": 499480,
+            "area_km2": 282,
+            "gdp_per_capita": 89200,
+            "unemployment_rate": 4.1,
+            "median_income": 7800,
+            "foreign_population_pct": 45.8,
+            "population_density": 1770,
+            "life_expectancy": 84.5,
         },
-        'VD': {  # Vaud
-            'population': 799145,
-            'area_km2': 3212,
-            'gdp_per_capita': 71500,
-            'unemployment_rate': 3.5,
-            'median_income': 6900,
-            'foreign_population_pct': 35.2,
-            'population_density': 249,
-            'life_expectancy': 84.1
+        "VD": {  # Vaud
+            "population": 799145,
+            "area_km2": 3212,
+            "gdp_per_capita": 71500,
+            "unemployment_rate": 3.5,
+            "median_income": 6900,
+            "foreign_population_pct": 35.2,
+            "population_density": 249,
+            "life_expectancy": 84.1,
         },
-        'TI': {  # Ticino
-            'population': 350986,
-            'area_km2': 2812,
-            'gdp_per_capita': 61200,
-            'unemployment_rate': 2.9,
-            'median_income': 6500,
-            'foreign_population_pct': 22.1,
-            'population_density': 125,
-            'life_expectancy': 83.9
-        }
+        "TI": {  # Ticino
+            "population": 350986,
+            "area_km2": 2812,
+            "gdp_per_capita": 61200,
+            "unemployment_rate": 2.9,
+            "median_income": 6500,
+            "foreign_population_pct": 22.1,
+            "population_density": 125,
+            "life_expectancy": 83.9,
+        },
     }
     return cantons_data
 
@@ -136,10 +130,10 @@ def generate_swiss_canton_regression_data() -> Dict[str, Any]:
     canton_data = list(cantons.values())
 
     # Extract variables for regression
-    population_density = [c['population_density'] for c in canton_data]
-    foreign_pct = [c['foreign_population_pct'] for c in canton_data]
-    unemployment = [c['unemployment_rate'] for c in canton_data]
-    gdp_per_capita = [c['gdp_per_capita'] for c in canton_data]
+    population_density = [c["population_density"] for c in canton_data]
+    foreign_pct = [c["foreign_population_pct"] for c in canton_data]
+    unemployment = [c["unemployment_rate"] for c in canton_data]
+    gdp_per_capita = [c["gdp_per_capita"] for c in canton_data]
 
     return {
         "x_population_density": np.array(population_density),
@@ -153,7 +147,7 @@ def generate_swiss_canton_regression_data() -> Dict[str, Any]:
         "x3_name": "Unemployment Rate (%)",
         "y_name": "GDP per Capita (CHF)",
         "data_source": "Swiss Federal Statistical Office (simplified)",
-        "description": "Swiss canton data for multiple regression: GDP ~ Population Density + Foreign Population % + Unemployment"
+        "description": "Swiss canton data for multiple regression: GDP ~ Population Density + Foreign Population % + Unemployment",
     }
 
 
@@ -171,14 +165,24 @@ def fetch_swiss_weather_data() -> pd.DataFrame:
     # Mock data representing Swiss weather stations
     # In production, this would call: https://opendata.meteoswiss.ch/
 
-    weather_data = pd.DataFrame({
-        'station': ['Zurich', 'Bern', 'Geneva', 'Basel', 'Lugano', 'St. Moritz', 'Jungfraujoch'],
-        'altitude_m': [556, 540, 375, 316, 273, 1822, 3576],
-        'avg_temperature_c': [9.4, 8.7, 9.7, 9.3, 11.2, 3.8, -7.1],
-        'precipitation_mm': [1042, 1025, 791, 842, 1528, 688, 468],
-        'sunshine_hours': [1569, 1598, 2159, 1702, 2164, 1935, 2058],
-        'humidity_pct': [74, 76, 72, 75, 73, 68, 55]
-    })
+    weather_data = pd.DataFrame(
+        {
+            "station": [
+                "Zurich",
+                "Bern",
+                "Geneva",
+                "Basel",
+                "Lugano",
+                "St. Moritz",
+                "Jungfraujoch",
+            ],
+            "altitude_m": [556, 540, 375, 316, 273, 1822, 3576],
+            "avg_temperature_c": [9.4, 8.7, 9.7, 9.3, 11.2, 3.8, -7.1],
+            "precipitation_mm": [1042, 1025, 791, 842, 1528, 688, 468],
+            "sunshine_hours": [1569, 1598, 2159, 1702, 2164, 1935, 2058],
+            "humidity_pct": [74, 76, 72, 75, 73, 68, 55],
+        }
+    )
 
     return weather_data
 
@@ -198,18 +202,18 @@ def generate_swiss_weather_regression_data() -> Dict[str, Any]:
     weather_df = fetch_swiss_weather_data()
 
     return {
-        "x_altitude": weather_df['altitude_m'].values,
-        "x_sunshine": weather_df['sunshine_hours'].values,
-        "x_humidity": weather_df['humidity_pct'].values,
-        "y_temperature": weather_df['avg_temperature_c'].values,
-        "station_names": weather_df['station'].tolist(),
+        "x_altitude": weather_df["altitude_m"].values,
+        "x_sunshine": weather_df["sunshine_hours"].values,
+        "x_humidity": weather_df["humidity_pct"].values,
+        "y_temperature": weather_df["avg_temperature_c"].values,
+        "station_names": weather_df["station"].tolist(),
         "n": len(weather_df),
         "x1_name": "Altitude (m)",
         "x2_name": "Sunshine Hours",
         "x3_name": "Humidity (%)",
         "y_name": "Average Temperature (°C)",
         "data_source": "MeteoSwiss (simplified)",
-        "description": "Swiss weather stations: Temperature ~ Altitude + Sunshine + Humidity"
+        "description": "Swiss weather stations: Temperature ~ Altitude + Sunshine + Humidity",
     }
 
 
@@ -231,7 +235,7 @@ def get_available_swiss_datasets() -> Dict[str, Dict[str, Any]]:
             "ideal_for": "Multiple regression, socioeconomic analysis",
             "api_available": False,  # Would be True when BFS API is fully implemented
             "python_package": "pxwebpy",
-            "api_docs": "https://www.pxweb.bfs.admin.ch/api/v1/"
+            "api_docs": "https://www.pxweb.bfs.admin.ch/api/v1/",
         },
         "swiss_weather": {
             "name": "Swiss Weather Stations",
@@ -241,7 +245,7 @@ def get_available_swiss_datasets() -> Dict[str, Dict[str, Any]]:
             "source": "MeteoSwiss (simplified)",
             "ideal_for": "Simple and multiple regression, environmental analysis",
             "api_available": False,  # Would be True in 2026
-            "api_docs": "https://opendata.meteoswiss.ch/"
+            "api_docs": "https://opendata.meteoswiss.ch/",
         },
         "cross_border_commuters": {
             "name": "Cross-border Commuters",
@@ -252,7 +256,7 @@ def get_available_swiss_datasets() -> Dict[str, Dict[str, Any]]:
             "api_endpoint": "https://www.pxweb.bfs.admin.ch/pxweb/en/px-x-0302010000_105/",
             "ideal_for": "Time series regression, labor market analysis",
             "api_available": True,
-            "python_package": "pxwebpy"
+            "python_package": "pxwebpy",
         },
         "dwelling_structure": {
             "name": "Swiss Housing Market",
@@ -263,8 +267,8 @@ def get_available_swiss_datasets() -> Dict[str, Dict[str, Any]]:
             "api_endpoint": "https://www.pxweb.bfs.admin.ch/pxweb/en/px-x-0903020000_111/",
             "ideal_for": "Housing market regression, socioeconomic analysis",
             "api_available": True,
-            "python_package": "pxwebpy"
-        }
+            "python_package": "pxwebpy",
+        },
     }
 
 
@@ -280,7 +284,14 @@ def get_global_regression_datasets() -> Dict[str, Dict[str, Any]]:
         "world_bank_indicators": {
             "name": "World Bank Development Indicators",
             "description": "Global economic, social, and environmental indicators for countries worldwide",
-            "variables": ["gdp_per_capita", "population", "life_expectancy", "unemployment", "inflation", "trade_balance"],
+            "variables": [
+                "gdp_per_capita",
+                "population",
+                "life_expectancy",
+                "unemployment",
+                "inflation",
+                "trade_balance",
+            ],
             "n_observations": "200+ countries × 50+ years",
             "source": "World Bank API",
             "api_endpoint": "https://api.worldbank.org/v2/",
@@ -290,12 +301,19 @@ def get_global_regression_datasets() -> Dict[str, Dict[str, Any]]:
             "api_docs": "https://datahelpdesk.worldbank.org/knowledgebase/topics/125589-developer-information",
             "example_query": "GDP per capita vs. life expectancy across countries",
             "data_frequency": "Annual",
-            "geographic_coverage": "Global (200+ countries)"
+            "geographic_coverage": "Global (200+ countries)",
         },
         "fred_economic_data": {
             "name": "Federal Reserve Economic Data (FRED)",
             "description": "Comprehensive US economic time series from Federal Reserve Bank of St. Louis",
-            "variables": ["gdp", "unemployment_rate", "inflation", "interest_rates", "housing_prices", "consumer_spending"],
+            "variables": [
+                "gdp",
+                "unemployment_rate",
+                "inflation",
+                "interest_rates",
+                "housing_prices",
+                "consumer_spending",
+            ],
             "n_observations": "800,000+ time series",
             "source": "Federal Reserve Bank of St. Louis",
             "api_endpoint": "https://fred.stlouisfed.org/docs/api/fred/",
@@ -306,12 +324,18 @@ def get_global_regression_datasets() -> Dict[str, Dict[str, Any]]:
             "api_docs": "https://fred.stlouisfed.org/docs/api/fred/",
             "example_query": "Unemployment rate vs. GDP growth (Phillips curve)",
             "data_frequency": "Daily/Monthly/Quarterly",
-            "geographic_coverage": "United States"
+            "geographic_coverage": "United States",
         },
         "who_health_indicators": {
             "name": "World Health Organization Indicators",
             "description": "Global health statistics and indicators from WHO",
-            "variables": ["life_expectancy", "mortality_rates", "disease_incidence", "health_expenditure", "immunization_rates"],
+            "variables": [
+                "life_expectancy",
+                "mortality_rates",
+                "disease_incidence",
+                "health_expenditure",
+                "immunization_rates",
+            ],
             "n_observations": "200+ countries × 20+ years",
             "source": "World Health Organization",
             "api_endpoint": "https://ghoapi.azureedge.net/api/",
@@ -321,12 +345,19 @@ def get_global_regression_datasets() -> Dict[str, Dict[str, Any]]:
             "api_docs": "https://www.who.int/data/gho/info/gho-odata-api",
             "example_query": "GDP per capita vs. life expectancy (Preston curve)",
             "data_frequency": "Annual",
-            "geographic_coverage": "Global"
+            "geographic_coverage": "Global",
         },
         "eurostat_european_data": {
             "name": "Eurostat European Statistics",
             "description": "Comprehensive socioeconomic statistics for European countries",
-            "variables": ["gdp", "employment", "education", "poverty_rates", "migration", "energy_consumption"],
+            "variables": [
+                "gdp",
+                "employment",
+                "education",
+                "poverty_rates",
+                "migration",
+                "energy_consumption",
+            ],
             "n_observations": "30+ countries × 20+ years",
             "source": "European Commission (Eurostat)",
             "api_endpoint": "https://ec.europa.eu/eurostat/web/json-and-unicode-web-services",
@@ -336,7 +367,7 @@ def get_global_regression_datasets() -> Dict[str, Dict[str, Any]]:
             "api_docs": "https://ec.europa.eu/eurostat/web/json-and-unicode-web-services",
             "example_query": "Education spending vs. economic growth across EU countries",
             "data_frequency": "Annual/Quarterly",
-            "geographic_coverage": "European Union + EFTA countries"
+            "geographic_coverage": "European Union + EFTA countries",
         },
         "open_weather_historical": {
             "name": "OpenWeather Historical Weather",
@@ -352,12 +383,18 @@ def get_global_regression_datasets() -> Dict[str, Dict[str, Any]]:
             "api_docs": "https://openweathermap.org/api/one-call-3",
             "example_query": "Temperature vs. economic productivity by city",
             "data_frequency": "Hourly/Daily",
-            "geographic_coverage": "Global cities"
+            "geographic_coverage": "Global cities",
         },
         "nasa_power_earth_science": {
             "name": "NASA POWER Earth Science Data",
             "description": "Global meteorological and solar irradiance data from NASA satellites",
-            "variables": ["temperature", "humidity", "solar_radiation", "wind_speed", "precipitation"],
+            "variables": [
+                "temperature",
+                "humidity",
+                "solar_radiation",
+                "wind_speed",
+                "precipitation",
+            ],
             "n_observations": "Global grid × 40+ years",
             "source": "NASA Prediction Of Worldwide Energy Resources",
             "api_endpoint": "https://power.larc.nasa.gov/api/temporal/",
@@ -367,15 +404,15 @@ def get_global_regression_datasets() -> Dict[str, Dict[str, Any]]:
             "api_docs": "https://power.larc.nasa.gov/docs/services/api/temporal/",
             "example_query": "Solar irradiance vs. GDP by country (renewable energy potential)",
             "data_frequency": "Daily/Monthly",
-            "geographic_coverage": "Global (1° × 1° grid)"
-        }
+            "geographic_coverage": "Global (1° × 1° grid)",
+        },
     }
 
 
 def safe_scalar(val: Union[pd.Series, np.ndarray, float, int]) -> float:
     """Konvertiert Series/ndarray zu Skalar, falls nötig."""
     if isinstance(val, (pd.Series, np.ndarray)):
-        return float(val.iloc[0] if hasattr(val, 'iloc') else val[0])
+        return float(val.iloc[0] if hasattr(val, "iloc") else val[0])
     return float(val)
 
 
@@ -386,22 +423,28 @@ def generate_dataset(name: str, seed: int = 42) -> Optional[Dict[str, Any]]:
     Gibt x, y, labels und Metadaten zurueck.
     """
     np.random.seed(seed)
-    
+
     if name == "elektronikmarkt":
         # Default-Werte, werden durch Slider ueberschrieben
         return None  # Handled separately due to sliders
-    
+
     elif name == "staedte":
         n = CITIES_DATASET["n_default"]
         x2_preis = np.random.normal(CITIES_DATASET["price_mean"], CITIES_DATASET["price_std"], n)
         x2_preis = np.clip(x2_preis, CITIES_DATASET["price_min"], CITIES_DATASET["price_max"])
-        x3_werbung = np.random.normal(CITIES_DATASET["advertising_mean"], CITIES_DATASET["advertising_std"], n)
-        x3_werbung = np.clip(x3_werbung, CITIES_DATASET["advertising_min"], CITIES_DATASET["advertising_max"])
+        x3_werbung = np.random.normal(
+            CITIES_DATASET["advertising_mean"], CITIES_DATASET["advertising_std"], n
+        )
+        x3_werbung = np.clip(
+            x3_werbung, CITIES_DATASET["advertising_min"], CITIES_DATASET["advertising_max"]
+        )
         y_base = 100 - 5 * x2_preis + 8 * x3_werbung
         noise = np.random.normal(0, CITIES_DATASET["noise_std"], n)
         y = y_base + noise
         y = np.clip(y, CITIES_DATASET["y_min"], CITIES_DATASET["y_max"])
-        y = (y - np.mean(y)) / np.std(y) * CITIES_DATASET["y_std_target"] + CITIES_DATASET["y_mean_target"]
+        y = (y - np.mean(y)) / np.std(y) * CITIES_DATASET["y_std_target"] + CITIES_DATASET[
+            "y_mean_target"
+        ]
         return {
             "x_preis": x2_preis,
             "x_werbung": x3_werbung,
@@ -411,11 +454,13 @@ def generate_dataset(name: str, seed: int = 42) -> Optional[Dict[str, Any]]:
             "x2_name": "Werbung (CHF1000)",
             "y_name": "Umsatz (1000 CHF)",
         }
-    
+
     elif name == "haeuser":
         n = HOUSES_DATASET["n_default"]
         x_wohnflaeche = np.random.normal(HOUSES_DATASET["area_mean"], HOUSES_DATASET["area_std"], n)
-        x_wohnflaeche = np.clip(x_wohnflaeche, HOUSES_DATASET["area_min"], HOUSES_DATASET["area_max"])
+        x_wohnflaeche = np.clip(
+            x_wohnflaeche, HOUSES_DATASET["area_min"], HOUSES_DATASET["area_max"]
+        )
         x_pool = np.random.binomial(1, HOUSES_DATASET["pool_probability"], n).astype(float)
         y_base = 50 + 7.5 * x_wohnflaeche + 35 * x_pool
         noise = np.random.normal(0, HOUSES_DATASET["noise_std"], n)
@@ -437,41 +482,46 @@ def generate_dataset(name: str, seed: int = 42) -> Optional[Dict[str, Any]]:
 
     elif name == "swiss_weather":
         return generate_swiss_weather_regression_data()
-    
+
     return None
 
 
 @st.cache_data
 def generate_multiple_regression_data(
-    dataset_choice_mult: str, 
-    n_mult: int, 
-    noise_mult_level: float, 
-    seed_mult: int
+    dataset_choice_mult: str, n_mult: int, noise_mult_level: float, seed_mult: int
 ) -> Dict[str, Union[np.ndarray, str]]:
     """
     Generate data for multiple regression based on dataset choice.
-    
+
     Args:
         dataset_choice_mult: Name of the dataset
         n_mult: Number of observations
         noise_mult_level: Noise standard deviation
         seed_mult: Random seed
-        
+
     Returns:
         Dictionary with x2_preis, x3_werbung, y_mult, x1_name, x2_name, y_name
     """
     np.random.seed(int(seed_mult))
 
     if dataset_choice_mult == "🏙️ Städte-Umsatzstudie (75 Städte)":
-        x2_preis = np.random.normal(CITIES_DATASET["price_mean"], CITIES_DATASET["price_std"], n_mult)
+        x2_preis = np.random.normal(
+            CITIES_DATASET["price_mean"], CITIES_DATASET["price_std"], n_mult
+        )
         x2_preis = np.clip(x2_preis, CITIES_DATASET["price_min"], CITIES_DATASET["price_max"])
-        x3_werbung = np.random.normal(CITIES_DATASET["advertising_mean"], CITIES_DATASET["advertising_std"], n_mult)
-        x3_werbung = np.clip(x3_werbung, CITIES_DATASET["advertising_min"], CITIES_DATASET["advertising_max"])
+        x3_werbung = np.random.normal(
+            CITIES_DATASET["advertising_mean"], CITIES_DATASET["advertising_std"], n_mult
+        )
+        x3_werbung = np.clip(
+            x3_werbung, CITIES_DATASET["advertising_min"], CITIES_DATASET["advertising_max"]
+        )
         y_base_mult = 100 - 5 * x2_preis + 8 * x3_werbung
         noise_mult = np.random.normal(0, noise_mult_level, n_mult)
         y_mult = y_base_mult + noise_mult
         y_mult = np.clip(y_mult, CITIES_DATASET["y_min"], CITIES_DATASET["y_max"])
-        y_mult = (y_mult - np.mean(y_mult)) / np.std(y_mult) * CITIES_DATASET["y_std_target"] + CITIES_DATASET["y_mean_target"]
+        y_mult = (y_mult - np.mean(y_mult)) / np.std(y_mult) * CITIES_DATASET[
+            "y_std_target"
+        ] + CITIES_DATASET["y_mean_target"]
 
         x1_name, x2_name, y_name = "Preis (CHF)", "Werbung (CHF1000)", "Umsatz (1000 CHF)"
 
@@ -494,7 +544,7 @@ def generate_multiple_regression_data(
             "x3_name": canton_data["x3_name"],
             "y_name": canton_data["y_name"],
             "data_source": canton_data["data_source"],
-            "description": canton_data["description"]
+            "description": canton_data["description"],
         }
 
     elif dataset_choice_mult == "🌤️ Schweizer Wetterstationen":
@@ -516,12 +566,16 @@ def generate_multiple_regression_data(
             "x3_name": weather_data["x3_name"],
             "y_name": weather_data["y_name"],
             "data_source": weather_data["data_source"],
-            "description": weather_data["description"]
+            "description": weather_data["description"],
         }
 
     elif dataset_choice_mult == "🏠 Häuserpreise mit Pool (1000 Häuser)":
-        x2_wohnflaeche = np.random.normal(HOUSES_DATASET["area_mean"], HOUSES_DATASET["area_std"], n_mult)
-        x2_wohnflaeche = np.clip(x2_wohnflaeche, HOUSES_DATASET["area_min"], HOUSES_DATASET["area_max"])
+        x2_wohnflaeche = np.random.normal(
+            HOUSES_DATASET["area_mean"], HOUSES_DATASET["area_std"], n_mult
+        )
+        x2_wohnflaeche = np.clip(
+            x2_wohnflaeche, HOUSES_DATASET["area_min"], HOUSES_DATASET["area_max"]
+        )
 
         x3_pool = np.random.binomial(1, HOUSES_DATASET["pool_probability"], n_mult).astype(float)
 
@@ -550,53 +604,50 @@ def generate_multiple_regression_data(
         x1_name, x2_name, y_name = "Verkaufsfläche (100qm)", "Marketing (10k€)", "Umsatz (Mio. €)"
 
     return {
-        'x2_preis': x2_preis,
-        'x3_werbung': x3_werbung,
-        'y_mult': y_mult,
-        'x1_name': x1_name,
-        'x2_name': x2_name,
-        'y_name': y_name
+        "x2_preis": x2_preis,
+        "x3_werbung": x3_werbung,
+        "y_mult": y_mult,
+        "x1_name": x1_name,
+        "x2_name": x2_name,
+        "y_name": y_name,
     }
 
 
 @st.cache_data
 def generate_simple_regression_data(
-    dataset_choice: str, 
-    x_variable: str, 
-    n: int, 
-    seed: int = 42
+    dataset_choice: str, x_variable: str, n: int, seed: int = 42
 ) -> Dict[str, Union[np.ndarray, str]]:
     """
     Generate data for simple regression based on dataset choice.
-    
+
     Args:
         dataset_choice: Name of the dataset
         x_variable: Selected X variable
         n: Number of observations
         seed: Random seed
-        
+
     Returns:
         Dictionary with x, y, x_label, y_label, x_unit, y_unit, context_title, context_description
     """
     np.random.seed(seed)
-    
+
     if dataset_choice == "🏙️ Städte-Umsatzstudie (75 Städte)":
         # Generiere korrelierte Daten basierend auf den deskriptiven Statistiken
         x2_preis = np.random.normal(5.69, 0.52, n)
         x2_preis = np.clip(x2_preis, 4.83, 6.49)
-        
+
         x3_werbung = np.random.normal(1.84, 0.83, n)
         x3_werbung = np.clip(x3_werbung, 0.50, 3.10)
-        
+
         # y = f(preis, werbung) + noise
         y_base = 100 - 5 * x2_preis + 8 * x3_werbung
         noise = np.random.normal(0, 3.5, n)
         y = y_base + noise
         y = np.clip(y, 62.4, 91.2)
-        
+
         # Skaliere auf gewünschte Statistiken
         y = (y - np.mean(y)) / np.std(y) * 6.49 + 77.37
-        
+
         if x_variable == "Preis (CHF)":
             x = x2_preis
             x_label = "Preis (CHF)"
@@ -607,10 +658,10 @@ def generate_simple_regression_data(
             Eine Handelskette untersucht in **75 Städten**:
             - **X** = Produktpreis (in CHF)
             - **Y** = Umsatz (in 1'000 CHF)
-            
+
             **Erwartung:** Höherer Preis → niedrigerer Umsatz?
-            
-            ⚠️ **Didaktisch:** Nur EIN Prädiktor → grosser Fehlerterm 
+
+            ⚠️ **Didaktisch:** Nur EIN Prädiktor → grosser Fehlerterm
             (Werbung fehlt als Erklärungsvariable!)
             """
         else:  # Werbung
@@ -623,35 +674,35 @@ def generate_simple_regression_data(
             Eine Handelskette untersucht in **75 Städten**:
             - **X** = Werbeausgaben (in 1'000 CHF)
             - **Y** = Umsatz (in 1'000 CHF)
-            
+
             **Erwartung:** Mehr Werbung → höherer Umsatz?
-            
-            ⚠️ **Didaktisch:** Nur EIN Prädiktor → grosser Fehlerterm 
+
+            ⚠️ **Didaktisch:** Nur EIN Prädiktor → grosser Fehlerterm
             (Preis fehlt als Erklärungsvariable!)
             """
-        
+
         context_title = "Städte-Umsatzstudie"
-        
+
     elif dataset_choice == "🏠 Häuserpreise mit Pool (1000 Häuser)":
         # Häuserpreise-Datensatz generieren (basierend auf gegebenen Statistiken)
-        
+
         # Wohnfläche in sqft/10 (20.03 bis 30.00, Mittelwert 25.21, SD 2.92)
         x_wohnflaeche = np.random.normal(25.21, 2.92, n)
         x_wohnflaeche = np.clip(x_wohnflaeche, 20.03, 30.00)
-        
+
         # Pool Dummy-Variable (20.4% haben Pool)
         x_pool = np.random.binomial(1, 0.204, n)
-        
+
         # Preis als Funktion von Wohnfläche und Pool
         # Basierend auf: Preis Mittelwert 247.66, SD 42.19, Min 134.32, Max 345.20
         y_base = 50 + 7.5 * x_wohnflaeche + 35 * x_pool
         noise = np.random.normal(0, 20, n)
         y = y_base + noise
         y = np.clip(y, 134.32, 345.20)
-        
+
         # Skaliere auf gewünschte Statistiken
         y = (y - np.mean(y)) / np.std(y) * 42.19 + 247.66
-        
+
         if x_variable == "Wohnfläche (sqft/10)":
             x = x_wohnflaeche
             x_label = "Wohnfläche (sqft/10)"
@@ -662,10 +713,10 @@ def generate_simple_regression_data(
             Eine Studie von **1000 Hausverkäufen** in einer Universitätsstadt:
             - **X** = Wohnfläche (in sqft/10, d.h. 20.03 = 200.3 sqft)
             - **Y** = Hauspreis (in USD)
-            
+
             **Erwartung:** Grössere Wohnfläche → höherer Preis?
-            
-            ⚠️ **Didaktisch:** Nur EIN Prädiktor → grosser Fehlerterm 
+
+            ⚠️ **Didaktisch:** Nur EIN Prädiktor → grosser Fehlerterm
             (Pool-Ausstattung fehlt als Erklärungsvariable!)
             """
         else:  # Pool
@@ -678,16 +729,16 @@ def generate_simple_regression_data(
             Eine Studie von **1000 Hausverkäufen** in einer Universitätsstadt:
             - **X** = Pool-Vorhandensein (0 = kein Pool, 1 = Pool vorhanden)
             - **Y** = Hauspreis (in USD)
-            
+
             **Erwartung:** Pool → höherer Preis? (Dummy-Variable!)
-            
+
             ⚠️ **Didaktisch:** Dies zeigt den Effekt einer **kategorischen Variable** (Pool ja/nein).
             Nur 20.4% der Häuser haben einen Pool.
-            
+
             💡 **Interpretation der Steigung β₁:**
             β₁ = durchschnittlicher Preisunterschied zwischen Häusern MIT Pool vs. OHNE Pool
             """
-        
+
         context_title = "Häuserpreise-Studie"
 
     elif dataset_choice == "🇨🇭 Schweizer Kantone (sozioökonomisch)":
@@ -779,14 +830,14 @@ def generate_simple_regression_data(
     else:
         # Should not reach here as elektronikmarkt is handled separately
         raise ValueError(f"Unknown dataset: {dataset_choice}")
-    
+
     return {
-        'x': x,
-        'y': y,
-        'x_label': x_label,
-        'y_label': y_label,
-        'x_unit': x_unit,
-        'y_unit': y_unit,
-        'context_title': context_title,
-        'context_description': context_description
+        "x": x,
+        "y": y,
+        "x_label": x_label,
+        "y_label": y_label,
+        "x_unit": x_unit,
+        "y_unit": y_unit,
+        "context_title": context_title,
+        "context_description": context_description,
     }
