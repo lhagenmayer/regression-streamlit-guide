@@ -45,6 +45,12 @@ from plots import (
     create_r_output_figure,
     get_signif_stars,
 )
+from content import (
+    get_multiple_regression_formulas,
+    get_multiple_regression_descriptions,
+    get_simple_regression_content,
+    get_dataset_info,
+)
 
 # ---------------------------------------------------------
 # PAGE CONFIG
