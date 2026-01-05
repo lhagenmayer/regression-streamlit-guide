@@ -8,6 +8,13 @@ from typing import Dict, Optional, Union, Any
 import numpy as np
 import pandas as pd
 import streamlit as st
+from config import (
+    CITIES_DATASET,
+    HOUSES_DATASET,
+    ELECTRONICS_DATASET,
+    SIMPLE_REGRESSION,
+    DEFAULT_SEED
+)
 
 
 def safe_scalar(val: Union[pd.Series, np.ndarray, float, int]) -> float:
@@ -30,16 +37,16 @@ def generate_dataset(name: str, seed: int = 42) -> Optional[Dict[str, Any]]:
         return None  # Handled separately due to sliders
     
     elif name == "staedte":
-        n = 75
-        x2_preis = np.random.normal(5.69, 0.52, n)
-        x2_preis = np.clip(x2_preis, 4.83, 6.49)
-        x3_werbung = np.random.normal(1.84, 0.83, n)
-        x3_werbung = np.clip(x3_werbung, 0.50, 3.10)
+        n = CITIES_DATASET["n_default"]
+        x2_preis = np.random.normal(CITIES_DATASET["price_mean"], CITIES_DATASET["price_std"], n)
+        x2_preis = np.clip(x2_preis, CITIES_DATASET["price_min"], CITIES_DATASET["price_max"])
+        x3_werbung = np.random.normal(CITIES_DATASET["advertising_mean"], CITIES_DATASET["advertising_std"], n)
+        x3_werbung = np.clip(x3_werbung, CITIES_DATASET["advertising_min"], CITIES_DATASET["advertising_max"])
         y_base = 100 - 5 * x2_preis + 8 * x3_werbung
-        noise = np.random.normal(0, 3.5, n)
+        noise = np.random.normal(0, CITIES_DATASET["noise_std"], n)
         y = y_base + noise
-        y = np.clip(y, 62.4, 91.2)
-        y = (y - np.mean(y)) / np.std(y) * 6.49 + 77.37
+        y = np.clip(y, CITIES_DATASET["y_min"], CITIES_DATASET["y_max"])
+        y = (y - np.mean(y)) / np.std(y) * CITIES_DATASET["y_std_target"] + CITIES_DATASET["y_mean_target"]
         return {
             "x_preis": x2_preis,
             "x_werbung": x3_werbung,
@@ -51,12 +58,12 @@ def generate_dataset(name: str, seed: int = 42) -> Optional[Dict[str, Any]]:
         }
     
     elif name == "haeuser":
-        n = 1000
-        x_wohnflaeche = np.random.normal(25.21, 2.92, n)
-        x_wohnflaeche = np.clip(x_wohnflaeche, 20.03, 30.00)
-        x_pool = np.random.binomial(1, 0.204, n).astype(float)
+        n = HOUSES_DATASET["n_default"]
+        x_wohnflaeche = np.random.normal(HOUSES_DATASET["area_mean"], HOUSES_DATASET["area_std"], n)
+        x_wohnflaeche = np.clip(x_wohnflaeche, HOUSES_DATASET["area_min"], HOUSES_DATASET["area_max"])
+        x_pool = np.random.binomial(1, HOUSES_DATASET["pool_probability"], n).astype(float)
         y_base = 50 + 7.5 * x_wohnflaeche + 35 * x_pool
-        noise = np.random.normal(0, 20, n)
+        noise = np.random.normal(0, HOUSES_DATASET["noise_std"], n)
         y = y_base + noise
         y = np.clip(y, 134.32, 345.20)
         y = (y - np.mean(y)) / np.std(y) * 42.19 + 247.66
@@ -95,23 +102,23 @@ def generate_multiple_regression_data(
     np.random.seed(int(seed_mult))
 
     if dataset_choice_mult == "🏙️ Städte-Umsatzstudie (75 Städte)":
-        x2_preis = np.random.normal(5.69, 0.52, n_mult)
-        x2_preis = np.clip(x2_preis, 4.83, 6.49)
-        x3_werbung = np.random.normal(1.84, 0.83, n_mult)
-        x3_werbung = np.clip(x3_werbung, 0.50, 3.10)
+        x2_preis = np.random.normal(CITIES_DATASET["price_mean"], CITIES_DATASET["price_std"], n_mult)
+        x2_preis = np.clip(x2_preis, CITIES_DATASET["price_min"], CITIES_DATASET["price_max"])
+        x3_werbung = np.random.normal(CITIES_DATASET["advertising_mean"], CITIES_DATASET["advertising_std"], n_mult)
+        x3_werbung = np.clip(x3_werbung, CITIES_DATASET["advertising_min"], CITIES_DATASET["advertising_max"])
         y_base_mult = 100 - 5 * x2_preis + 8 * x3_werbung
         noise_mult = np.random.normal(0, noise_mult_level, n_mult)
         y_mult = y_base_mult + noise_mult
-        y_mult = np.clip(y_mult, 62.4, 91.2)
-        y_mult = (y_mult - np.mean(y_mult)) / np.std(y_mult) * 6.49 + 77.37
+        y_mult = np.clip(y_mult, CITIES_DATASET["y_min"], CITIES_DATASET["y_max"])
+        y_mult = (y_mult - np.mean(y_mult)) / np.std(y_mult) * CITIES_DATASET["y_std_target"] + CITIES_DATASET["y_mean_target"]
 
         x1_name, x2_name, y_name = "Preis (CHF)", "Werbung (CHF1000)", "Umsatz (1000 CHF)"
 
     elif dataset_choice_mult == "🏠 Häuserpreise mit Pool (1000 Häuser)":
-        x2_wohnflaeche = np.random.normal(25.21, 2.92, n_mult)
-        x2_wohnflaeche = np.clip(x2_wohnflaeche, 20.03, 30.00)
+        x2_wohnflaeche = np.random.normal(HOUSES_DATASET["area_mean"], HOUSES_DATASET["area_std"], n_mult)
+        x2_wohnflaeche = np.clip(x2_wohnflaeche, HOUSES_DATASET["area_min"], HOUSES_DATASET["area_max"])
 
-        x3_pool = np.random.binomial(1, 0.204, n_mult).astype(float)
+        x3_pool = np.random.binomial(1, HOUSES_DATASET["pool_probability"], n_mult).astype(float)
 
         y_base_mult = 50 + 7.5 * x2_wohnflaeche + 35 * x3_pool
         noise_mult = np.random.normal(0, noise_mult_level, n_mult)

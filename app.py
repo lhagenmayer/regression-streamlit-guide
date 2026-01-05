@@ -17,7 +17,11 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
 # Import from our modules
-from config import COLORS, FONT_SIZES
+from config import (
+    COLORS, FONT_SIZES, DEFAULT_SEED, SEED_MIN, SEED_MAX,
+    CITIES_DATASET, HOUSES_DATASET, ELECTRONICS_DATASET, SIMPLE_REGRESSION,
+    VISUALIZATION_3D
+)
 from data import safe_scalar, generate_dataset, generate_multiple_regression_data, generate_simple_regression_data
 from plots import (
     create_regression_mesh, get_3d_layout_config, create_zero_plane,
@@ -127,33 +131,33 @@ st.sidebar.markdown("---")
 with st.sidebar.expander("🎛️ Daten-Parameter (Multiple Regression)", expanded=False):
     if dataset_choice_mult == "🏙️ Städte-Umsatzstudie (75 Städte)":
         st.markdown("**Stichproben-Eigenschaften:**")
-        n_mult = st.slider("Anzahl Städte (n)", min_value=20, max_value=150, value=75, step=5,
+        n_mult = st.slider("Anzahl Städte (n)", min_value=CITIES_DATASET["n_min"], max_value=CITIES_DATASET["n_max"], value=CITIES_DATASET["n_default"], step=CITIES_DATASET["n_step"],
                          help="Grösse der Stichprobe", key="n_mult_staedte")
         
         st.markdown("**Zufallskomponente:**")
-        noise_mult_level = st.slider("Rauschen (σ)", min_value=1.0, max_value=8.0, value=3.5, step=0.5,
-                                   help="Standardabweichung der Störgrösse", key="noise_mult_staedte")
-        seed_mult = st.number_input("Random Seed", min_value=1, max_value=999, value=42,
-                                  help="Zufallsseed für Reproduzierbarkeit", key="seed_mult_staedte")
+        noise_mult_level = st.slider("Rauschen (σ)", min_value=CITIES_DATASET["noise_min"], max_value=CITIES_DATASET["noise_max"], value=CITIES_DATASET["noise_std"], step=CITIES_DATASET["noise_step"],
+                                       help="Standardabweichung der Störgrösse", key="noise_mult_staedte")
+            seed_mult = st.number_input("Random Seed", min_value=SEED_MIN, max_value=SEED_MAX, value=DEFAULT_SEED,
+                                      help="Zufallsseed für Reproduzierbarkeit", key="seed_mult_staedte")
     
     elif dataset_choice_mult == "🏠 Häuserpreise mit Pool (1000 Häuser)":
         st.markdown("**Stichproben-Eigenschaften:**")
-        n_mult = st.slider("Anzahl Häuser (n)", min_value=100, max_value=2000, value=1000, step=100,
+        n_mult = st.slider("Anzahl Häuser (n)", min_value=HOUSES_DATASET["n_min"], max_value=HOUSES_DATASET["n_max"], value=HOUSES_DATASET["n_default"], step=HOUSES_DATASET["n_step"],
                          help="Grösse der Stichprobe", key="n_mult_haeuser")
         
         st.markdown("**Zufallskomponente:**")
-        noise_mult_level = st.slider("Rauschen (σ)", min_value=5.0, max_value=40.0, value=20.0, step=5.0,
+        noise_mult_level = st.slider("Rauschen (σ)", min_value=HOUSES_DATASET["noise_min"], max_value=HOUSES_DATASET["noise_max"], value=HOUSES_DATASET["noise_default"], step=HOUSES_DATASET["noise_step"],
                                    help="Standardabweichung der Störgrösse", key="noise_mult_haeuser")
         seed_mult = st.number_input("Random Seed", min_value=1, max_value=999, value=42,
                                   help="Zufallsseed für Reproduzierbarkeit", key="seed_mult_haeuser")
     
     else:  # Elektronikmarkt
         st.markdown("**Stichproben-Eigenschaften:**")
-        n_mult = st.slider("Anzahl Beobachtungen (n)", min_value=20, max_value=100, value=50, step=5,
+        n_mult = st.slider("Anzahl Beobachtungen (n)", min_value=ELECTRONICS_DATASET["n_min"], max_value=ELECTRONICS_DATASET["n_max"], value=ELECTRONICS_DATASET["n_default"], step=ELECTRONICS_DATASET["n_step"],
                          help="Grösse der Stichprobe", key="n_mult_elektro")
         
         st.markdown("**Zufallskomponente:**")
-        noise_mult_level = st.slider("Rauschen (σ)", min_value=0.1, max_value=1.0, value=0.35, step=0.05,
+        noise_mult_level = st.slider("Rauschen (σ)", min_value=ELECTRONICS_DATASET["noise_min"], max_value=ELECTRONICS_DATASET["noise_max"], value=ELECTRONICS_DATASET["noise_default"], step=ELECTRONICS_DATASET["noise_step"],
                                    help="Standardabweichung der Störgrösse", key="noise_mult_elektro")
         seed_mult = st.number_input("Random Seed", min_value=1, max_value=999, value=42,
                                   help="Zufallsseed für Reproduzierbarkeit", key="seed_mult_elektro")
@@ -225,19 +229,19 @@ with st.sidebar.expander("🎛️ Daten-Parameter (Einfache Regression)", expand
         )
         
         st.markdown("**Stichproben-Eigenschaften:**")
-        n = st.slider("Anzahl Beobachtungen (n)", min_value=8, max_value=50, value=12, step=1,
+        n = st.slider("Anzahl Beobachtungen (n)", min_value=SIMPLE_REGRESSION["n_min"], max_value=SIMPLE_REGRESSION["n_max"], value=SIMPLE_REGRESSION["n_default"], step=SIMPLE_REGRESSION["n_step"],
                      help="Grösse der Stichprobe (mehr Beobachtungen = präzisere Schätzungen)")
         
         st.markdown("**Wahre Parameter (bekannt bei Simulation):**")
-        true_intercept = st.slider("Wahrer β₀ (Intercept)", min_value=-1.0, max_value=3.0, value=0.6, step=0.1,
+        true_intercept = st.slider("Wahrer β₀ (Intercept)", min_value=SIMPLE_REGRESSION["intercept_min"], max_value=SIMPLE_REGRESSION["intercept_max"], value=SIMPLE_REGRESSION["intercept_default"], step=SIMPLE_REGRESSION["intercept_step"],
                                   help="Y-Achsenabschnitt: Wert von Y wenn X=0")
-        true_beta = st.slider("Wahre Steigung β₁", min_value=0.1, max_value=1.5, value=0.52, step=0.01,
+        true_beta = st.slider("Wahre Steigung β₁", min_value=SIMPLE_REGRESSION["slope_min"], max_value=SIMPLE_REGRESSION["slope_max"], value=SIMPLE_REGRESSION["slope_default"], step=SIMPLE_REGRESSION["slope_step"],
                              help="Steigung: Änderung in Y pro Einheit X")
         
         st.markdown("**Zufallskomponente:**")
-        noise_level = st.slider("Rauschen (σ)", min_value=0.1, max_value=1.5, value=0.4, step=0.05,
+        noise_level = st.slider("Rauschen (σ)", min_value=SIMPLE_REGRESSION["noise_min"], max_value=SIMPLE_REGRESSION["noise_max"], value=SIMPLE_REGRESSION["noise_default"], step=SIMPLE_REGRESSION["noise_step"],
                                help="Standardabweichung der Störgrösse (mehr Rauschen = schlechteres R²)")
-        seed = st.number_input("Random Seed", min_value=1, max_value=999, value=42,
+        seed = st.number_input("Random Seed", min_value=SEED_MIN, max_value=SEED_MAX, value=DEFAULT_SEED,
                               help="Zufallsseed für Reproduzierbarkeit")
         
         # Simulierte Daten generieren
@@ -933,10 +937,10 @@ with col_m1_1:
         
         # Interaktive Eingabe - dynamic ranges based on dataset
         if dataset_choice_mult == "🏙️ Städte-Umsatzstudie (75 Städte)":
-            slider1_val = st.slider(x1_name, min_value=4.5, max_value=7.0, value=5.5, step=0.1)
-            slider2_val = st.slider(x2_name, min_value=0.5, max_value=3.5, value=2.0, step=0.1)
+            slider1_val = st.slider(x1_name, min_value=VISUALIZATION_3D["x1_slider_min"], max_value=VISUALIZATION_3D["x1_slider_max"], value=VISUALIZATION_3D["x1_slider_default"], step=VISUALIZATION_3D["x1_slider_step"])
+            slider2_val = st.slider(x2_name, min_value=VISUALIZATION_3D["x2_slider_min"], max_value=VISUALIZATION_3D["x2_slider_max"], value=VISUALIZATION_3D["x2_slider_default"], step=VISUALIZATION_3D["x2_slider_step"])
         elif dataset_choice_mult == "🏠 Häuserpreise mit Pool (1000 Häuser)":
-            slider1_val = st.slider(x1_name, min_value=20.0, max_value=30.0, value=25.0, step=0.5)
+            slider1_val = st.slider(x1_name, min_value=VISUALIZATION_3D["houses_x1_min"], max_value=VISUALIZATION_3D["houses_x1_max"], value=VISUALIZATION_3D["houses_x1_default"], step=VISUALIZATION_3D["houses_x1_step"])
             slider2_val = st.slider(x2_name, min_value=0.0, max_value=1.0, value=0.0, step=1.0)
         else:  # Elektronikmarkt
             slider1_val = st.slider(x1_name, min_value=2.0, max_value=12.0, value=7.0, step=0.5)
