@@ -35,14 +35,29 @@ from .config import (  # noqa: F401
 )
 from .data import (  # noqa: F401
     safe_scalar,
-    generate_dataset,
     generate_multiple_regression_data,
     generate_simple_regression_data,
     generate_swiss_canton_regression_data,
     generate_swiss_weather_regression_data,
+    generate_electronics_market_data,
+    create_dummy_encoded_dataset,
     get_available_swiss_datasets,
+)
+from .statistics import (  # noqa: F401
     fit_ols_model,
     compute_regression_statistics,
+    compute_simple_regression_stats,
+    compute_multiple_regression_stats,
+    create_design_matrix,
+    get_model_coefficients,
+    get_model_summary_stats,
+    get_model_diagnostics,
+    calculate_variance_inflation_factors,
+    calculate_sensitivity_analysis,
+    get_data_ranges,
+    calculate_basic_stats,
+    perform_normality_tests,
+    perform_heteroskedasticity_tests,
 )
 from .plots import (  # noqa: F401
     create_regression_mesh,
@@ -59,6 +74,8 @@ from .plots import (  # noqa: F401
     create_r_output_figure,
     get_signif_stars,
     get_signif_color,
+    calculate_residual_sizes,
+    standardize_residuals,
 )
 from .content import (  # noqa: F401
     get_multiple_regression_formulas,
@@ -307,9 +324,13 @@ if st.session_state.last_mult_params != mult_params or st.session_state.mult_mod
         x2_name = mult_data["x2_name"]
         y_name = mult_data["y_name"]
 
-        X_mult = sm.add_constant(np.column_stack([x2_preis, x3_werbung]))
-        model_mult = sm.OLS(y_mult, X_mult).fit()
-        y_pred_mult = model_mult.predict(X_mult)
+        X_mult = create_design_matrix(x2_preis, x3_werbung)
+        model_mult, y_pred_mult = fit_multiple_ols_model(X_mult, y_mult)
+
+        # Get centralized model information
+        mult_coeffs = get_model_coefficients(model_mult)
+        mult_summary = get_model_summary_stats(model_mult)
+        mult_diagnostics = get_model_diagnostics(model_mult)
 
         # Cache the results
         st.session_state.mult_model_cache = {
@@ -340,6 +361,11 @@ else:
     X_mult = cached["X_mult"]
     model_mult = cached["model_mult"]
     y_pred_mult = cached["y_pred_mult"]
+
+    # Get centralized model information
+    mult_coeffs = get_model_coefficients(model_mult)
+    mult_summary = get_model_summary_stats(model_mult)
+    mult_diagnostics = get_model_diagnostics(model_mult)
 
     # Store current model and feature names for R output display
     st.session_state.current_model = model_mult
@@ -418,30 +444,59 @@ with st.sidebar.expander("🎛️ Daten-Parameter (Einfache Regression)", expand
         simple_params = (dataset_choice, n, true_intercept, true_beta, noise_level, seed)
         if st.session_state.last_simple_params != simple_params:
             with st.spinner("🔄 Generiere Daten..."):
-                np.random.seed(int(seed))
-                x = np.linspace(2, 12, n)  # Verkaufsfläche in 100qm (200-1200qm)
-                noise = np.random.normal(0, noise_level, n)
-                y = true_intercept + true_beta * x + noise  # Umsatz in Mio. €
+                electronics_data = generate_electronics_market_data(n, true_intercept, true_beta, noise_level, seed)
+                x = electronics_data["x"]
+                y = electronics_data["y"]
+                x_label = electronics_data["x_label"]
+                y_label = electronics_data["y_label"]
+                x_unit = electronics_data["x_unit"]
+                y_unit = electronics_data["y_unit"]
+                context_title = electronics_data["context_title"]
+                context_description = electronics_data["context_description"]
                 st.session_state.last_simple_params = simple_params
                 # Store the generated data temporarily
                 if "simple_data_temp" not in st.session_state:
                     st.session_state.simple_data_temp = {}
                 st.session_state.simple_data_temp["x"] = x
                 st.session_state.simple_data_temp["y"] = y
+                st.session_state.simple_data_temp["x_label"] = x_label
+                st.session_state.simple_data_temp["y_label"] = y_label
+                st.session_state.simple_data_temp["x_unit"] = x_unit
+                st.session_state.simple_data_temp["y_unit"] = y_unit
+                st.session_state.simple_data_temp["context_title"] = context_title
+                st.session_state.simple_data_temp["context_description"] = context_description
         else:
             # Use cached data if params haven't changed
             if "simple_data_temp" in st.session_state and st.session_state.simple_data_temp:
                 x = st.session_state.simple_data_temp["x"]
                 y = st.session_state.simple_data_temp["y"]
+                x_label = st.session_state.simple_data_temp["x_label"]
+                y_label = st.session_state.simple_data_temp["y_label"]
+                x_unit = st.session_state.simple_data_temp["x_unit"]
+                y_unit = st.session_state.simple_data_temp["y_unit"]
+                context_title = st.session_state.simple_data_temp["context_title"]
+                context_description = st.session_state.simple_data_temp["context_description"]
             elif st.session_state.simple_model_cache and "x" in st.session_state.simple_model_cache:
                 x = st.session_state.simple_model_cache["x"]
                 y = st.session_state.simple_model_cache["y"]
+                # Fallback labels for cached data
+                x_label = "Verkaufsfläche (100qm)"
+                y_label = "Umsatz (Mio. €)"
+                x_unit = "100 qm"
+                y_unit = "Mio. €"
+                context_title = "Elektronikfachmärkte"
+                context_description = "Standarddatensatz"
             else:
                 # Fallback: regenerate if no cache available
-                np.random.seed(int(seed))
-                x = np.linspace(2, 12, n)
-                noise = np.random.normal(0, noise_level, n)
-                y = true_intercept + true_beta * x + noise
+                electronics_data = generate_electronics_market_data(n, true_intercept, true_beta, noise_level, seed)
+                x = electronics_data["x"]
+                y = electronics_data["y"]
+                x_label = electronics_data["x_label"]
+                y_label = electronics_data["y_label"]
+                x_unit = electronics_data["x_unit"]
+                y_unit = electronics_data["y_unit"]
+                context_title = electronics_data["context_title"]
+                context_description = electronics_data["context_description"]
 
         # Variablen-Namen für konsistente Anzeige
         x_label = "Verkaufsfläche (100qm)"
@@ -531,17 +586,16 @@ with st.sidebar.expander("🎛️ Daten-Parameter (Einfache Regression)", expand
         x_label = "X"
         y_label = "Y"
     if "x" not in locals() or "y" not in locals():
-        # Fallback: create minimal dataset
-        np.random.seed(42)
-        n = 12
-        x = np.linspace(2, 12, n)
-        y = 0.6 + 0.52 * x + np.random.normal(0, 0.4, n)
-        x_label = "Verkaufsfläche (100qm)"
-        y_label = "Umsatz (Mio. €)"
-        x_unit = "100 qm"
-        y_unit = "Mio. €"
-        context_title = "Elektronikfachmärkte"
-        context_description = "Standarddatensatz"
+        # Fallback: create minimal dataset using the proper data generation function
+        fallback_data = generate_electronics_market_data(12, 0.6, 0.52, 0.4, 42)
+        x = fallback_data["x"]
+        y = fallback_data["y"]
+        x_label = fallback_data["x_label"]
+        y_label = fallback_data["y_label"]
+        x_unit = fallback_data["x_unit"]
+        y_unit = fallback_data["y_unit"]
+        context_title = fallback_data["context_title"]
+        context_description = fallback_data["context_description"]
         has_true_line = False
         true_intercept = 0
         true_beta = 0
@@ -555,9 +609,9 @@ with st.sidebar.expander("🎛️ Daten-Parameter (Einfache Regression)", expand
 # Use array shape and basic properties instead of full array content
 simple_model_key = (
     dataset_choice,
-    len(x) if isinstance(x, np.ndarray) else 0,
-    float(x.mean()) if isinstance(x, np.ndarray) and len(x) > 0 else 0,
-    float(y.mean()) if isinstance(y, np.ndarray) and len(y) > 0 else 0,
+    calculate_basic_stats(x)["count"],
+    calculate_basic_stats(x)["mean"],
+    calculate_basic_stats(y)["mean"],
 )
 
 # Check if we need to recompute the model
@@ -572,26 +626,38 @@ if needs_recompute:
     with st.spinner("📊 Berechne Regressionsmodell..."):
         df = pd.DataFrame({x_label: x, y_label: y})
 
-        X = sm.add_constant(x)
+        X = create_design_matrix(x)
         model, y_pred = fit_ols_model(X, y)
-        y_mean = np.mean(y)
 
-        b0, b1 = model.params[0], model.params[1]
-        sse = np.sum((y - y_pred) ** 2)
-        sst = np.sum((y - y_mean) ** 2)
-        ssr = sst - sse
-        mse = sse / (n - 2)
-        msr = ssr / 1
-        se_regression = np.sqrt(mse)
-        sb1, sb0 = model.bse[1], model.bse[0]
-        t_val = model.tvalues[1]
-        f_val = model.fvalue
-        df_resid = int(model.df_resid)
-        x_mean, y_mean_val = np.mean(x), np.mean(y)
-        cov_xy = np.sum((x - x_mean) * (y - y_mean_val)) / (n - 1)
-        var_x = np.var(x, ddof=1)
-        var_y = np.var(y, ddof=1)
-        corr_xy = cov_xy / (np.sqrt(var_x) * np.sqrt(var_y))
+        # Use centralized statistical computations
+        stats_results = compute_simple_regression_stats(model, X, y, n)
+
+        # Extract all statistical results
+        y_mean = stats_results["y_mean"]
+        b0 = stats_results["b0"]
+        b1 = stats_results["b1"]
+        sse = stats_results["sse"]
+        sst = stats_results["sst"]
+        ssr = stats_results["ssr"]
+        mse = stats_results["mse"]
+        msr = stats_results["msr"]
+        se_regression = stats_results["se_regression"]
+        sb1 = stats_results["sb1"]
+        sb0 = stats_results["sb0"]
+        t_val = stats_results["t_val"]
+        f_val = stats_results["f_val"]
+        df_resid = stats_results["df_resid"]
+        x_mean = stats_results["x_mean"]
+        y_mean_val = stats_results["y_mean_val"]
+        cov_xy = stats_results["cov_xy"]
+        var_x = stats_results["var_x"]
+        var_y = stats_results["var_y"]
+        corr_xy = stats_results["corr_xy"]
+
+        # Get additional centralized model information
+        simple_coeffs = get_model_coefficients(model)
+        simple_summary = get_model_summary_stats(model)
+        simple_diagnostics = get_model_diagnostics(model)
 
         # Cache all computed values
         st.session_state.simple_model_cache = {
@@ -668,23 +734,51 @@ else:
 # R OUTPUT DISPLAY - Always visible above tabs
 # =========================================================
 st.markdown("---")
-st.markdown("### 📊 R Output (Automatisch aktualisiert)")
 
-# Display R output based on current session state
-try:
-    if 'current_model' in st.session_state and 'current_feature_names' in st.session_state:
-        model = st.session_state.current_model
-        feature_names = st.session_state.current_feature_names
+# Create two columns: R output on left, explanation on right
+col_r_output, col_r_explanation = st.columns([3, 2])
 
-        if model is not None:
-            fig_r = create_r_output_figure(model, feature_names=feature_names, figsize=(18, 13))
-            st.plotly_chart(fig_r, use_container_width=True)
+with col_r_output:
+    st.markdown("### 📊 R Output (Automatisch aktualisiert)")
+
+    # Display R output based on current session state
+    try:
+        if 'current_model' in st.session_state and 'current_feature_names' in st.session_state:
+            model = st.session_state.current_model
+            feature_names = st.session_state.current_feature_names
+
+            if model is not None:
+                fig_r = create_r_output_figure(model, feature_names=feature_names, figsize=(18, 13))
+                st.plotly_chart(fig_r, use_container_width=True)
+            else:
+                st.info("ℹ️ Wählen Sie einen Datensatz und Parameter aus, um das R Output zu sehen.")
         else:
             st.info("ℹ️ Wählen Sie einen Datensatz und Parameter aus, um das R Output zu sehen.")
-    else:
-        st.info("ℹ️ Wählen Sie einen Datensatz und Parameter aus, um das R Output zu sehen.")
-except Exception as e:
-    st.warning(f"R Output konnte nicht geladen werden: {str(e)}")
+    except Exception as e:
+        st.warning(f"R Output konnte nicht geladen werden: {str(e)}")
+
+with col_r_explanation:
+    with st.expander("📖 Erklärung der R Output Abschnitte", expanded=False):
+        st.markdown("""
+        #### Erklärung der Abschnitte (kurz, präzise)
+        • **Call**: zeigt die verwendete Modellformel und das Datenset; nützlich zur Reproduzierbarkeit.
+
+        • **Residuals**: fünf‑Zahlen‑Zusammenfassung der Residuen (Min, 1Q, Median, 3Q, Max) zur schnellen Beurteilung von Schiefe/Ausreißern.
+
+        • **Coefficients**: vier Spalten: Estimate, Std. Error, t value, Pr(>|t|); jede Zeile ist ein Prädiktor (Intercept inklusive). Signifikanzsterne werden darunter erklärt.
+
+        • **Residual standard error und degrees of freedom**: Schätzung der Fehlerstreuung und Freiheitsgrade für Tests.
+
+        • **Multiple R-squared / Adjusted R-squared**: erklärte Varianz und bereinigte Version (bestraft unnötige Prädiktoren).
+
+        • **F-statistic**: globaler Test, ob mindestens ein Prädiktor das Modell signifikant verbessert; p‑value dazu wird angezeigt.
+
+        ---
+        #### Wichtige Hinweise, Entscheidungen und Risiken
+        • **Interpretation der Koeffizienten**: Ein Estimate ist die geschätzte Änderung in der Zielvariable pro Einheitenänderung des Prädiktors bei konstanten anderen Variablen; Pr(>|t|) gibt die zweiseitige p‑Wert‑Signifikanz an.
+
+        • **Achtung bei Multikollinearität**: hohe Standardfehler oder aliasing können Koeffizienten unzuverlässig machen; summary() zeigt aliased coefficients nicht, Details in summary.lm‑Dokumentation.
+        """)
 
 st.markdown("---")
 
@@ -744,7 +838,7 @@ with col_m1_1:
         with st.spinner("🎨 Erstelle 3D-Visualisierung..."):
             # Erstelle Mesh für die Ebene using helper function
             X1_mesh, X2_mesh, Y_mesh = create_regression_mesh(
-                x2_preis, x3_werbung, model_mult.params
+                x2_preis, x3_werbung, mult_coeffs["params"]
             )
 
             # Create plotly 3D surface plot
@@ -816,9 +910,10 @@ with col_m1_1:
             f"""
         **🎯 Unser geschätztes Modell:**
 
-        Umsatz = {model_mult.params[0]:.2f}
-                 {model_mult.params[1]:+.2f} · Preis
-                 {model_mult.params[2]:+.2f} · Werbung
+        mult_coeffs = get_model_coefficients(model_mult)
+        Umsatz = {mult_coeffs["params"][0]:.2f}
+                 {mult_coeffs["params"][1]:+.2f} · Preis
+                 {mult_coeffs["params"][2]:+.2f} · Werbung
         """
         )
 
@@ -826,14 +921,14 @@ with col_m1_1:
         st.markdown("### 🔬 Partielle Koeffizienten")
         st.markdown(
             f"""
-        **β₁ (Preis) = {model_mult.params[1]:.3f}**
+        **β₁ (Preis) = {mult_coeffs["params"][1]:.3f}**
 
-        → Pro CHF Preiserhöhung sinkt der Umsatz um {abs(model_mult.params[1]):.2f} Tausend CHF,
+        → Pro CHF Preiserhöhung sinkt der Umsatz um {abs(mult_coeffs["params"][1]):.2f} Tausend CHF,
         **wenn Werbung konstant gehalten wird**.
 
-        **β₂ (Werbung) = {model_mult.params[2]:.3f}**
+        **β₂ (Werbung) = {mult_coeffs["params"][2]:.3f}**
 
-        → Pro 1000 CHF mehr Werbung steigt der Umsatz um {model_mult.params[2]:.2f} Tausend CHF,
+        → Pro 1000 CHF mehr Werbung steigt der Umsatz um {mult_coeffs["params"][2]:.2f} Tausend CHF,
         **wenn Preis konstant gehalten wird**.
         """
         )
@@ -914,7 +1009,7 @@ with col_m1_1:
 
         # Residuen-Plot
         fig_resid = create_plotly_residual_plot(
-            y_pred_mult, model_mult.resid, title="Residual Plot"
+            y_pred_mult, mult_diagnostics["resid"], title="Residual Plot"
         )
         st.plotly_chart(fig_resid, use_container_width=True)
 
@@ -928,14 +1023,14 @@ with col_m1_1:
                     f'β₂ ({x2_name.split("(")[0].strip()})',
                 ],
                 "Schätzwert": [
-                    f"{model_mult.params[0]:.4f}",
-                    f"{model_mult.params[1]:.4f}",
-                    f"{model_mult.params[2]:.4f}",
+                    f"{mult_coeffs['params'][0]:.4f}",
+                    f"{mult_coeffs['params'][1]:.4f}",
+                    f"{mult_coeffs['params'][2]:.4f}",
                 ],
                 "Std. Error": [
-                    f"{model_mult.bse[0]:.4f}",
-                    f"{model_mult.bse[1]:.4f}",
-                    f"{model_mult.bse[2]:.4f}",
+                    f"{mult_coeffs['bse'][0]:.4f}",
+                    f"{mult_coeffs['bse'][1]:.4f}",
+                    f"{mult_coeffs['bse'][2]:.4f}",
                 ],
             }
         )
@@ -945,10 +1040,11 @@ with col_m1_1:
             f"""
         **✅ Modellgüte:**
 
-        - R² = {model_mult.rsquared:.4f} ({model_mult.rsquared*100:.1f}%)
-        - Adjustiertes R² = {model_mult.rsquared_adj:.4f}
-        - F-Statistik = {model_mult.fvalue:.2f}
-        - p-Wert (F-Test) = {model_mult.f_pvalue:.4g}
+        mult_summary = get_model_summary_stats(model_mult)
+        - R² = {mult_summary["rsquared"]:.4f} ({mult_summary["rsquared"]*100:.1f}%)
+        - Adjustiertes R² = {mult_summary["rsquared_adj"]:.4f}
+        - F-Statistik = {mult_summary["fvalue"]:.2f}
+        - p-Wert (F-Test) = {mult_summary["f_pvalue"]:.4g}
         """
         )
 
@@ -957,7 +1053,7 @@ with col_m1_1:
 
     with st.spinner("🎨 Erstelle 3D-Residuenplot..."):
         # Create 3D residual plot using helper function
-        X1_mesh, X2_mesh, Y_mesh = create_regression_mesh(x2_preis, x3_werbung, model_mult.params)
+        X1_mesh, X2_mesh, Y_mesh = create_regression_mesh(x2_preis, x3_werbung, mult_coeffs["params"])
 
         fig_3d_resid = go.Figure()
 
@@ -1040,10 +1136,11 @@ with col_m1_1:
     """
     )
 
-    # Berechne Kennzahlen
-    sst_mult = np.sum((y_mult - np.mean(y_mult)) ** 2)
-    sse_mult = np.sum(model_mult.resid**2)
-    ssr_mult = sst_mult - sse_mult
+    # Berechne Kennzahlen mit zentralisierter Funktion
+    mult_stats = compute_multiple_regression_stats(model_mult, X_mult, y_mult)
+    sst_mult = mult_stats["sst"]
+    sse_mult = mult_stats["sse"]
+    ssr_mult = mult_stats["ssr"]
 
     col_m4_1, col_m4_2 = st.columns([1.5, 1])
 
@@ -1059,7 +1156,7 @@ with col_m1_1:
             f"""
         **Interpretation:**
 
-        R² = {model_mult.rsquared:.4f} bedeutet: **{model_mult.rsquared*100:.1f}%** der Varianz in Y
+        R² = {mult_summary["rsquared"]:.4f} bedeutet: **{mult_summary["rsquared"]*100:.1f}%** der Varianz in Y
         wird durch die Prädiktoren X₁, X₂ erklärt.
 
         **⚠️ Problem:** R² steigt **immer**, wenn wir neue Variablen hinzufügen,
@@ -1072,7 +1169,7 @@ with col_m1_1:
             categories=["SST\n(Total)", "SSR\n(Erklärt)", "SSE\n(Unerklärt)"],
             values=[sst_mult, ssr_mult, sse_mult],
             colors=["gray", "green", "red"],
-            title=f"Varianzzerlegung: R² = {model_mult.rsquared:.4f}",
+            title=f"Varianzzerlegung: R² = {mult_summary['rsquared']:.4f}",
         )
         st.plotly_chart(fig_var_mult, use_container_width=True)
 
@@ -1083,7 +1180,7 @@ with col_m1_1:
 
         st.markdown(
             f"""
-        **Adjustiertes R² = {model_mult.rsquared_adj:.4f}**
+        **Adjustiertes R² = {mult_summary["rsquared_adj"]:.4f}**
 
         **Vorteile:**
         - Bestraft unnötige Komplexität (mehr K → Strafe)
@@ -1093,10 +1190,10 @@ with col_m1_1:
         **Interpretation:**
 
         Unser Modell mit K=2 Prädiktoren hat:
-        - R² = {model_mult.rsquared:.4f}
-        - R²_adj = {model_mult.rsquared_adj:.4f}
+        - R² = {mult_summary["rsquared"]:.4f}
+        - R²_adj = {mult_summary["rsquared_adj"]:.4f}
 
-        Die Differenz von {(model_mult.rsquared - model_mult.rsquared_adj):.4f} ist klein
+        Die Differenz von {(mult_summary["rsquared"] - mult_summary["rsquared_adj"]):.4f} ist klein
         → Die Prädiktoren sind **substanziell relevant**.
         """
         )
@@ -1108,9 +1205,9 @@ with col_m1_1:
 
         | Mass | Wert | Deutung |
         |-----|------|---------|
-        | R² | {model_mult.rsquared:.4f} | Roh-Erklärungskraft |
-        | R²_adj | {model_mult.rsquared_adj:.4f} | Korrigiert für Komplexität |
-        | Differenz | {(model_mult.rsquared - model_mult.rsquared_adj):.4f} | Sehr klein → gut! |
+        | R² | {mult_summary["rsquared"]:.4f} | Roh-Erklärungskraft |
+        | R²_adj | {mult_summary["rsquared_adj"]:.4f} | Korrigiert für Komplexität |
+        | Differenz | {(mult_summary["rsquared"] - mult_summary["rsquared_adj"]):.4f} | Sehr klein → gut! |
         """
         )
 
@@ -1151,16 +1248,16 @@ with col_m1_1:
         )
 
         # Right: Unexplained variance (SSE)
-        residual_sizes = 3 + np.abs(model_mult.resid) * 5  # Scale for visibility
+        residual_sizes = calculate_residual_sizes(mult_diagnostics["resid"])
         fig_3d_var.add_trace(
             go.Scatter3d(
                 x=x2_preis,
                 y=x3_werbung,
-                z=model_mult.resid,
+                z=mult_diagnostics["resid"],
                 mode="markers",
                 marker=dict(
                     size=residual_sizes,
-                    color=model_mult.resid,
+                    color=mult_diagnostics["resid"],
                     colorscale="Reds",
                     opacity=0.7,
                     showscale=True,
@@ -1173,8 +1270,7 @@ with col_m1_1:
         )
 
         # Add zero plane for residuals
-        x_range = [x2_preis.min(), x2_preis.max()]
-        y_range = [x3_werbung.min(), x3_werbung.max()]
+        x_range, y_range = get_data_ranges(x2_preis, x3_werbung)
         xx, yy = np.meshgrid(x_range, y_range)
         zz = np.zeros_like(xx)
 
@@ -1216,7 +1312,7 @@ with col_m1_1:
 
     - **Links (grün)**: Vorhergesagte Werte ŷ → zeigt die **Systematik** die unser Modell erfasst
     - **Rechts (rot)**: Residuen e → zeigt die **Abweichungen** die unser Modell nicht erklärt
-    - **R² = {model_mult.rsquared:.4f}** bedeutet: {model_mult.rsquared*100:.1f}% der Varianz ist "grün" (erklärt)
+    - **R² = {mult_summary["rsquared"]:.4f}** bedeutet: {mult_summary["rsquared"]*100:.1f}% der Varianz ist "grün" (erklärt)
     - Grössere rote Punkte = grössere Residuen = schlechtere Vorhersage an dieser Stelle
     """
     )
@@ -1275,11 +1371,11 @@ with col_m1_1:
 
         # Prognose berechnen
         new_X = np.array([1, slider1_val, slider2_val])
-        pred_value = model_mult.predict(new_X)[0]
+        pred_value = model_mult.predict(new_X)[0]  # Keep direct call for prediction
 
         # Konfidenzintervall
         pred_frame = pd.DataFrame({"const": [1], "x1": [slider1_val], "x2": [slider2_val]})
-        pred_obj = model_mult.get_prediction(pred_frame)
+        pred_obj = model_mult.get_prediction(pred_frame)  # Keep direct call for prediction intervals
         pred_summary = pred_obj.summary_frame(alpha=0.05)
 
         st.success(
@@ -1300,7 +1396,7 @@ with col_m1_1:
         if show_formulas:
             st.latex(r"\hat{y} = b_0 + b_1 \cdot x_1 + b_2 \cdot x_2")
             st.latex(
-                f"\\hat{{y}} = {model_mult.params[0]:.2f} + {model_mult.params[1]:.2f} \\cdot {slider1_val:.2f} + {model_mult.params[2]:.2f} \\cdot {slider2_val:.2f}"
+                f"\\hat{{y}} = {mult_coeffs['params'][0]:.2f} + {mult_coeffs['params'][1]:.2f} \\cdot {slider1_val:.2f} + {mult_coeffs['params'][2]:.2f} \\cdot {slider2_val:.2f}"
             )
             st.latex(f"\\hat{{y}} = {pred_value:.2f}")
 
@@ -1321,11 +1417,14 @@ with col_m1_1:
             var1_range = np.linspace(2.0, 12.0, 50)
             var2_range = np.linspace(0.5, 5.0, 50)
 
-        response_var1 = (
-            model_mult.params[0]
-            + model_mult.params[1] * var1_range
-            + model_mult.params[2] * slider2_val
+        sensitivity_data = calculate_sensitivity_analysis(
+            mult_coeffs['params'],
+            var1_range,
+            slider2_val,
+            var1_name=x1_name,
+            var2_name=x2_name
         )
+        response_var1 = sensitivity_data["response"]
 
         # Create sensitivity plot with plotly
         fig_sens = go.Figure()
@@ -1381,14 +1480,16 @@ with col_m1_1:
     )
 
     # Erstelle Dummy-Daten
-    np.random.seed(42)
-    regions = np.random.choice(["Nord", "Süd", "Ost"], size=n_mult)
-    df_dummy = pd.DataFrame(
-        {"Preis": x2_preis, "Werbung": x3_werbung, "Region": regions, "Umsatz": y_mult}
+    dummy_data = create_dummy_encoded_dataset(
+        base_data={"Preis": x2_preis, "Werbung": x3_werbung, "Umsatz": y_mult},
+        categorical_column="Region",
+        categories=["Nord", "Süd", "Ost"],
+        n_samples=n_mult,
+        seed=42
     )
 
-    # Dummy-Kodierung
-    df_dummy_encoded = pd.get_dummies(df_dummy, columns=["Region"], drop_first=True)
+    df_dummy = dummy_data["original_df"]
+    df_dummy_encoded = dummy_data["encoded_df"]
 
     col_m6_1, col_m6_2 = st.columns([1, 1])
 
@@ -1447,18 +1548,21 @@ with col_m1_1:
 
         # Modell mit Dummies fitten
         X_dummy = df_dummy_encoded[["Preis", "Werbung", "Region_Ost", "Region_Süd"]]
-        X_dummy_const = sm.add_constant(X_dummy)
-        model_dummy = sm.OLS(df_dummy_encoded["Umsatz"], X_dummy_const).fit()
+        X_dummy_const = create_design_matrix(X_dummy["Preis"], X_dummy["Werbung"], X_dummy["Region_Ost"], X_dummy["Region_Süd"])
+        model_dummy, _ = fit_multiple_ols_model(X_dummy_const, df_dummy_encoded["Umsatz"])
+
+        # Get dummy model coefficients
+        dummy_coeffs = get_model_coefficients(model_dummy)
 
         st.success(
             f"""
         **Unser Modell:**
 
-        β₀ = {model_dummy.params[0]:.2f} (Nord-Basis)
-        β₁ = {model_dummy.params[1]:.2f} (Preis)
-        β₂ = {model_dummy.params[2]:.2f} (Werbung)
-        β₃ = {model_dummy.params[3]:.2f} (Ost-Effekt)
-        β₄ = {model_dummy.params[4]:.2f} (Süd-Effekt)
+        β₀ = {dummy_coeffs["params"][0]:.2f} (Nord-Basis)
+        β₁ = {dummy_coeffs["params"][1]:.2f} (Preis)
+        β₂ = {dummy_coeffs["params"][2]:.2f} (Werbung)
+        β₃ = {dummy_coeffs["params"][3]:.2f} (Ost-Effekt)
+        β₄ = {dummy_coeffs["params"][4]:.2f} (Süd-Effekt)
         """
         )
 
@@ -1485,7 +1589,7 @@ with col_m1_1:
         st.markdown("### 🔍 Diagnose (3D Visualisierung)")
 
         # 3D Scatter using helper function
-        X1_mesh, X2_mesh, Y_mesh = create_regression_mesh(x2_preis, x3_werbung, model_mult.params)
+        X1_mesh, X2_mesh, Y_mesh = create_regression_mesh(x2_preis, x3_werbung, mult_coeffs["params"])
 
         fig_3d_m7 = go.Figure()
 
@@ -1557,14 +1661,10 @@ with col_m1_1:
             )
 
         # Berechne VIF
-        from statsmodels.stats.outliers_influence import variance_inflation_factor
-
         X_for_vif = np.column_stack([x2_preis, x3_werbung])
-        vif_data = pd.DataFrame(
-            {
-                "Variable": [x1_name.split("(")[0].strip(), x2_name.split("(")[0].strip()],
-                "VIF": [variance_inflation_factor(X_for_vif, i) for i in range(X_for_vif.shape[1])],
-            }
+        vif_data = calculate_variance_inflation_factors(
+            X_for_vif,
+            variable_names=[x1_name.split("(")[0].strip(), x2_name.split("(")[0].strip()]
         )
 
         st.dataframe(vif_data, width="stretch", hide_index=True)
@@ -1629,7 +1729,7 @@ with col_m1_1:
     fig_diag.add_trace(
         go.Scatter(
             x=y_pred_mult,
-            y=model_mult.resid,
+            y=mult_diagnostics["resid"],
             mode="markers",
             marker=dict(size=6, opacity=0.6),
             showlegend=False,
@@ -1640,7 +1740,8 @@ with col_m1_1:
     fig_diag.add_hline(y=0, line_dash="dash", line_color="red", line_width=2, row=1, col=1)
 
     # 2. Q-Q Plot
-    qq = probplot(model_mult.resid, dist="norm")
+    normality_tests = perform_normality_tests(mult_diagnostics["resid"])
+    qq_data = normality_tests["qq_data"]
     fig_diag.add_trace(
         go.Scatter(
             x=qq[0][0],
@@ -1666,7 +1767,7 @@ with col_m1_1:
     )
 
     # 3. Scale-Location
-    standardized_resid = model_mult.resid / np.std(model_mult.resid)
+    standardized_resid = standardize_residuals(mult_diagnostics["resid"])
     fig_diag.add_trace(
         go.Scatter(
             x=y_pred_mult,
@@ -1742,12 +1843,15 @@ with col_m1_1:
         # Jarque-Bera Test (Normalität)
         from scipy.stats import jarque_bera
 
-        jb_stat, jb_pval = jarque_bera(model_mult.resid)
+        jb_stat = normality_tests["jb_stat"]
+        jb_pval = normality_tests["jb_pval"]
 
         # Breusch-Pagan Test (Heteroskedastizität)
         from statsmodels.stats.diagnostic import het_breuschpagan
 
-        bp_stat, bp_pval, _, _ = het_breuschpagan(model_mult.resid, X_mult)
+        heteroskedasticity_tests = perform_heteroskedasticity_tests(mult_diagnostics["resid"], X_mult)
+        bp_stat = heteroskedasticity_tests["bp_stat"]
+        bp_pval = heteroskedasticity_tests["bp_p"]
 
         st.info(
             f"""
@@ -1792,11 +1896,11 @@ with col_m1_1:
         go.Scatter3d(
             x=x2_preis,
             y=x3_werbung,
-            z=model_mult.resid,
+            z=mult_diagnostics["resid"],
             mode="markers",
             marker=dict(
                 size=7,
-                color=model_mult.resid,
+                color=mult_diagnostics["resid"],
                 colorscale="RdBu_r",
                 opacity=0.8,
                 showscale=True,
@@ -1898,8 +2002,8 @@ with col_m1_1:
                  {model_mult.params[2]:+.2f} · {x2_name.split('(')[0].strip()}
 
         **Modellgüte:**
-        - R² = {model_mult.rsquared:.4f}
-        - R²_adj = {model_mult.rsquared_adj:.4f}
+        - R² = {mult_summary["rsquared"]:.4f}
+        - R²_adj = {mult_summary["rsquared_adj"]:.4f}
         - F = {model_mult.fvalue:.2f} (p < 0.001)
 
         **Interpretation:**

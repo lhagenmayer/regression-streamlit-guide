@@ -698,152 +698,6 @@ def safe_scalar(val: Union[pd.Series, np.ndarray, float, int]) -> float:
     return float(val)
 
 
-@st.cache_data
-def generate_dataset(name: str, seed: int = 42) -> Optional[Dict[str, Any]]:
-    """
-    Generiert einen Datensatz basierend auf dem Namen.
-    Gibt x, y, labels und Metadaten zurueck.
-    """
-    np.random.seed(seed)
-
-    if name == "elektronikmarkt":
-        # Default-Werte, werden durch Slider ueberschrieben
-        return None  # Handled separately due to sliders
-
-    elif name == "staedte":
-        n = CITIES_DATASET["n_default"]
-        x2_preis = np.random.normal(CITIES_DATASET["price_mean"], CITIES_DATASET["price_std"], n)
-        x2_preis = np.clip(x2_preis, CITIES_DATASET["price_min"], CITIES_DATASET["price_max"])
-        x3_werbung = np.random.normal(
-            CITIES_DATASET["advertising_mean"], CITIES_DATASET["advertising_std"], n
-        )
-        x3_werbung = np.clip(
-            x3_werbung, CITIES_DATASET["advertising_min"], CITIES_DATASET["advertising_max"]
-        )
-        y_base = 100 - 5 * x2_preis + 8 * x3_werbung
-        noise = np.random.normal(0, CITIES_DATASET["noise_std"], n)
-        y = y_base + noise
-        y = np.clip(y, CITIES_DATASET["y_min"], CITIES_DATASET["y_max"])
-        y = (y - np.mean(y)) / np.std(y) * CITIES_DATASET["y_std_target"] + CITIES_DATASET[
-            "y_mean_target"
-        ]
-        return {
-            "x_preis": x2_preis,
-            "x_werbung": x3_werbung,
-            "y": y,
-            "n": n,
-            "x1_name": "Preis (CHF)",
-            "x2_name": "Werbung (CHF1000)",
-            "y_name": "Umsatz (1000 CHF)",
-        }
-
-    elif name == "haeuser":
-        n = HOUSES_DATASET["n_default"]
-        x_wohnflaeche = np.random.normal(HOUSES_DATASET["area_mean"], HOUSES_DATASET["area_std"], n)
-        x_wohnflaeche = np.clip(
-            x_wohnflaeche, HOUSES_DATASET["area_min"], HOUSES_DATASET["area_max"]
-        )
-        x_pool = np.random.binomial(1, HOUSES_DATASET["pool_probability"], n).astype(float)
-        y_base = 50 + 7.5 * x_wohnflaeche + 35 * x_pool
-        noise = np.random.normal(0, HOUSES_DATASET["noise_std"], n)
-        y = y_base + noise
-        y = np.clip(y, 134.32, 345.20)
-        y = (y - np.mean(y)) / np.std(y) * 42.19 + 247.66
-        return {
-            "x_wohnflaeche": x_wohnflaeche,
-            "x_pool": x_pool,
-            "y": y,
-            "n": n,
-            "x1_name": "Wohnflaeche (sqft/10)",
-            "x2_name": "Pool (0/1)",
-            "y_name": "Preis (USD)",
-        }
-
-    elif name == "swiss_cantons":
-        return generate_swiss_canton_regression_data()
-
-    elif name == "swiss_weather":
-        return generate_swiss_weather_regression_data()
-
-    elif name == "world_bank":
-        # World Bank economic indicators for cross-country regression
-        wb_data = fetch_world_bank_data(
-            indicators=["NY.GDP.PCAP.KD", "SP.POP.TOTL", "SP.DYN.LE00.IN"],
-            countries=["USA", "CHN", "DEU", "JPN", "GBR", "FRA", "ITA", "CAN", "AUS", "ESP"],
-            years=[2015, 2018, 2020],  # Sample years
-        )
-
-        if wb_data.empty:
-            return generate_swiss_canton_regression_data()  # Fallback
-
-        # Use GDP per capita vs Life expectancy for regression
-        gdp_values = wb_data["NY.GDP.PCAP.KD"].fillna(wb_data["NY.GDP.PCAP.KD"].mean())
-        life_exp_values = wb_data["SP.DYN.LE00.IN"].fillna(wb_data["SP.DYN.LE00.IN"].mean())
-
-        return {
-            "x_gdp_per_capita": gdp_values.values,
-            "y_life_expectancy": life_exp_values.values,
-            "countries": wb_data["country"].tolist(),
-            "n": len(wb_data),
-            "x1_name": "GDP per Capita (USD)",
-            "y_name": "Life Expectancy (years)",
-            "data_source": "World Bank API",
-            "description": "World Bank data: Life Expectancy ~ GDP per Capita (Preston Curve)",
-        }
-
-    elif name == "fred_economic":
-        # US economic time series from FRED
-        fred_data = fetch_fred_data(
-            series_ids=["GDP", "UNRATE"], start_date="2010-01-01", end_date="2023-01-01"
-        )
-
-        if fred_data.empty:
-            return generate_swiss_canton_regression_data()  # Fallback
-
-        # Use Unemployment vs GDP for Phillips curve analysis
-        return {
-            "x_unemployment": fred_data["UNRATE"].values,
-            "y_gdp": fred_data["GDP"].values,
-            "dates": fred_data["date"].tolist(),
-            "n": len(fred_data),
-            "x1_name": "Unemployment Rate (%)",
-            "y_name": "GDP (Billions USD)",
-            "data_source": "FRED API",
-            "description": "US economic data: GDP ~ Unemployment Rate (Phillips Curve)",
-        }
-
-    elif name == "who_health":
-        # WHO health indicators
-        who_data = fetch_who_health_data(
-            indicators=["WHOSIS_000001"],  # Life expectancy
-            countries=["USA", "CHN", "DEU", "JPN", "GBR", "FRA", "ITA"],
-            years=[2015, 2018, 2020],
-        )
-
-        if who_data.empty:
-            return generate_swiss_canton_regression_data()  # Fallback
-
-        # For simple regression, we need to create a relationship
-        # Let's use country GDP estimates vs life expectancy
-        life_exp = who_data["WHOSIS_000001"].fillna(75)
-        # Create mock GDP values correlated with life expectancy
-        gdp_base = np.array(
-            [60000, 10000, 45000, 42000, 41000, 38000, 35000]
-        )  # Rough GDP estimates
-        gdp_values = gdp_base + (life_exp - 75) * 1000  # Correlation
-
-        return {
-            "x_gdp": gdp_values,
-            "y_life_expectancy": life_exp.values,
-            "countries": who_data["country"].tolist(),
-            "n": len(who_data),
-            "x1_name": "GDP per Capita (USD)",
-            "y_name": "Life Expectancy (years)",
-            "data_source": "WHO API",
-            "description": "WHO health data: Life Expectancy ~ GDP per Capita (Global Health Analysis)",
-        }
-
-    return None
 
 
 @st.cache_data
@@ -1267,58 +1121,108 @@ def generate_simple_regression_data(
     }
 
 
-# ============================================================================
-# CACHED COMPUTATION FUNCTIONS
-# ============================================================================
-
 @st.cache_data(ttl=300)  # Cache for 5 minutes
-def fit_ols_model(
-    X: np.ndarray, y: np.ndarray
-) -> Tuple[sm.regression.linear_model.RegressionResultsWrapper, np.ndarray]:
+def create_dummy_encoded_dataset(
+    base_data: Dict[str, np.ndarray],
+    categorical_column: str,
+    categories: List[str],
+    n_samples: int,
+    seed: int = 42
+) -> Dict[str, Union[pd.DataFrame, np.ndarray]]:
     """
-    Fit OLS regression model with caching.
+    Create a dataset with dummy variable encoding for categorical data.
 
     Args:
-        X: Design matrix (with constant column)
-        y: Response variable
+        base_data: Dictionary with base data arrays
+        categorical_column: Name for the categorical column
+        categories: List of category names
+        n_samples: Number of samples to generate
+        seed: Random seed
 
     Returns:
-        Tuple of (fitted model, predictions)
+        Dictionary with original DataFrame and dummy-encoded DataFrame
     """
-    logger.debug(f"Fitting OLS model with X shape {X.shape}, y shape {y.shape}")
-    model = sm.OLS(y, X).fit()
-    predictions = model.predict(X)
-    return model, predictions
+    np.random.seed(seed)
 
+    # Create categorical data
+    categorical_values = np.random.choice(categories, size=n_samples)
 
-@st.cache_data(ttl=300)  # Cache for 5 minutes
-def compute_regression_statistics(
-    y: np.ndarray, y_pred: np.ndarray, X: np.ndarray
-) -> Dict[str, float]:
-    """
-    Compute regression statistics with caching.
+    # Create DataFrame with all data
+    df_data = {categorical_column: categorical_values}
 
-    Args:
-        y: Actual values
-        y_pred: Predicted values
-        X: Design matrix
+    # Add numerical data from base_data
+    for key, value in base_data.items():
+        if isinstance(value, np.ndarray) and len(value) >= n_samples:
+            df_data[key] = value[:n_samples]
 
-    Returns:
-        Dictionary with regression statistics
-    """
-    y_mean = np.mean(y)
-    sse = np.sum((y - y_pred) ** 2)
-    sst = np.sum((y - y_mean) ** 2)
-    ssr = np.sum((y_pred - y_mean) ** 2)
-    r_squared = ssr / sst if sst != 0 else 0
-    n, p = X.shape
-    adj_r_squared = 1 - (1 - r_squared) * (n - 1) / (n - p)
+    df = pd.DataFrame(df_data)
+
+    # Create dummy encoding
+    df_encoded = pd.get_dummies(df, columns=[categorical_column], drop_first=True)
 
     return {
-        "r_squared": r_squared,
-        "adj_r_squared": adj_r_squared,
-        "sse": sse,
-        "ssr": ssr,
-        "sst": sst,
-        "y_mean": y_mean
+        "original_df": df,
+        "encoded_df": df_encoded,
+        "categorical_column": categorical_column,
+        "categories": categories
     }
+
+
+@st.cache_data(ttl=300)  # Cache for 5 minutes
+def generate_electronics_market_data(
+    n: int, true_intercept: float, true_beta: float, noise_level: float, seed: int = 42
+) -> Dict[str, Union[np.ndarray, str]]:
+    """
+    Generate electronics market data for simple regression with interactive parameters.
+
+    Args:
+        n: Number of observations
+        true_intercept: True intercept (β₀)
+        true_beta: True slope (β₁)
+        noise_level: Standard deviation of noise
+        seed: Random seed
+
+    Returns:
+        Dictionary with x, y arrays and metadata
+    """
+    # Validate inputs
+    if not isinstance(n, int) or n <= 0:
+        raise ValueError(f"Sample size n must be a positive integer, got {n}")
+
+    if not isinstance(seed, int):
+        raise ValueError(f"Seed must be an integer, got {seed}")
+
+    if not isinstance(true_intercept, (int, float)):
+        raise ValueError(f"True intercept must be a number, got {true_intercept}")
+
+    if not isinstance(true_beta, (int, float)):
+        raise ValueError(f"True beta must be a number, got {true_beta}")
+
+    if not isinstance(noise_level, (int, float)) or noise_level < 0:
+        raise ValueError(f"Noise level must be a non-negative number, got {noise_level}")
+
+    logger.info(
+        f"Generating electronics market data: n={n}, intercept={true_intercept}, beta={true_beta}, noise={noise_level}, seed={seed}"
+    )
+
+    np.random.seed(seed)
+    x = np.linspace(2, 12, n)  # Verkaufsfläche in 100qm (200-1200qm)
+    noise = np.random.normal(0, noise_level, n)
+    y = true_intercept + true_beta * x + noise  # Umsatz in Mio. €
+
+    return {
+        "x": x,
+        "y": y,
+        "x_label": "Verkaufsfläche (100qm)",
+        "y_label": "Umsatz (Mio. €)",
+        "x_unit": "100 qm",
+        "y_unit": "Mio. €",
+        "context_title": "Elektronikfachmärkte",
+        "context_description": "Eine Elektronikmarkt-Kette analysiert den Zusammenhang zwischen Verkaufsfläche und Umsatz. Die Daten zeigen, wie sich eine Vergrößerung der Verkaufsfläche auf den Umsatz auswirkt.",
+        "n": n,
+        "true_intercept": true_intercept,
+        "true_beta": true_beta,
+        "noise_level": noise_level,
+    }
+
+

@@ -134,14 +134,15 @@ repos:
         exclude: ^(third_party/|build/|dist/)
 
   # ====================================================================
-  # Custom hooks (if needed in future)
+  # Custom architectural checks
   # ====================================================================
 
-  # Add custom hooks here as needed
-  # - repo: local
-  #   hooks:
-  #     - id: custom-check
-  #       name: Custom project check
-  #       entry: python scripts/custom_check.py
-  #       language: system
-  #       pass_filenames: false
+  - repo: local
+    hooks:
+      - id: modular-separation
+        name: Check modular separation
+        entry: python scripts/check_modular_separation.py
+        language: system
+        pass_filenames: false
+        files: ^src/.*\.py$
+        description: Ensure modular separation between data, statistics, plots, and content modules

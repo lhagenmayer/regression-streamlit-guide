@@ -10,16 +10,13 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 from .logger import get_logger
+from .data import safe_scalar as _safe_scalar
 
 # Initialize logger for this module
 logger = get_logger(__name__)
 
 
-def _safe_scalar(val: Union[pd.Series, np.ndarray, float, int]) -> float:
-    """Helper: Konvertiert Series/ndarray zu Skalar, falls nötig."""
-    if isinstance(val, (pd.Series, np.ndarray)):
-        return float(val.iloc[0] if hasattr(val, "iloc") else val[0])
-    return float(val)
+# _safe_scalar is imported from data.py
 
 
 def get_signif_stars(p: float) -> str:
@@ -46,6 +43,34 @@ def get_signif_color(p: float) -> str:
     if p < 0.1:
         return "#FFA500"
     return "#DC143C"
+
+
+def calculate_residual_sizes(residuals: np.ndarray, base_size: float = 3, scale_factor: float = 5) -> np.ndarray:
+    """
+    Calculate residual marker sizes for visualization.
+
+    Args:
+        residuals: Model residuals
+        base_size: Base marker size
+        scale_factor: Scaling factor for residual magnitude
+
+    Returns:
+        Array of marker sizes
+    """
+    return base_size + np.abs(residuals) * scale_factor
+
+
+def standardize_residuals(residuals: np.ndarray) -> np.ndarray:
+    """
+    Standardize residuals by dividing by their standard deviation.
+
+    Args:
+        residuals: Model residuals
+
+    Returns:
+        Standardized residuals
+    """
+    return residuals / np.std(residuals)
 
 
 # ---------------------------------------------------------

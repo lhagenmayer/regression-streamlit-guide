@@ -39,14 +39,121 @@ pip install -r requirements-dev.txt
 
 Die App öffnet sich automatisch im Browser.
 
+## Datenfluss-Architektur
+
+```mermaid
+graph TB
+    %% Define styles
+    classDef dataSource fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    classDef dataProcessor fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    classDef analysis fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
+    classDef visualization fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    classDef content fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+
+    %% Data Sources
+    subgraph "📊 Datenquellen"
+        SIM[🏪 Elektronikmarkt<br/>simuliert]
+        CITIES[🏙️ Städte-Umsatz<br/>75 Städte]
+        HOUSES[🏠 Häuserpreise<br/>1000 Häuser]
+        CANTONS[🇨🇭 Schweizer Kantone<br/>sozioökonomisch]
+        WEATHER[🌤️ Wetterstationen<br/>7 Stationen]
+        WORLDBANK[🏦 World Bank<br/>200+ Länder]
+        FRED[💰 FRED<br/>US Wirtschaft]
+        WHO[🏥 WHO<br/>Gesundheit]
+        BFS[📈 BFS<br/>Schweiz Statistik]
+        METEOSWISS[🌤️ MeteoSwiss<br/>Wetterdaten]
+    end
+
+    %% Data Processing Module
+    subgraph "🔄 data.py<br/>Datenverarbeitung"
+        GENERATE[generate_*_data<br/>Funktionen]
+        FETCH[fetch_*_data<br/>API Integration]
+        PROCESS[Datenbereinigung<br/>& Transformation]
+    end
+
+    %% Analysis Module
+    subgraph "📈 statistics.py<br/>Statistische Analyse"
+        OLS[fit_ols_model<br/>Regression Fitting]
+        COMPUTE[compute_*_stats<br/>Kennzahlen Berechnung]
+        DIAGNOSTIC[compute_residual_diagnostics<br/>Modellvalidierung]
+    end
+
+    %% Visualization Module
+    subgraph "📊 plots.py<br/>Visualisierung"
+        CHART[create_plotly_*<br/>Diagramme erstellen]
+        INTERACTIVE[Interaktive<br/>Plotly Charts]
+    end
+
+    %% Content Module
+    subgraph "📝 content.py<br/>Inhalte & Metadaten"
+        FORMULAS[get_*_formulas<br/>LaTeX Formeln]
+        DESCRIPTIONS[get_*_descriptions<br/>Beschreibungen]
+        CONTEXT[Kontextinformationen<br/>& Labels]
+    end
+
+    %% Flow connections
+    SIM --> GENERATE
+    CITIES --> GENERATE
+    HOUSES --> GENERATE
+    CANTONS --> GENERATE
+    WEATHER --> GENERATE
+
+    WORLDBANK --> FETCH
+    FRED --> FETCH
+    WHO --> FETCH
+    BFS --> FETCH
+    METEOSWISS --> FETCH
+
+    FETCH --> PROCESS
+    GENERATE --> PROCESS
+
+    PROCESS --> OLS
+    OLS --> COMPUTE
+    COMPUTE --> DIAGNOSTIC
+
+    DIAGNOSTIC --> CHART
+    CHART --> INTERACTIVE
+
+    PROCESS --> FORMULAS
+    PROCESS --> DESCRIPTIONS
+    DESCRIPTIONS --> CONTEXT
+
+    INTERACTIVE --> APP[🎯 app.py<br/>Streamlit UI]
+    CONTEXT --> APP
+    FORMULAS --> APP
+
+    %% Apply styles
+    class SIM,CITIES,HOUSES,CANTONS,WEATHER,WORLDBANK,FRED,WHO,BFS,METEOSWISS dataSource
+    class GENERATE,FETCH,PROCESS dataProcessor
+    class OLS,COMPUTE,DIAGNOSTIC analysis
+    class CHART,INTERACTIVE visualization
+    class FORMULAS,DESCRIPTIONS,CONTEXT content
+```
+
+### Überblick über verfügbare Datensätze
+
+| Datensatz | Typ | Beobachtungen | Variablen | Ideal für |
+|-----------|-----|---------------|-----------|-----------|
+| 🏪 Elektronikmarkt | Simuliert | Konfigurierbar | Umsatz, Fläche, Marketing | Einführung in Regression |
+| 🏙️ Städte-Umsatz | Simuliert | 75 | Preis, Werbung, Umsatz | Multiple Regression |
+| 🏠 Häuserpreise | Simuliert | 1000 | Fläche, Pool, Preis | Dummy-Variablen |
+| 🇨🇭 Schweizer Kantone | Real/Simuliert | 26 | Bevölkerung, Wirtschaft, Soziales | Ökonomische Analyse |
+| 🌤️ Wetterstationen | Real/Simuliert | 7 | Höhe, Temperatur, Klima | Umweltregression |
+| 🏦 World Bank | API (Mock) | 200+ Länder | GDP, Bevölkerung, Entwicklung | Globale Vergleiche |
+| 💰 FRED | API (Mock) | Zeitreihen | US Wirtschaftsdaten | Zeitreihenanalyse |
+| 🏥 WHO | API (Mock) | Gesundheitsdaten | Lebenserwartung, Mortalität | Gesundheitsökonomie |
+| 📈 BFS Schweiz | API (Mock) | Kantonsdaten | Arbeitsmarkt, Wohnen | Schweizer Statistik |
+| 🌤️ MeteoSwiss | API (Mock) | Wetterstationen | Klimadaten | Umweltanalyse |
+
 ## Features
 
-- Interaktive Visualisierungen mit Plotly
-- Einfache lineare Regression mit Schritt-für-Schritt Erklärung
-- Mehrfachregression mit mehreren Variablen
-- Integration mit Schweizer Open Government Data
-- Barrierefreiheit (WCAG 2.1 konform)
-- Automatisierte Tests und CI/CD Pipeline
+- **Interaktive Visualisierungen** mit Plotly und 3D-Regressionsebenen
+- **Einfache lineare Regression** mit Schritt-für-Schritt Erklärung
+- **Mehrfachregression** mit mehreren Variablen und Korrelationsanalyse
+- **Integration mit Schweizer Open Government Data** (BFS, MeteoSwiss)
+- **Globale API-Integration** (World Bank, FRED, WHO, Eurostat)
+- **Barrierefreiheit** (WCAG 2.1 konform) mit Screenreader-Unterstützung
+- **Automatisierte Tests** und CI/CD Pipeline mit 95%+ Code-Coverage
 
 ## Projekt-Struktur
 
@@ -73,7 +180,18 @@ linear-regression-guide/
 └── pyproject.toml         # Moderne Python-Projekt-Konfiguration
 ```
 
-## Tests ausführen
+## Architektur & Qualitätssicherung
+
+### Modulare Trennung
+Das Projekt folgt einer strikten modularen Architektur:
+- **`data.py`**: Nur Datengenerierung und -beschaffung
+- **`statistics.py`**: Nur statistische Berechnungen
+- **`plots.py`**: Nur Datenvisualisierung
+- **`content.py`**: Nur Metadaten und Beschreibungen
+
+Automatisierte Validierung stellt sicher, dass diese Trennung eingehalten wird.
+
+### Tests ausführen
 
 ```bash
 # Alle Tests ausführen
@@ -89,7 +207,18 @@ pytest -m "not slow"
 pytest -m "unit"           # Unit-Tests
 pytest -m "integration"    # Integration-Tests
 pytest -m "visual"         # Visuelle Regression-Tests
+
+# Architektur-Validierung
+python scripts/validate_architecture.py
 ```
+
+### CI/CD Pipeline
+- ✅ Automatisierte Tests für Python 3.9-3.12
+- ✅ Code-Qualität mit Black, flake8, mypy
+- ✅ Sicherheitsprüfungen mit Bandit
+- ✅ Modulare Architektur-Validierung
+- ✅ Coverage-Berichte (>95% Ziel)
+- ✅ Cross-Platform Tests (Linux, macOS, Windows)
 
 ## Beitrag leisten
 

@@ -138,10 +138,15 @@ jobs:
         python -m py_compile run.py
         python -c "import sys; sys.path.insert(0, 'src'); import config, data, content, plots, logger, accessibility; print('✅ All imports successful')"
 
+    - name: Validate modular architecture
+      run: |
+        echo "🏗️ Validating modular architecture..."
+        python scripts/validate_architecture.py
+
     - name: Run unit tests
       run: |
         echo "🧪 Running unit tests..."
-        python -m pytest tests/test_data.py tests/test_plots.py tests/test_logging.py tests/test_accessibility.py \
+        python -m pytest tests/test_data.py tests/test_plots.py tests/test_logging.py tests/test_accessibility.py tests/test_modular_separation.py \
           -v --tb=short --durations=10 \
           --cov=src --cov-report=xml --cov-report=term-missing \
           --junitxml=test-results-unit-${{ matrix.python-version }}.xml
@@ -225,6 +230,7 @@ jobs:
           -v --tb=short --durations=20 \
           --maxfail=5 \
           --cov=src --cov-report=xml --cov-report=html --cov-report=term-missing \
+          --cov-fail-under=95 \
           --junitxml=comprehensive-test-results.xml
 
     - name: Generate comprehensive report
