@@ -184,6 +184,63 @@ def get_signif_color(p):
     if p < 0.1:   return '#FFA500'
     return '#DC143C'
 
+
+# ---------------------------------------------------------
+# 3D VISUALIZATION HELPER FUNCTIONS
+# ---------------------------------------------------------
+def create_regression_mesh(x1, x2, model_params, n_points=20):
+    """Create mesh grid for regression surface visualization.
+    
+    Args:
+        x1: First predictor values
+        x2: Second predictor values
+        model_params: Model parameters [intercept, beta1, beta2]
+        n_points: Number of grid points
+    
+    Returns:
+        X1_mesh, X2_mesh, Y_mesh: Mesh grids for surface plotting
+    """
+    x1_range = np.linspace(x1.min(), x1.max(), n_points)
+    x2_range = np.linspace(x2.min(), x2.max(), n_points)
+    X1_mesh, X2_mesh = np.meshgrid(x1_range, x2_range)
+    Y_mesh = model_params[0] + model_params[1]*X1_mesh + model_params[2]*X2_mesh
+    return X1_mesh, X2_mesh, Y_mesh
+
+def get_3d_layout_config(x_title, y_title, z_title, height=600):
+    """Return standard 3D layout configuration.
+    
+    Args:
+        x_title, y_title, z_title: Axis titles
+        height: Plot height in pixels
+    
+    Returns:
+        dict: Layout configuration for plotly 3D plots
+    """
+    return dict(
+        template='plotly_white',
+        height=height,
+        scene=dict(
+            xaxis_title=x_title,
+            yaxis_title=y_title,
+            zaxis_title=z_title,
+            camera=dict(eye=dict(x=1.5, y=-1.5, z=1.2))
+        )
+    )
+
+def create_zero_plane(x_range, y_range):
+    """Create a zero reference plane for 3D residual plots.
+    
+    Args:
+        x_range: [min, max] for x axis
+        y_range: [min, max] for y axis
+    
+    Returns:
+        xx, yy, zz: Mesh grids for zero plane
+    """
+    xx, yy = np.meshgrid(x_range, y_range)
+    zz = np.zeros_like(xx)
+    return xx, yy, zz
+
 # ---------------------------------------------------------
 # PLOTLY HELPER FUNCTIONS FOR COMMON PLOT TYPES
 # ---------------------------------------------------------
@@ -908,13 +965,8 @@ if regression_type == "📊 Multiple Regression":
     
     with col_m1_2:
         # 3D Visualisierung: Ebene statt Linie
-        # Erstelle Mesh für die Ebene
-        x1_range = np.linspace(x2_preis.min(), x2_preis.max(), 20)
-        x2_range = np.linspace(x3_werbung.min(), x3_werbung.max(), 20)
-        X1_mesh, X2_mesh = np.meshgrid(x1_range, x2_range)
-        
-        # Berechne Ebene
-        Y_mesh = model_mult.params[0] + model_mult.params[1]*X1_mesh + model_mult.params[2]*X2_mesh
+        # Erstelle Mesh für die Ebene using helper function
+        X1_mesh, X2_mesh, Y_mesh = create_regression_mesh(x2_preis, x3_werbung, model_mult.params)
         
         # Create plotly 3D surface plot
         fig_3d_plane = create_plotly_3d_surface(
@@ -926,13 +978,11 @@ if regression_type == "📊 Multiple Regression":
             title='Multiple Regression: Ebene statt Gerade'
         )
         
-        # Add camera controls
-        camera_m1 = create_camera_controls(key_suffix="m1_plane", default_x=1.5, default_y=-1.5, default_z=1.2)
         fig_3d_plane.update_layout(scene=dict(
             xaxis_title=x1_name,
             yaxis_title=x2_name,
             zaxis_title=y_name,
-            camera=camera_m1
+            camera=dict(eye=dict(x=1.5, y=-1.5, z=1.2))
         ))
         
         st.plotly_chart(fig_3d_plane, use_container_width=True)
@@ -1084,11 +1134,8 @@ if regression_type == "📊 Multiple Regression":
     # 3D Residual Visualization
     st.markdown("### 🎲 3D-Visualisierung: Residuen als Abstände zur Regressions-Ebene")
     
-    # Create 3D residual plot with plotly
-    x1_range = np.linspace(x2_preis.min(), x2_preis.max(), 20)
-    x2_range = np.linspace(x3_werbung.min(), x3_werbung.max(), 20)
-    X1_mesh, X2_mesh = np.meshgrid(x1_range, x2_range)
-    Y_mesh = model_mult.params[0] + model_mult.params[1]*X1_mesh + model_mult.params[2]*X2_mesh
+    # Create 3D residual plot using helper function
+    X1_mesh, X2_mesh, Y_mesh = create_regression_mesh(x2_preis, x3_werbung, model_mult.params)
     
     fig_3d_resid = go.Figure()
     
@@ -1133,9 +1180,6 @@ if regression_type == "📊 Multiple Regression":
         height=600
     )
     
-    # Add camera controls
-    camera_m3 = create_camera_controls(key_suffix="m3_residual", default_x=1.5, default_y=-1.5, default_z=1.2)
-    fig_3d_resid.update_layout(scene_camera=camera_m3)
     
     st.plotly_chart(fig_3d_resid, use_container_width=True)
             
@@ -1304,9 +1348,6 @@ if regression_type == "📊 Multiple Regression":
         )
     )
     
-    # Add camera controls
-    camera_m4 = create_camera_controls(key_suffix="m4_variance", default_x=1.5, default_y=-1.5, default_z=1.2)
-    fig_3d_var.update_layout(scene_camera=camera_m4, scene2_camera=camera_m4)
     
     st.plotly_chart(fig_3d_var, use_container_width=True)
             
@@ -1524,11 +1565,8 @@ if regression_type == "📊 Multiple Regression":
     with col_m7_1:
         st.markdown("### 🔍 Diagnose (3D Visualisierung)")
         
-        # 3D Scatter: Zeigt wie Prädiktoren zusammen die Zielvariable beeinflussen
-        x1_range = np.linspace(x2_preis.min(), x2_preis.max(), 20)
-        x2_range = np.linspace(x3_werbung.min(), x3_werbung.max(), 20)
-        X1_mesh, X2_mesh = np.meshgrid(x1_range, x2_range)
-        Y_mesh = model_mult.params[0] + model_mult.params[1]*X1_mesh + model_mult.params[2]*X2_mesh
+        # 3D Scatter using helper function
+        X1_mesh, X2_mesh, Y_mesh = create_regression_mesh(x2_preis, x3_werbung, model_mult.params)
         
         fig_3d_m7 = go.Figure()
         
@@ -1568,9 +1606,6 @@ if regression_type == "📊 Multiple Regression":
             height=600
         )
         
-        # Add camera controls
-        camera_m7 = create_camera_controls(key_suffix="m7_multicol", default_x=1.5, default_y=-1.5, default_z=1.3)
-        fig_3d_m7.update_layout(scene_camera=camera_m7)
         
         st.plotly_chart(fig_3d_m7, use_container_width=True)
                     
@@ -1764,10 +1799,11 @@ if regression_type == "📊 Multiple Regression":
     st.markdown("### 🎲 3D-Visualisierung: Residuen im Prädiktorraum")
     
     # Create 3D residual plot with plotly
-    x1_range = np.linspace(x2_preis.min(), x2_preis.max(), 10)
-    x2_range = np.linspace(x3_werbung.min(), x3_werbung.max(), 10)
-    X1_mesh, X2_mesh = np.meshgrid(x1_range, x2_range)
-    Z_zero = np.zeros_like(X1_mesh)
+    # Create zero plane for residual visualization
+    X1_mesh, X2_mesh, Z_zero = create_zero_plane(
+        [x2_preis.min(), x2_preis.max()],
+        [x3_werbung.min(), x3_werbung.max()]
+    )
     
     fig_3d_resid_m8 = go.Figure()
     
@@ -1808,9 +1844,6 @@ if regression_type == "📊 Multiple Regression":
         height=600
     )
     
-    # Add camera controls
-    camera_m8 = create_camera_controls(key_suffix="m8_residual", default_x=1.5, default_y=-1.5, default_z=1.2)
-    fig_3d_resid_m8.update_layout(scene_camera=camera_m8)
     
     st.plotly_chart(fig_3d_resid_m8, use_container_width=True)
             
@@ -2077,12 +2110,7 @@ elif regression_type == "📈 Einfache Regression":
                        camera=dict(eye=dict(x=1.5, y=-1.8, z=1.0)))
         )
     
-        # Add camera controls
-        camera_15 = create_camera_controls(key_suffix="s15_joint", default_x=1.5, default_y=-1.5, default_z=1.2)
         fig_joint_3d.update_layout(
-            scene1_camera=camera_15,
-            scene2_camera=camera_15,
-            scene3_camera=camera_15
         )
         
         st.plotly_chart(fig_joint_3d, use_container_width=True)
@@ -2342,9 +2370,6 @@ elif regression_type == "📈 Einfache Regression":
             height=600
         )
     
-        # Add camera controls
-        camera_25 = create_camera_controls(key_suffix="s25_covariance", default_x=1.5, default_y=-1.5, default_z=1.2)
-        fig_cov.update_layout(scene_camera=camera_25)
         
         st.plotly_chart(fig_cov, use_container_width=True)
             
@@ -2814,9 +2839,6 @@ elif regression_type == "📈 Einfache Regression":
         showlegend=True
     )
 
-    # Add camera controls
-    camera_30 = create_camera_controls(key_suffix="s30_anatomy", default_x=1.5, default_y=-1.5, default_z=1.2)
-    fig_detail.update_layout(scene_camera=camera_30)
 
     st.plotly_chart(fig_detail, use_container_width=True)
         
@@ -3224,12 +3246,7 @@ elif regression_type == "📈 Einfache Regression":
             )
         )
     
-        # Add camera controls
-        camera_42 = create_camera_controls(key_suffix="s42_variance", default_x=1.5, default_y=1.5, default_z=1.2)
         fig_var.update_layout(
-            scene_camera=camera_42,
-            scene2_camera=camera_42,
-            scene3_camera=camera_42
         )
         
         st.plotly_chart(fig_var, use_container_width=True)
@@ -4245,9 +4262,6 @@ elif regression_type == "📈 Einfache Regression":
             showlegend=True
         )
     
-        # Add camera controls
-        camera_55 = create_camera_controls(key_suffix="s55_anova", default_x=1.5, default_y=-1.8, default_z=1.2)
-        fig_3d.update_layout(scene_camera=camera_55)
         
         st.plotly_chart(fig_3d, use_container_width=True)
         
