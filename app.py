@@ -242,19 +242,28 @@ with st.sidebar.expander("🎛️ Daten-Parameter (Einfache Regression)", expand
         
         # Simulierte Daten generieren
         simple_params = (dataset_choice, n, true_intercept, true_beta, noise_level, seed)
-        if st.session_state.last_simple_params != simple_params or st.session_state.simple_model_cache is None:
+        if st.session_state.last_simple_params != simple_params:
             with st.spinner("🔄 Generiere Daten..."):
                 np.random.seed(int(seed))
                 x = np.linspace(2, 12, n)  # Verkaufsfläche in 100qm (200-1200qm)
                 noise = np.random.normal(0, noise_level, n)
                 y = true_intercept + true_beta * x + noise  # Umsatz in Mio. €
                 st.session_state.last_simple_params = simple_params
+                # Store the generated data temporarily
+                if 'simple_data_temp' not in st.session_state:
+                    st.session_state.simple_data_temp = {}
+                st.session_state.simple_data_temp['x'] = x
+                st.session_state.simple_data_temp['y'] = y
         else:
             # Use cached data if params haven't changed
-            if st.session_state.simple_model_cache and 'x' in st.session_state.simple_model_cache:
+            if 'simple_data_temp' in st.session_state and st.session_state.simple_data_temp:
+                x = st.session_state.simple_data_temp['x']
+                y = st.session_state.simple_data_temp['y']
+            elif st.session_state.simple_model_cache and 'x' in st.session_state.simple_model_cache:
                 x = st.session_state.simple_model_cache['x']
                 y = st.session_state.simple_model_cache['y']
             else:
+                # Fallback: regenerate if no cache available
                 np.random.seed(int(seed))
                 x = np.linspace(2, 12, n)
                 noise = np.random.normal(0, noise_level, n)
@@ -357,13 +366,23 @@ with st.sidebar.expander("🎛️ Daten-Parameter (Einfache Regression)", expand
 # ---------------------------------------------------------
 # MODELL & KENNZAHLEN BERECHNEN (nur einfache Regression)
 # ---------------------------------------------------------
-# Build parameter tuple for cache validation
-simple_model_params = (dataset_choice, tuple(x) if isinstance(x, np.ndarray) else x, tuple(y) if isinstance(y, np.ndarray) else y)
+# Build parameter tuple for cache validation (avoid hashing large arrays)
+# Use array shape and basic properties instead of full array content
+simple_model_key = (
+    dataset_choice, 
+    len(x) if isinstance(x, np.ndarray) else 0,
+    float(x.mean()) if isinstance(x, np.ndarray) and len(x) > 0 else 0,
+    float(y.mean()) if isinstance(y, np.ndarray) and len(y) > 0 else 0,
+)
 
 # Check if we need to recompute the model
-if (st.session_state.simple_model_cache is None or 
-    'model_params_hash' not in st.session_state.simple_model_cache or
-    hash(str(simple_model_params)) != st.session_state.simple_model_cache.get('model_params_hash')):
+needs_recompute = (
+    st.session_state.simple_model_cache is None or 
+    'model_key' not in st.session_state.simple_model_cache or
+    st.session_state.simple_model_cache.get('model_key') != simple_model_key
+)
+
+if needs_recompute:
     
     with st.spinner("📊 Berechne Regressionsmodell..."):
         df = pd.DataFrame({
@@ -395,7 +414,7 @@ if (st.session_state.simple_model_cache is None or
         
         # Cache all computed values
         st.session_state.simple_model_cache = {
-            'model_params_hash': hash(str(simple_model_params)),
+            'model_key': simple_model_key,
             'df': df,
             'X': X,
             'model': model,
