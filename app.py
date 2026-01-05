@@ -33,6 +33,10 @@ from plots import (
     create_plotly_distribution, create_r_output_display, create_r_output_figure,
     get_signif_stars, get_signif_color
 )
+from content import (
+    get_multiple_regression_formulas, get_multiple_regression_descriptions,
+    get_simple_regression_content, get_dataset_info
+)
 
 # ---------------------------------------------------------
 # PAGE CONFIG
@@ -565,15 +569,12 @@ with col_m1_1:
     
     if show_formulas:
         st.markdown("### 📐 Das allgemeine Modell")
-        st.latex(r"y_i = \beta_0 + \beta_1 \cdot x_{1i} + \beta_2 \cdot x_{2i} + \cdots + \beta_K \cdot x_{Ki} + \varepsilon_i")
-        
+        formulas = get_multiple_regression_formulas(dataset_choice_mult)
+        st.latex(formulas["general"])
+
         st.markdown(f"### 📊 Unser Beispiel: {dataset_choice_mult}")
-        if dataset_choice_mult == "🏙️ Städte-Umsatzstudie (75 Städte)":
-            st.latex(r"\text{Umsatz}_i = \beta_0 + \beta_1 \cdot \text{Preis}_i + \beta_2 \cdot \text{Werbung}_i + \varepsilon_i")
-        elif dataset_choice_mult == "🏠 Häuserpreise mit Pool (1000 Häuser)":
-            st.latex(r"\text{Preis}_i = \beta_0 + \beta_1 \cdot \text{Wohnfläche}_i + \beta_2 \cdot \text{Pool}_i + \varepsilon_i")
-        else:
-            st.latex(r"\text{Umsatz}_i = \beta_0 + \beta_1 \cdot \text{Fläche}_i + \beta_2 \cdot \text{Marketing}_i + \varepsilon_i")
+        if "specific" in formulas:
+            st.latex(formulas["specific"])
     
     col_m2_1, col_m2_2 = st.columns([1, 1])
     
