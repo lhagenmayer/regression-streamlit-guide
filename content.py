@@ -296,45 +296,6 @@ def get_simple_regression_content(dataset_choice: str, x_variable: str) -> Dict[
                 """
             })
 
-    # Globale APIs
-    elif dataset_choice == "🏦 World Bank (Länder-Entwicklung)":
-        content.update({
-            "x_label": "GDP per Capita (USD)",
-            "y_label": "Life Expectancy (years)",
-            "x_unit": "USD",
-            "y_unit": "years",
-            "context_title": "World Bank: Preston Curve",
-            "context_description": """
-            Cross-country analysis of GDP per capita vs. life expectancy (Preston Curve) from World Bank data.
-            Shows the relationship between economic development and health outcomes.
-            """
-        })
-
-    elif dataset_choice == "💰 FRED (US Wirtschaft)":
-        content.update({
-            "x_label": "Unemployment Rate (%)",
-            "y_label": "GDP (Billions USD)",
-            "x_unit": "%",
-            "y_unit": "Billions USD",
-            "context_title": "FRED: Phillips Curve",
-            "context_description": """
-            US economic time series analysis of unemployment rate vs. GDP (Phillips Curve) from Federal Reserve data.
-            Examines the relationship between employment and economic output.
-            """
-        })
-
-    elif dataset_choice == "🏥 WHO (Globale Gesundheit)":
-        content.update({
-            "x_label": "GDP per Capita (USD)",
-            "y_label": "Life Expectancy (years)",
-            "x_unit": "USD",
-            "y_unit": "years",
-            "context_title": "WHO: Global Health",
-            "context_description": """
-            World Health Organization data analyzing GDP per capita vs. life expectancy across countries.
-            Demonstrates global health disparities and economic development relationships.
-            """
-        })
 
     return content
 

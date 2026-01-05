@@ -527,41 +527,6 @@ class TestSwissDatasets:
 class TestGlobalAPIs:
     """Test global API data fetching functions."""
 
-    @pytest.mark.integration
-    def test_world_bank_data_fetching(self):
-        """Test World Bank data fetching (mock implementation)."""
-        result = fetch_world_bank_data(
-            indicators=['NY.GDP.PCAP.KD', 'SP.POP.TOTL'],
-            countries=['USA', 'CHN', 'DEU'],
-            years=[2015, 2018, 2020]
-        )
-
-        # Should return DataFrame (even if empty due to mock)
-        assert isinstance(result, pd.DataFrame)
-
-    @pytest.mark.integration
-    def test_fred_data_fetching(self):
-        """Test FRED economic data fetching (mock implementation)."""
-        result = fetch_fred_data(
-            series_ids=['GDP', 'UNRATE'],
-            start_date='2010-01-01',
-            end_date='2020-01-01'
-        )
-
-        # Should return DataFrame (even if empty due to mock)
-        assert isinstance(result, pd.DataFrame)
-
-    @pytest.mark.integration
-    def test_who_health_data_fetching(self):
-        """Test WHO health data fetching (mock implementation)."""
-        result = fetch_who_health_data(
-            indicators=['WHOSIS_000001'],
-            countries=['USA', 'CHN', 'DEU'],
-            years=[2015, 2018, 2020]
-        )
-
-        # Should return DataFrame (even if empty due to mock)
-        assert isinstance(result, pd.DataFrame)
 
     @pytest.mark.unit
     def test_dataset_metadata_functions(self):

@@ -367,45 +367,6 @@ class TestGlobalDatasets:
     """Test global dataset integration in the app."""
 
     @pytest.mark.streamlit
-    @pytest.mark.integration
-    def test_world_bank_dataset_selection(self):
-        """Test that World Bank dataset can be selected."""
-        at = AppTest.from_file("app.py")
-        at.run(timeout=30)
-
-        # Find dataset selectboxes
-        simple_selectboxes = [sb for sb in at.selectbox if "Einfache Regression" in str(sb.label)]
-        multiple_selectboxes = [sb for sb in at.selectbox if "Multiple Regression" in str(sb.label)]
-
-        # Test simple regression World Bank selection
-        if simple_selectboxes:
-            sb = simple_selectboxes[0]
-            if "🏦 World Bank" in sb.options:
-                sb.select("🏦 World Bank (Länder-Entwicklung)").run(timeout=30)
-                assert not at.exception
-
-        # Test multiple regression World Bank selection
-        if multiple_selectboxes:
-            sb = multiple_selectboxes[0]
-            if "🏦 World Bank" in sb.options:
-                sb.select("🏦 World Bank (Länder-Entwicklung)").run(timeout=30)
-                assert not at.exception
-
-    @pytest.mark.streamlit
-    @pytest.mark.integration
-    def test_fred_dataset_selection(self):
-        """Test that FRED dataset can be selected."""
-        at = AppTest.from_file("app.py")
-        at.run(timeout=30)
-
-        # Find simple regression selectbox
-        simple_selectboxes = [sb for sb in at.selectbox if "Einfache Regression" in str(sb.label)]
-
-        if simple_selectboxes:
-            sb = simple_selectboxes[0]
-            if "💰 FRED" in sb.options:
-                sb.select("💰 FRED (US Wirtschaft)").run(timeout=30)
-                assert not at.exception
 
     @pytest.mark.streamlit
     @pytest.mark.integration
