@@ -24,57 +24,72 @@ def safe_scalar(val):
         return float(val.iloc[0] if hasattr(val, 'iloc') else val[0])
     return float(val)
 
-# --- Hilfsfunktion für 3D-Kamera-Steuerung ---
-def create_camera_controls(key_suffix="", default_x=1.5, default_y=-1.5, default_z=1.2):
+# --- Hilfsfunktion für wiederverwendbare Parameter-Steuerung ---
+def create_plot_parameters(key_suffix="", 
+                          show_sample_size=True, n_default=50, n_min=10, n_max=200,
+                          show_noise=True, noise_default=0.5, noise_min=0.1, noise_max=2.0,
+                          show_seed=True, seed_default=42,
+                          expanded=False):
     """
-    Erstellt wiederverwendbare Kamera-Steuerungselemente für 3D-Plots.
+    Erstellt wiederverwendbare Parameter-Steuerungselemente für Plots.
     
     Args:
         key_suffix: Eindeutiger Suffix für die Streamlit-Keys
-        default_x: Standard X-Position der Kamera
-        default_y: Standard Y-Position der Kamera  
-        default_z: Standard Z-Position (Höhe) der Kamera
+        show_sample_size: Ob Sample Size Slider angezeigt werden soll
+        n_default, n_min, n_max: Parameter für Sample Size
+        show_noise: Ob Noise/Error Term Slider angezeigt werden soll
+        noise_default, noise_min, noise_max: Parameter für Noise
+        show_seed: Ob Random Seed Control angezeigt werden soll
+        seed_default: Default Seed Wert
+        expanded: Ob Expander initial erweitert sein soll
     
     Returns:
-        dict: Kamera-Konfiguration für plotly (camera=dict(eye=dict(...)))
+        dict: Dictionary mit Parameterwerten {'n': int, 'noise': float, 'seed': int}
     """
-    with st.expander("🎥 Kameraeinstellungen", expanded=False):
-        col1, col2, col3 = st.columns(3)
-        
-        with col1:
-            cam_x = st.slider(
-                "Kamera X",
-                min_value=-3.0,
-                max_value=3.0,
-                value=default_x,
-                step=0.1,
-                key=f"cam_x_{key_suffix}",
-                help="Horizontale Position der Kamera"
-            )
-        
-        with col2:
-            cam_y = st.slider(
-                "Kamera Y", 
-                min_value=-3.0,
-                max_value=3.0,
-                value=default_y,
-                step=0.1,
-                key=f"cam_y_{key_suffix}",
-                help="Tiefe der Kamera"
-            )
-        
-        with col3:
-            cam_z = st.slider(
-                "Kamera Z",
-                min_value=0.5,
-                max_value=3.0,
-                value=default_z,
-                step=0.1,
-                key=f"cam_z_{key_suffix}",
-                help="Höhe der Kamera"
-            )
+    params = {}
     
-    return dict(eye=dict(x=cam_x, y=cam_y, z=cam_z))
+    with st.expander("🎛️ Plot-Parameter anpassen", expanded=expanded):
+        cols = st.columns(3)
+        
+        col_idx = 0
+        if show_sample_size:
+            with cols[col_idx]:
+                params['n'] = st.slider(
+                    "Stichprobe (n)",
+                    min_value=n_min,
+                    max_value=n_max,
+                    value=n_default,
+                    step=5,
+                    key=f"n_{key_suffix}",
+                    help="Anzahl der Datenpunkte"
+                )
+            col_idx += 1
+        
+        if show_noise:
+            with cols[col_idx % 3]:
+                params['noise'] = st.slider(
+                    "Rauschen (σ)", 
+                    min_value=noise_min,
+                    max_value=noise_max,
+                    value=noise_default,
+                    step=(noise_max - noise_min) / 20,
+                    key=f"noise_{key_suffix}",
+                    help="Fehlerterm-Standardabweichung"
+                )
+            col_idx += 1
+        
+        if show_seed:
+            with cols[col_idx % 3]:
+                params['seed'] = st.number_input(
+                    "Seed",
+                    min_value=1,
+                    max_value=999,
+                    value=seed_default,
+                    key=f"seed_{key_suffix}",
+                    help="Zufallsseed"
+                )
+    
+    return params
 
 # ---------------------------------------------------------
 # ZENTRALE KONFIGURATION: Farben & Schriftgroessen
