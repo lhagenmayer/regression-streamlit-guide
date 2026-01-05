@@ -2,7 +2,11 @@
 
 Interaktiver Leitfaden zur linearen Regression mit Streamlit. Gedacht für alle, die Regression visuell und nachvollziehbar lernen wollen.
 
-<!-- Deployment badge placeholder - uncomment and update URL after deployment -->
+[![Tests](https://github.com/lhagenmayer/linear-regression-guide/workflows/Run%20Tests/badge.svg)](https://github.com/lhagenmayer/linear-regression-guide/actions/workflows/tests.yml)
+[![Lint](https://github.com/lhagenmayer/linear-regression-guide/workflows/Lint/badge.svg)](https://github.com/lhagenmayer/linear-regression-guide/actions/workflows/lint.yml)
+[![Deployment Validation](https://github.com/lhagenmayer/linear-regression-guide/workflows/Deployment%20Validation/badge.svg)](https://github.com/lhagenmayer/linear-regression-guide/actions/workflows/deployment-validation.yml)
+
+<!-- Deployment badge - uncomment and update URL after deployment -->
 <!-- [![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://your-app-url.streamlit.app) -->
 
 ### 🚀 Live Demo
@@ -16,7 +20,7 @@ The app is ready for deployment to Streamlit Cloud. Once deployed, the live demo
 4. Set main file path to `app.py`
 5. Deploy!
 
-See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed deployment instructions.
+See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed deployment instructions or [QUICKSTART_DEPLOYMENT.md](QUICKSTART_DEPLOYMENT.md) for a 5-minute quick start guide.
 
 ### Funktionsumfang
 
@@ -115,15 +119,19 @@ Siehe [TESTING.md](TESTING.md) für Details zur Test-Infrastruktur.
 | data.py | Datengenerie functions und data handling |
 | plots.py | Plotting functions (plotly visualizations) |
 | config.py | Configuration constants |
+| content.py | Content and text for the app |
 | requirements.txt | Laufzeitabhängigkeiten |
 | requirements-dev.txt | Entwicklungs- und Test-Abhängigkeiten |
 | tests/ | Comprehensive test suite |
 | .streamlit/config.toml | Streamlit Cloud configuration |
+| .github/workflows/ | GitHub Actions CI/CD workflows |
+| validate_deployment.py | Deployment validation script |
 | pyproject.toml | Black und Pytest Konfiguration |
 | .flake8 | Flake8 Konfiguration |
 | mypy.ini | MyPy Konfiguration |
 | .pre-commit-config.yaml | Pre-commit Hooks Konfiguration |
-| DEPLOYMENT.md | Streamlit Cloud deployment guide |
+| DEPLOYMENT.md | Comprehensive Streamlit Cloud deployment guide |
+| QUICKSTART_DEPLOYMENT.md | 5-minute deployment quick start |
 | TESTING.md | Testing documentation |
 | DEVELOPMENT.md | Development guide |
 | README.md | Projektüberblick |

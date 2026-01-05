@@ -1,0 +1,81 @@
+name: Deployment Validation
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+jobs:
+  validate-deployment:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Verify deployment structure
+      run: |
+        echo "Checking required files..."
+        test -f app.py && echo "✅ app.py exists" || (echo "❌ app.py missing" && exit 1)
+        test -f requirements.txt && echo "✅ requirements.txt exists" || (echo "❌ requirements.txt missing" && exit 1)
+        test -f .streamlit/config.toml && echo "✅ .streamlit/config.toml exists" || (echo "❌ .streamlit/config.toml missing" && exit 1)
+        test -f DEPLOYMENT.md && echo "✅ DEPLOYMENT.md exists" || (echo "❌ DEPLOYMENT.md missing" && exit 1)
+
+    - name: Verify Python modules import
+      run: |
+        echo "Testing module imports..."
+        python -c "import config; print('✅ config.py imports successfully')"
+        python -c "import data; print('✅ data.py imports successfully')"
+        python -c "import plots; print('✅ plots.py imports successfully')"
+        python -c "import content; print('✅ content.py imports successfully')"
+
+    - name: Run deployment validation script
+      run: |
+        python validate_deployment.py
+
+    - name: Check Streamlit syntax
+      run: |
+        echo "Checking Streamlit app syntax..."
+        python -m py_compile app.py
+        python -m py_compile config.py
+        python -m py_compile data.py
+        python -m py_compile plots.py
+        python -m py_compile content.py
+        echo "✅ All Python files compile successfully"
+
+    - name: Verify requirements
+      run: |
+        echo "Verifying required packages in requirements.txt..."
+        grep -q "streamlit" requirements.txt && echo "✅ streamlit found" || (echo "❌ streamlit missing" && exit 1)
+        grep -q "numpy" requirements.txt && echo "✅ numpy found" || (echo "❌ numpy missing" && exit 1)
+        grep -q "pandas" requirements.txt && echo "✅ pandas found" || (echo "❌ pandas missing" && exit 1)
+        grep -q "plotly" requirements.txt && echo "✅ plotly found" || (echo "❌ plotly missing" && exit 1)
+        grep -q "statsmodels" requirements.txt && echo "✅ statsmodels found" || (echo "❌ statsmodels missing" && exit 1)
+        grep -q "scipy" requirements.txt && echo "✅ scipy found" || (echo "❌ scipy missing" && exit 1)
+
+    - name: Summary
+      if: success()
+      run: |
+        echo "=================================================="
+        echo "✅ Deployment validation passed!"
+        echo "App is ready for Streamlit Cloud deployment"
+        echo "=================================================="
+        echo ""
+        echo "Next steps:"
+        echo "1. Visit https://share.streamlit.io"
+        echo "2. Connect your GitHub repository"
+        echo "3. Set app.py as the main file"
+        echo "4. Deploy!"
