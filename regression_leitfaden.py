@@ -492,41 +492,40 @@ with st.sidebar.expander("📊 Datensatz", expanded=True):
         )
 
 # Einheitlicher Daten-Parameter-Block mit Sliders
-if regression_type == "📊 Multiple Regression":
-    st.sidebar.markdown("---")
-    with st.sidebar.expander("🎛️ Daten-Parameter", expanded=True):
-        if dataset_choice_mult == "🏙️ Städte-Umsatzstudie (75 Städte)":
-            st.markdown("**Stichproben-Eigenschaften:**")
-            n_mult = st.slider("Anzahl Städte (n)", min_value=20, max_value=150, value=75, step=5,
-                             help="Grösse der Stichprobe", key="n_mult_staedte")
-            
-            st.markdown("**Zufallskomponente:**")
-            noise_mult_level = st.slider("Rauschen (σ)", min_value=1.0, max_value=8.0, value=3.5, step=0.5,
-                                       help="Standardabweichung der Störgrösse", key="noise_mult_staedte")
-            seed_mult = st.number_input("Random Seed", min_value=1, max_value=999, value=42,
-                                      help="Zufallsseed für Reproduzierbarkeit", key="seed_mult_staedte")
+st.sidebar.markdown("---")
+with st.sidebar.expander("🎛️ Daten-Parameter (Multiple Regression)", expanded=False):
+    if dataset_choice_mult == "🏙️ Städte-Umsatzstudie (75 Städte)":
+        st.markdown("**Stichproben-Eigenschaften:**")
+        n_mult = st.slider("Anzahl Städte (n)", min_value=20, max_value=150, value=75, step=5,
+                         help="Grösse der Stichprobe", key="n_mult_staedte")
         
-        elif dataset_choice_mult == "🏠 Häuserpreise mit Pool (1000 Häuser)":
-            st.markdown("**Stichproben-Eigenschaften:**")
-            n_mult = st.slider("Anzahl Häuser (n)", min_value=100, max_value=2000, value=1000, step=100,
-                             help="Grösse der Stichprobe", key="n_mult_haeuser")
-            
-            st.markdown("**Zufallskomponente:**")
-            noise_mult_level = st.slider("Rauschen (σ)", min_value=5.0, max_value=40.0, value=20.0, step=5.0,
-                                       help="Standardabweichung der Störgrösse", key="noise_mult_haeuser")
-            seed_mult = st.number_input("Random Seed", min_value=1, max_value=999, value=42,
-                                      help="Zufallsseed für Reproduzierbarkeit", key="seed_mult_haeuser")
+        st.markdown("**Zufallskomponente:**")
+        noise_mult_level = st.slider("Rauschen (σ)", min_value=1.0, max_value=8.0, value=3.5, step=0.5,
+                                   help="Standardabweichung der Störgrösse", key="noise_mult_staedte")
+        seed_mult = st.number_input("Random Seed", min_value=1, max_value=999, value=42,
+                                  help="Zufallsseed für Reproduzierbarkeit", key="seed_mult_staedte")
+    
+    elif dataset_choice_mult == "🏠 Häuserpreise mit Pool (1000 Häuser)":
+        st.markdown("**Stichproben-Eigenschaften:**")
+        n_mult = st.slider("Anzahl Häuser (n)", min_value=100, max_value=2000, value=1000, step=100,
+                         help="Grösse der Stichprobe", key="n_mult_haeuser")
         
-        else:  # Elektronikmarkt
-            st.markdown("**Stichproben-Eigenschaften:**")
-            n_mult = st.slider("Anzahl Beobachtungen (n)", min_value=20, max_value=100, value=50, step=5,
-                             help="Grösse der Stichprobe", key="n_mult_elektro")
-            
-            st.markdown("**Zufallskomponente:**")
-            noise_mult_level = st.slider("Rauschen (σ)", min_value=0.1, max_value=1.0, value=0.35, step=0.05,
-                                       help="Standardabweichung der Störgrösse", key="noise_mult_elektro")
-            seed_mult = st.number_input("Random Seed", min_value=1, max_value=999, value=42,
-                                      help="Zufallsseed für Reproduzierbarkeit", key="seed_mult_elektro")
+        st.markdown("**Zufallskomponente:**")
+        noise_mult_level = st.slider("Rauschen (σ)", min_value=5.0, max_value=40.0, value=20.0, step=5.0,
+                                   help="Standardabweichung der Störgrösse", key="noise_mult_haeuser")
+        seed_mult = st.number_input("Random Seed", min_value=1, max_value=999, value=42,
+                                  help="Zufallsseed für Reproduzierbarkeit", key="seed_mult_haeuser")
+    
+    else:  # Elektronikmarkt
+        st.markdown("**Stichproben-Eigenschaften:**")
+        n_mult = st.slider("Anzahl Beobachtungen (n)", min_value=20, max_value=100, value=50, step=5,
+                         help="Grösse der Stichprobe", key="n_mult_elektro")
+        
+        st.markdown("**Zufallskomponente:**")
+        noise_mult_level = st.slider("Rauschen (σ)", min_value=0.1, max_value=1.0, value=0.35, step=0.05,
+                                   help="Standardabweichung der Störgrösse", key="noise_mult_elektro")
+        seed_mult = st.number_input("Random Seed", min_value=1, max_value=999, value=42,
+                                  help="Zufallsseed für Reproduzierbarkeit", key="seed_mult_elektro")
 
 # === MULTIPLE REGRESSION DATA PREPARATION ===
 with st.spinner("Lade Datensatz..."):
