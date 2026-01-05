@@ -100,9 +100,26 @@ def get_simple_regression_content(dataset_choice: str, x_variable: str) -> Dict[
     """
     Get all content for simple regression based on dataset and x_variable.
 
+    Args:
+        dataset_choice: The selected dataset
+        x_variable: The selected x variable
+
     Returns:
         Dictionary with labels, descriptions, formulas, etc.
+
+    Raises:
+        ValueError: If dataset_choice or x_variable is invalid
     """
+    # Validate dataset_choice
+    valid_datasets = [
+        "🏪 Elektronikmarkt (simuliert)",
+        "🏙️ Städte-Umsatzstudie (75 Städte)",
+        "🇨🇭 Schweizer Kantone (sozioökonomisch)"
+    ]
+
+    if dataset_choice not in valid_datasets:
+        raise ValueError(f"Invalid dataset_choice: {dataset_choice}. Valid options: {valid_datasets}")
+
     content = {
         "x_label": "X",
         "y_label": "Y",
@@ -296,6 +313,20 @@ def get_simple_regression_content(dataset_choice: str, x_variable: str) -> Dict[
                 """
             })
 
+    # Validate x_variable for each dataset
+    if dataset_choice == "🏪 Elektronikmarkt (simuliert)":
+        valid_variables = ["Verkaufsfläche (m²)"]
+    elif dataset_choice == "🏙️ Städte-Umsatzstudie (75 Städte)":
+        valid_variables = ["Preis (CHF)", "Werbeausgaben (CHF)"]
+    elif dataset_choice == "🇨🇭 Schweizer Kantone (sozioökonomisch)":
+        valid_variables = ["Population Density", "Foreign Population %", "Unemployment"]
+    elif dataset_choice == "🌤️ Schweizer Wetterstationen":
+        valid_variables = ["Altitude", "Sunshine Hours", "Humidity"]
+    else:
+        valid_variables = []
+
+    if x_variable not in valid_variables:
+        raise ValueError(f"Invalid x_variable '{x_variable}' for dataset '{dataset_choice}'. Valid options: {valid_variables}")
 
     return content
 
@@ -303,7 +334,31 @@ def get_simple_regression_content(dataset_choice: str, x_variable: str) -> Dict[
 def get_dataset_info(dataset_choice: str) -> Dict[str, Any]:
     """
     Get general information about a dataset.
+
+    Args:
+        dataset_choice: The selected dataset
+
+    Returns:
+        Dictionary with dataset information
+
+    Raises:
+        ValueError: If dataset_choice is invalid
     """
+    # Validate dataset_choice
+    valid_datasets = [
+        "🏪 Elektronikmarkt (simuliert)",
+        "🏙️ Städte-Umsatzstudie (75 Städte)",
+        "🇨🇭 Schweizer Kantone (sozioökonomisch)",
+        "🏠 Häuserpreise mit Pool (1000 Häuser)",
+        "🌤️ Schweizer Wetterstationen",
+        "🏭 Elektronikmarkt-Kette (50 Filialen)",
+        "Cities Dataset",
+        "Houses Dataset"
+    ]
+
+    if dataset_choice not in valid_datasets:
+        raise ValueError(f"Invalid dataset_choice: {dataset_choice}. Valid options: {valid_datasets}")
+
     info = {
         "name": dataset_choice,
         "type": "simulated",

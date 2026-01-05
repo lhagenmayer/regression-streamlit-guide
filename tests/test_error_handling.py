@@ -201,12 +201,12 @@ class TestEdgeCases:
         from src.data import generate_multiple_regression_data
 
         # Very low noise
-        result_low = generate_multiple_regression_data("Cities", 50, 0.01, 42)
-        assert len(result_low['y_gdp_per_capita']) == 50
+        result_low = generate_multiple_regression_data("🏙️ Städte-Umsatzstudie (75 Städte)", 50, 0.01, 42)
+        assert len(result_low['y_mult']) == 50
 
         # Very high noise
-        result_high = generate_multiple_regression_data("Cities", 50, 10.0, 42)
-        assert len(result_high['y_gdp_per_capita']) == 50
+        result_high = generate_multiple_regression_data("🏙️ Städte-Umsatzstudie (75 Städte)", 50, 10.0, 42)
+        assert len(result_high['y_mult']) == 50
 
     def test_special_characters_in_dataset_names(self):
         """Test handling of special characters in dataset names."""
@@ -253,11 +253,11 @@ class TestMemoryAndPerformance:
         from src.data import generate_multiple_regression_data
 
         # Generate large dataset
-        result = generate_multiple_regression_data("Cities", 1000, 2.0, 42)
+        result = generate_multiple_regression_data("🏙️ Städte-Umsatzstudie (75 Städte)", 1000, 2.0, 42)
 
         # Ensure it completes without memory errors
-        assert len(result['y_gdp_per_capita']) == 1000
-        assert len(result['x_advertising']) == 1000
+        assert len(result['y_mult']) == 1000
+        assert len(result['x2_preis']) == 1000
 
     def test_cleanup_after_errors(self):
         """Test that resources are cleaned up after errors."""

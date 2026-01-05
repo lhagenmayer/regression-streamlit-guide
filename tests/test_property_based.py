@@ -30,33 +30,33 @@ class TestDataGenerationProperties:
         """Test properties of multiple regression data generation."""
         from src.data import generate_multiple_regression_data
 
-        result = generate_multiple_regression_data("Cities", n, noise_level, seed)
+        result = generate_multiple_regression_data("🏙️ Städte-Umsatzstudie (75 Städte)", n, noise_level, seed)
 
         # Basic structure checks
         assert isinstance(result, dict)
-        assert 'y_gdp_per_capita' in result
-        assert 'x_advertising' in result
-        assert 'x_price' in result
+        assert 'y_mult' in result
+        assert 'x2_preis' in result
+        assert 'x3_werbung' in result
 
         # Data length consistency
-        assert len(result['y_gdp_per_capita']) == n
-        assert len(result['x_advertising']) == n
-        assert len(result['x_price']) == n
+        assert len(result['y_mult']) == n
+        assert len(result['x2_preis']) == n
+        assert len(result['x3_werbung']) == n
 
         # Data type checks
-        assert isinstance(result['y_gdp_per_capita'], np.ndarray)
-        assert isinstance(result['x_advertising'], np.ndarray)
-        assert isinstance(result['x_price'], np.ndarray)
+        assert isinstance(result['y_mult'], np.ndarray)
+        assert isinstance(result['x2_preis'], np.ndarray)
+        assert isinstance(result['x3_werbung'], np.ndarray)
 
         # No NaN values
-        assert not np.isnan(result['y_gdp_per_capita']).any()
-        assert not np.isnan(result['x_advertising']).any()
-        assert not np.isnan(result['x_price']).any()
+        assert not np.isnan(result['y_mult']).any()
+        assert not np.isnan(result['x2_preis']).any()
+        assert not np.isnan(result['x3_werbung']).any()
 
         # Reasonable value ranges
-        assert np.all(result['y_gdp_per_capita'] > 0)  # GDP should be positive
-        assert np.all(result['x_advertising'] >= 0)   # Advertising should be non-negative
-        assert np.all(result['x_price'] > 0)          # Price should be positive
+        assert np.all(result['y_mult'] > 0)  # Sales should be positive
+        assert np.all(result['x2_preis'] > 0)   # Price should be positive
+        assert np.all(result['x3_werbung'] >= 0)   # Advertising should be non-negative
 
     @given(
         n=st.integers(min_value=1, max_value=100),
@@ -118,9 +118,9 @@ class TestDataGenerationProperties:
         result2 = generate_multiple_regression_data("Cities", n, 2.0, seed)
 
         # Results should be identical with same seed
-        np.testing.assert_array_equal(result1['y_gdp_per_capita'], result2['y_gdp_per_capita'])
-        np.testing.assert_array_equal(result1['x_advertising'], result2['x_advertising'])
-        np.testing.assert_array_equal(result1['x_price'], result2['x_price'])
+        np.testing.assert_array_equal(result1['y_mult'], result2['y_mult'])
+        np.testing.assert_array_equal(result1['x2_preis'], result2['x2_preis'])
+        np.testing.assert_array_equal(result1['x3_werbung'], result2['x3_werbung'])
 
 
 class TestStatisticalProperties:
@@ -135,17 +135,17 @@ class TestStatisticalProperties:
         """Test that noise follows expected statistical properties."""
         from src.data import generate_multiple_regression_data
 
-        result = generate_multiple_regression_data("Cities", n, noise_level, seed)
+        result = generate_multiple_regression_data("🏙️ Städte-Umsatzstudie (75 Städte)", n, noise_level, seed)
 
-        y = result['y_gdp_per_capita']
+        y = result['y_mult']
 
-        # For large n, mean should be close to expected value (around 77.37)
+        # For large n, mean should be close to expected value (around 77.37 for sales)
         # Allow some tolerance due to randomness
         expected_mean = 77.37
         assert abs(np.mean(y) - expected_mean) < expected_mean * 0.5  # 50% tolerance
 
         # Standard deviation should be reasonable
-        assert 10 < np.std(y) < 200  # Reasonable range for GDP data
+        assert 10 < np.std(y) < 200  # Reasonable range for sales data
 
     @given(
         n=st.integers(min_value=50, max_value=200),
@@ -155,11 +155,11 @@ class TestStatisticalProperties:
         """Test correlation properties between variables."""
         from src.data import generate_multiple_regression_data
 
-        result = generate_multiple_regression_data("Cities", n, noise_level, 42)
+        result = generate_multiple_regression_data("🏙️ Städte-Umsatzstudie (75 Städte)", n, noise_level, 42)
 
-        x_advertising = result['x_advertising']
-        x_price = result['x_price']
-        y = result['y_gdp_per_capita']
+        x_advertising = result['x3_werbung']
+        x_price = result['x2_preis']
+        y = result['y_mult']
 
         # Calculate correlations
         corr_adv_gdp = np.corrcoef(x_advertising, y)[0, 1]
