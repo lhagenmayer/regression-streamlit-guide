@@ -14,10 +14,10 @@ from scipy import stats
 import warnings
 import streamlit as st
 import plotly.graph_objects as go
-import plotly.express as px
 from plotly.subplots import make_subplots
 
 # Import from our modules
+from config import COLORS, FONT_SIZES
 from data import safe_scalar, generate_dataset, generate_multiple_regression_data, generate_simple_regression_data
 from plots import (
     create_regression_mesh, get_3d_layout_config, create_zero_plane,
@@ -26,32 +26,6 @@ from plots import (
     create_plotly_distribution, create_r_output_display, create_r_output_figure,
     get_signif_stars, get_signif_color
 )
-
-# ---------------------------------------------------------
-# ZENTRALE KONFIGURATION: Farben & Schriftgroessen
-# ---------------------------------------------------------
-COLORS = {
-    "primary": "#1f77b4",
-    "secondary": "#2c3e50",
-    "correct": "#2ecc71",
-    "violated": "#e74c3c",
-    "warning": "#f39c12",
-    "neutral": "#95a5a6",
-    "residual_pos": "#27ae60",
-    "residual_neg": "#c0392b",
-    "regression_line": "#e74c3c",
-    "data_points": "#3498db",
-    "confidence_band": "#85c1e9",
-}
-
-FONT_SIZES = {
-    "axis_label_3d": 14,
-    "axis_label_2d": 12,
-    "title_3d": 14,
-    "title_2d": 13,
-    "tick_3d": 11,
-    "legend": 10,
-}
 
 # ---------------------------------------------------------
 # PAGE CONFIG
@@ -707,8 +681,6 @@ with col_m1_1:
     st.markdown("### 🎲 3D-Visualisierung: Varianzzerlegung im Prädiktorraum")
     
     # Create side-by-side 3D plots using plotly subplots
-    from plotly.subplots import make_subplots
-    
     fig_3d_var = make_subplots(
         rows=1, cols=2,
         specs=[[{'type': 'scatter3d'}, {'type': 'scatter3d'}]],
@@ -1104,7 +1076,6 @@ with col_m1_1:
     """)
     
     # Diagnostik-Plots using plotly subplots
-    from plotly.subplots import make_subplots
     from scipy.stats import probplot
     from statsmodels.stats.outliers_influence import OLSInfluence
     
@@ -1595,7 +1566,6 @@ with tab1:
 
     with col_indep2:
         # Create 2-panel independence visualization with plotly
-        from plotly.subplots import make_subplots
         
         np.random.seed(123)
         # Unabhängig (ρ=0)
@@ -1846,7 +1816,6 @@ with tab1:
 
     with col_corr1:
         # Verschiedene Korrelationen zeigen mit plotly subplots
-        from plotly.subplots import make_subplots
         
         example_corrs = [-0.95, -0.5, 0, 0.5, 0.8, 0.95]
         np.random.seed(42)
@@ -2028,7 +1997,6 @@ with tab1:
             rho_spearman, p_spearman = spearmanr(x, y)
         
             # Create 2-panel plot with plotly subplots
-            from plotly.subplots import make_subplots
             
             fig_spear = make_subplots(
                 rows=1, cols=2,
@@ -2505,7 +2473,6 @@ with tab1:
 
     with col_sb1:
         # Create 2-panel standard error comparison with plotly
-        from plotly.subplots import make_subplots
         
         fig_sb = make_subplots(
             rows=1, cols=2,
@@ -2608,7 +2575,6 @@ with tab1:
 
     with col_r2_1:
         # 3D Visualisierung: Würfel für SST, SSR, SSE using plotly
-        from plotly.subplots import make_subplots
         
         fig_var = make_subplots(
             rows=1, cols=3,
