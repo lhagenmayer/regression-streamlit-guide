@@ -24,6 +24,58 @@ def safe_scalar(val):
         return float(val.iloc[0] if hasattr(val, 'iloc') else val[0])
     return float(val)
 
+# --- Hilfsfunktion für 3D-Kamera-Steuerung ---
+def create_camera_controls(key_suffix="", default_x=1.5, default_y=-1.5, default_z=1.2):
+    """
+    Erstellt wiederverwendbare Kamera-Steuerungselemente für 3D-Plots.
+    
+    Args:
+        key_suffix: Eindeutiger Suffix für die Streamlit-Keys
+        default_x: Standard X-Position der Kamera
+        default_y: Standard Y-Position der Kamera  
+        default_z: Standard Z-Position (Höhe) der Kamera
+    
+    Returns:
+        dict: Kamera-Konfiguration für plotly (camera=dict(eye=dict(...)))
+    """
+    with st.expander("🎥 Kameraeinstellungen", expanded=False):
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            cam_x = st.slider(
+                "Kamera X",
+                min_value=-3.0,
+                max_value=3.0,
+                value=default_x,
+                step=0.1,
+                key=f"cam_x_{key_suffix}",
+                help="Horizontale Position der Kamera"
+            )
+        
+        with col2:
+            cam_y = st.slider(
+                "Kamera Y", 
+                min_value=-3.0,
+                max_value=3.0,
+                value=default_y,
+                step=0.1,
+                key=f"cam_y_{key_suffix}",
+                help="Tiefe der Kamera"
+            )
+        
+        with col3:
+            cam_z = st.slider(
+                "Kamera Z",
+                min_value=0.5,
+                max_value=3.0,
+                value=default_z,
+                step=0.1,
+                key=f"cam_z_{key_suffix}",
+                help="Höhe der Kamera"
+            )
+    
+    return dict(eye=dict(x=cam_x, y=cam_y, z=cam_z))
+
 # ---------------------------------------------------------
 # ZENTRALE KONFIGURATION: Farben & Schriftgroessen
 # ---------------------------------------------------------
@@ -926,6 +978,15 @@ if regression_type == "📊 Multiple Regression":
             title='Multiple Regression: Ebene statt Gerade'
         )
         
+        # Add camera controls
+        camera_m1 = create_camera_controls(key_suffix="m1_plane", default_x=1.5, default_y=-1.5, default_z=1.2)
+        fig_3d_plane.update_layout(scene=dict(
+            xaxis_title=x1_name,
+            yaxis_title=x2_name,
+            zaxis_title=y_name,
+            camera=camera_m1
+        ))
+        
         st.plotly_chart(fig_3d_plane, use_container_width=True)
         
     # =========================================================
@@ -1124,6 +1185,10 @@ if regression_type == "📊 Multiple Regression":
         height=600
     )
     
+    # Add camera controls
+    camera_m3 = create_camera_controls(key_suffix="m3_residual", default_x=1.5, default_y=-1.5, default_z=1.2)
+    fig_3d_resid.update_layout(scene_camera=camera_m3)
+    
     st.plotly_chart(fig_3d_resid, use_container_width=True)
             
     st.info("""
@@ -1290,6 +1355,10 @@ if regression_type == "📊 Multiple Regression":
             camera=dict(eye=dict(x=1.5, y=-1.5, z=1.2))
         )
     )
+    
+    # Add camera controls
+    camera_m4 = create_camera_controls(key_suffix="m4_variance", default_x=1.5, default_y=-1.5, default_z=1.2)
+    fig_3d_var.update_layout(scene_camera=camera_m4, scene2_camera=camera_m4)
     
     st.plotly_chart(fig_3d_var, use_container_width=True)
             
@@ -1551,6 +1620,10 @@ if regression_type == "📊 Multiple Regression":
             height=600
         )
         
+        # Add camera controls
+        camera_m7 = create_camera_controls(key_suffix="m7_multicol", default_x=1.5, default_y=-1.5, default_z=1.3)
+        fig_3d_m7.update_layout(scene_camera=camera_m7)
+        
         st.plotly_chart(fig_3d_m7, use_container_width=True)
                     
         st.info("""
@@ -1786,6 +1859,10 @@ if regression_type == "📊 Multiple Regression":
         template='plotly_white',
         height=600
     )
+    
+    # Add camera controls
+    camera_m8 = create_camera_controls(key_suffix="m8_residual", default_x=1.5, default_y=-1.5, default_z=1.2)
+    fig_3d_resid_m8.update_layout(scene_camera=camera_m8)
     
     st.plotly_chart(fig_3d_resid_m8, use_container_width=True)
             
@@ -2052,6 +2129,14 @@ elif regression_type == "📈 Einfache Regression":
                        camera=dict(eye=dict(x=1.5, y=-1.8, z=1.0)))
         )
     
+        # Add camera controls
+        camera_15 = create_camera_controls(key_suffix="s15_joint", default_x=1.5, default_y=-1.5, default_z=1.2)
+        fig_joint_3d.update_layout(
+            scene1_camera=camera_15,
+            scene2_camera=camera_15,
+            scene3_camera=camera_15
+        )
+        
         st.plotly_chart(fig_joint_3d, use_container_width=True)
             
     with col_joint2:
@@ -2309,6 +2394,10 @@ elif regression_type == "📈 Einfache Regression":
             height=600
         )
     
+        # Add camera controls
+        camera_25 = create_camera_controls(key_suffix="s25_covariance", default_x=1.5, default_y=-1.5, default_z=1.2)
+        fig_cov.update_layout(scene_camera=camera_25)
+        
         st.plotly_chart(fig_cov, use_container_width=True)
             
     with col_cov2:
@@ -2777,6 +2866,10 @@ elif regression_type == "📈 Einfache Regression":
         showlegend=True
     )
 
+    # Add camera controls
+    camera_30 = create_camera_controls(key_suffix="s30_anatomy", default_x=1.5, default_y=-1.5, default_z=1.2)
+    fig_detail.update_layout(scene_camera=camera_30)
+
     st.plotly_chart(fig_detail, use_container_width=True)
         
     # Erklärungstext
@@ -3183,6 +3276,14 @@ elif regression_type == "📈 Einfache Regression":
             )
         )
     
+        # Add camera controls
+        camera_42 = create_camera_controls(key_suffix="s42_variance", default_x=1.5, default_y=1.5, default_z=1.2)
+        fig_var.update_layout(
+            scene_camera=camera_42,
+            scene2_camera=camera_42,
+            scene3_camera=camera_42
+        )
+        
         st.plotly_chart(fig_var, use_container_width=True)
             
     with col_r2_2:
@@ -4196,6 +4297,10 @@ elif regression_type == "📈 Einfache Regression":
             showlegend=True
         )
     
+        # Add camera controls
+        camera_55 = create_camera_controls(key_suffix="s55_anova", default_x=1.5, default_y=-1.8, default_z=1.2)
+        fig_3d.update_layout(scene_camera=camera_55)
+        
         st.plotly_chart(fig_3d, use_container_width=True)
         
     with col_3d2:
