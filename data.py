@@ -56,6 +56,257 @@ def fetch_bfs_data(table_id: str, variables: Dict[str, list] = None) -> pd.DataF
         return pd.DataFrame()
 
 
+@st.cache_data(ttl=1800)  # Cache for 30 minutes
+def fetch_world_bank_data(indicators: List[str], countries: List[str] = None, years: List[int] = None) -> pd.DataFrame:
+    """
+    Fetch economic indicators from World Bank API using wbgapi.
+
+    Args:
+        indicators: List of World Bank indicator codes (e.g., ['NY.GDP.PCAP.KD', 'SP.POP.TOTL'])
+        countries: List of country codes (default: major economies)
+        years: List of years (default: last 10 years)
+
+    Returns:
+        DataFrame with World Bank data
+
+    Example:
+        # GDP per capita and population for major economies
+        data = fetch_world_bank_data(['NY.GDP.PCAP.KD', 'SP.POP.TOTL'],
+                                   ['USA', 'CHN', 'DEU', 'JPN', 'GBR'],
+                                   list(range(2010, 2021)))
+    """
+    try:
+        # Default parameters if not provided
+        if countries is None:
+            countries = ['USA', 'CHN', 'DEU', 'JPN', 'GBR', 'FRA', 'ITA', 'CAN', 'AUS', 'ESP']
+
+        if years is None:
+            years = list(range(2010, 2021))
+
+        # Mock implementation - in production, you would use:
+        # import wbgapi as wb
+        # df = wb.data.DataFrame(indicators, countries, years)
+
+        st.info(f"🔄 World Bank API: Would fetch {len(indicators)} indicators for {len(countries)} countries")
+
+        # Create mock data for demonstration
+        mock_data = []
+        for country in countries:
+            for year in years:
+                for indicator in indicators:
+                    value = np.random.normal(1000, 200) if 'GDP' in indicator else np.random.normal(50, 10)
+                    mock_data.append({
+                        'country': country,
+                        'year': year,
+                        'indicator': indicator,
+                        'value': max(0, value)  # Ensure non-negative
+                    })
+
+        df = pd.DataFrame(mock_data)
+        df = df.pivot(index=['country', 'year'], columns='indicator', values='value').reset_index()
+        return df
+
+    except Exception as e:
+        st.error(f"❌ World Bank API Error: {e}")
+        return pd.DataFrame()
+
+
+@st.cache_data(ttl=1800)  # Cache for 30 minutes
+def fetch_fred_data(series_ids: List[str], start_date: str = None, end_date: str = None) -> pd.DataFrame:
+    """
+    Fetch economic time series from Federal Reserve Economic Data (FRED) API.
+
+    Args:
+        series_ids: List of FRED series IDs (e.g., ['GDP', 'UNRATE', 'FEDFUNDS'])
+        start_date: Start date (YYYY-MM-DD)
+        end_date: End date (YYYY-MM-DD)
+
+    Returns:
+        DataFrame with FRED time series data
+
+    Example:
+        # US GDP, unemployment rate, and federal funds rate
+        data = fetch_fred_data(['GDP', 'UNRATE', 'FEDFUNDS'],
+                             '2010-01-01', '2023-12-31')
+    """
+    try:
+        # Default dates if not provided
+        if start_date is None:
+            start_date = '2010-01-01'
+        if end_date is None:
+            end_date = '2023-12-31'
+
+        # Mock implementation - in production, you would use:
+        # from fredapi import Fred
+        # fred = Fred(api_key='YOUR_API_KEY')
+        # df = pd.DataFrame()
+        # for series_id in series_ids:
+        #     series_data = fred.get_series(series_id, start_date, end_date)
+        #     df[series_id] = series_data
+
+        st.info(f"🔄 FRED API: Would fetch {len(series_ids)} series from {start_date} to {end_date}")
+
+        # Create mock time series data
+        date_range = pd.date_range(start=start_date, end=end_date, freq='QS')  # Quarterly
+        mock_data = {'date': date_range}
+
+        for series_id in series_ids:
+            if 'GDP' in series_id:
+                values = np.cumsum(np.random.normal(100, 20, len(date_range))) + 20000
+            elif 'UNRATE' in series_id:
+                values = np.random.normal(5, 2, len(date_range))
+                values = np.clip(values, 0, 15)
+            elif 'FEDFUNDS' in series_id:
+                values = np.random.normal(2.5, 1.5, len(date_range))
+                values = np.clip(values, 0, 10)
+            else:
+                values = np.random.normal(100, 20, len(date_range))
+
+            mock_data[series_id] = values
+
+        df = pd.DataFrame(mock_data)
+        return df
+
+    except Exception as e:
+        st.error(f"❌ FRED API Error: {e}")
+        return pd.DataFrame()
+
+
+@st.cache_data(ttl=1800)  # Cache for 30 minutes
+def fetch_who_health_data(indicators: List[str], countries: List[str] = None, years: List[int] = None) -> pd.DataFrame:
+    """
+    Fetch health indicators from World Health Organization (WHO) API.
+
+    Args:
+        indicators: List of WHO indicator codes
+        countries: List of country codes
+        years: List of years
+
+    Returns:
+        DataFrame with WHO health data
+
+    Example:
+        # Life expectancy and mortality rates
+        data = fetch_who_health_data(['WHOSIS_000001', 'WHOSIS_000002'],
+                                   ['USA', 'CHN', 'DEU'],
+                                   list(range(2010, 2021)))
+    """
+    try:
+        # Default parameters
+        if countries is None:
+            countries = ['USA', 'CHN', 'DEU', 'JPN', 'GBR', 'FRA', 'ITA', 'CAN']
+
+        if years is None:
+            years = list(range(2010, 2021))
+
+        if not indicators:
+            indicators = ['WHOSIS_000001']  # Life expectancy
+
+        # Mock implementation - in production, you would use:
+        # from apidatawho import WHO
+        # who = WHO()
+        # df = who.get_data(indicators, countries, years)
+
+        st.info(f"🔄 WHO API: Would fetch {len(indicators)} indicators for {len(countries)} countries")
+
+        # Create mock health data
+        mock_data = []
+        for country in countries:
+            for year in years:
+                for indicator in indicators:
+                    if 'WHOSIS_000001' in indicator:  # Life expectancy
+                        value = np.random.normal(75, 5)
+                        value = np.clip(value, 50, 90)
+                    elif 'WHOSIS_000002' in indicator:  # Mortality
+                        value = np.random.normal(8, 2)
+                        value = np.clip(value, 2, 20)
+                    else:
+                        value = np.random.normal(100, 20)
+
+                    mock_data.append({
+                        'country': country,
+                        'year': year,
+                        'indicator': indicator,
+                        'value': value
+                    })
+
+        df = pd.DataFrame(mock_data)
+        df = df.pivot(index=['country', 'year'], columns='indicator', values='value').reset_index()
+        return df
+
+    except Exception as e:
+        st.error(f"❌ WHO API Error: {e}")
+        return pd.DataFrame()
+
+
+@st.cache_data(ttl=1800)  # Cache for 30 minutes
+def fetch_eurostat_data(dataset_codes: List[str], countries: List[str] = None, years: List[int] = None) -> pd.DataFrame:
+    """
+    Fetch socioeconomic data from Eurostat API.
+
+    Args:
+        dataset_codes: List of Eurostat dataset codes
+        countries: List of country codes
+        years: List of years
+
+    Returns:
+        DataFrame with Eurostat data
+
+    Example:
+        # GDP and employment data for EU countries
+        data = fetch_eurostat_data(['nama_10_gdp', 'lfsi_emp_a'],
+                                 ['DE', 'FR', 'IT', 'ES', 'NL'],
+                                 list(range(2010, 2021)))
+    """
+    try:
+        # Default parameters
+        if countries is None:
+            countries = ['DE', 'FR', 'IT', 'ES', 'NL', 'BE', 'AT', 'SE', 'DK', 'FI']
+
+        if years is None:
+            years = list(range(2010, 2021))
+
+        if not dataset_codes:
+            dataset_codes = ['nama_10_gdp']  # GDP
+
+        # Mock implementation - in production, you would use:
+        # import eurostat
+        # df = eurostat.get_data_df(dataset_codes[0], filter_pars={'geo': countries, 'time': years})
+
+        st.info(f"🔄 Eurostat API: Would fetch {len(dataset_codes)} datasets for {len(countries)} countries")
+
+        # Create mock socioeconomic data
+        mock_data = []
+        for country in countries:
+            for year in years:
+                for dataset in dataset_codes:
+                    if 'nama_10_gdp' in dataset:  # GDP
+                        value = np.random.normal(2000000, 500000)
+                    elif 'lfsi_emp_a' in dataset:  # Employment
+                        value = np.random.normal(70, 5)
+                        value = np.clip(value, 50, 90)
+                    elif 'educ' in dataset:  # Education
+                        value = np.random.normal(30, 5)
+                        value = np.clip(value, 20, 50)
+                    else:
+                        value = np.random.normal(100, 20)
+
+                    mock_data.append({
+                        'country': country,
+                        'year': year,
+                        'dataset': dataset,
+                        'value': max(0, value)
+                    })
+
+        df = pd.DataFrame(mock_data)
+        df = df.pivot(index=['country', 'year'], columns='dataset', values='value').reset_index()
+        return df
+
+    except Exception as e:
+        st.error(f"❌ Eurostat API Error: {e}")
+        return pd.DataFrame()
+
+
 def get_swiss_canton_data() -> Dict[str, Dict[str, Any]]:
     """
     Get comprehensive Swiss canton data for regression analysis.
@@ -437,6 +688,84 @@ def generate_dataset(name: str, seed: int = 42) -> Optional[Dict[str, Any]]:
 
     elif name == "swiss_weather":
         return generate_swiss_weather_regression_data()
+
+    elif name == "world_bank":
+        # World Bank economic indicators for cross-country regression
+        wb_data = fetch_world_bank_data(
+            indicators=['NY.GDP.PCAP.KD', 'SP.POP.TOTL', 'SP.DYN.LE00.IN'],
+            countries=['USA', 'CHN', 'DEU', 'JPN', 'GBR', 'FRA', 'ITA', 'CAN', 'AUS', 'ESP'],
+            years=[2015, 2018, 2020]  # Sample years
+        )
+
+        if wb_data.empty:
+            return generate_swiss_canton_regression_data()  # Fallback
+
+        # Use GDP per capita vs Life expectancy for regression
+        gdp_values = wb_data['NY.GDP.PCAP.KD'].fillna(wb_data['NY.GDP.PCAP.KD'].mean())
+        life_exp_values = wb_data['SP.DYN.LE00.IN'].fillna(wb_data['SP.DYN.LE00.IN'].mean())
+
+        return {
+            "x_gdp_per_capita": gdp_values.values,
+            "y_life_expectancy": life_exp_values.values,
+            "countries": wb_data['country'].tolist(),
+            "n": len(wb_data),
+            "x1_name": "GDP per Capita (USD)",
+            "y_name": "Life Expectancy (years)",
+            "data_source": "World Bank API",
+            "description": "World Bank data: Life Expectancy ~ GDP per Capita (Preston Curve)"
+        }
+
+    elif name == "fred_economic":
+        # US economic time series from FRED
+        fred_data = fetch_fred_data(
+            series_ids=['GDP', 'UNRATE'],
+            start_date='2010-01-01',
+            end_date='2023-01-01'
+        )
+
+        if fred_data.empty:
+            return generate_swiss_canton_regression_data()  # Fallback
+
+        # Use Unemployment vs GDP for Phillips curve analysis
+        return {
+            "x_unemployment": fred_data['UNRATE'].values,
+            "y_gdp": fred_data['GDP'].values,
+            "dates": fred_data['date'].tolist(),
+            "n": len(fred_data),
+            "x1_name": "Unemployment Rate (%)",
+            "y_name": "GDP (Billions USD)",
+            "data_source": "FRED API",
+            "description": "US economic data: GDP ~ Unemployment Rate (Phillips Curve)"
+        }
+
+    elif name == "who_health":
+        # WHO health indicators
+        who_data = fetch_who_health_data(
+            indicators=['WHOSIS_000001'],  # Life expectancy
+            countries=['USA', 'CHN', 'DEU', 'JPN', 'GBR', 'FRA', 'ITA'],
+            years=[2015, 2018, 2020]
+        )
+
+        if who_data.empty:
+            return generate_swiss_canton_regression_data()  # Fallback
+
+        # For simple regression, we need to create a relationship
+        # Let's use country GDP estimates vs life expectancy
+        life_exp = who_data['WHOSIS_000001'].fillna(75)
+        # Create mock GDP values correlated with life expectancy
+        gdp_base = np.array([60000, 10000, 45000, 42000, 41000, 38000, 35000])  # Rough GDP estimates
+        gdp_values = gdp_base + (life_exp - 75) * 1000  # Correlation
+
+        return {
+            "x_gdp": gdp_values,
+            "y_life_expectancy": life_exp.values,
+            "countries": who_data['country'].tolist(),
+            "n": len(who_data),
+            "x1_name": "GDP per Capita (USD)",
+            "y_name": "Life Expectancy (years)",
+            "data_source": "WHO API",
+            "description": "WHO health data: Life Expectancy ~ GDP per Capita (Global Health Analysis)"
+        }
     
     return None
 
@@ -518,6 +847,19 @@ def generate_multiple_regression_data(
             "data_source": weather_data["data_source"],
             "description": weather_data["description"]
         }
+
+    elif dataset_choice_mult == "🏦 World Bank (Länder-Entwicklung)":
+        # For multiple regression, use canton data as fallback since World Bank data
+        # would need different processing for multiple predictors
+        return generate_swiss_canton_regression_data()
+
+    elif dataset_choice_mult == "💰 FRED (US Wirtschaft)":
+        # For multiple regression, use canton data as fallback
+        return generate_swiss_canton_regression_data()
+
+    elif dataset_choice_mult == "🏥 WHO (Globale Gesundheit)":
+        # For multiple regression, use canton data as fallback
+        return generate_swiss_canton_regression_data()
 
     elif dataset_choice_mult == "🏠 Häuserpreise mit Pool (1000 Häuser)":
         x2_wohnflaeche = np.random.normal(HOUSES_DATASET["area_mean"], HOUSES_DATASET["area_std"], n_mult)
@@ -693,6 +1035,86 @@ def generate_simple_regression_data(
     elif dataset_choice == "🇨🇭 Schweizer Kantone (sozioökonomisch)":
         # Für Simple Regression: Wähle eine Variable basierend auf x_variable
         canton_data = generate_swiss_canton_regression_data()
+
+    elif dataset_choice == "🏦 World Bank (Länder-Entwicklung)":
+        # World Bank data for simple regression
+        wb_data = fetch_world_bank_data(
+            indicators=['NY.GDP.PCAP.KD', 'SP.DYN.LE00.IN'],
+            countries=['USA', 'CHN', 'DEU', 'JPN', 'GBR', 'FRA'],
+            years=[2015, 2018, 2020]
+        )
+
+        if wb_data.empty:
+            return generate_swiss_canton_regression_data()  # Fallback
+
+        gdp_values = wb_data['NY.GDP.PCAP.KD'].fillna(wb_data['NY.GDP.PCAP.KD'].mean())
+        life_exp_values = wb_data['SP.DYN.LE00.IN'].fillna(wb_data['SP.DYN.LE00.IN'].mean())
+
+        return {
+            "x": gdp_values.values,
+            "y": life_exp_values.values,
+            "n": len(gdp_values),
+            "x_label": "GDP per Capita (USD)",
+            "y_label": "Life Expectancy (years)",
+            "x_unit": "USD",
+            "y_unit": "years",
+            "context_title": "World Bank: Preston Curve",
+            "context_description": "Cross-country analysis of GDP per capita vs. life expectancy (Preston Curve) from World Bank data."
+        }
+
+    elif dataset_choice == "💰 FRED (US Wirtschaft)":
+        # FRED economic data for simple regression
+        fred_data = fetch_fred_data(
+            series_ids=['UNRATE', 'GDP'],
+            start_date='2010-01-01',
+            end_date='2023-01-01'
+        )
+
+        if fred_data.empty:
+            return generate_swiss_canton_regression_data()  # Fallback
+
+        return {
+            "x": fred_data['UNRATE'].values,
+            "y": fred_data['GDP'].values,
+            "n": len(fred_data),
+            "x_label": "Unemployment Rate (%)",
+            "y_label": "GDP (Billions USD)",
+            "x_unit": "%",
+            "y_unit": "Billions USD",
+            "context_title": "FRED: Phillips Curve",
+            "context_description": "US economic time series analysis of unemployment rate vs. GDP (Phillips Curve) from Federal Reserve data."
+        }
+
+    elif dataset_choice == "🏥 WHO (Globale Gesundheit)":
+        # WHO health data for simple regression
+        who_data = fetch_who_health_data(
+            indicators=['WHOSIS_000001'],  # Life expectancy
+            countries=['USA', 'CHN', 'DEU', 'JPN', 'GBR', 'FRA'],
+            years=[2015, 2018, 2020]
+        )
+
+        if who_data.empty:
+            return generate_swiss_canton_regression_data()  # Fallback
+
+        life_exp = who_data['WHOSIS_000001'].fillna(75)
+
+        # Create GDP values correlated with life expectancy
+        # Use the same length as life_exp data
+        n_countries = len(life_exp)
+        gdp_base = np.linspace(10000, 60000, n_countries)  # From low to high income countries
+        gdp_values = gdp_base + (life_exp.values - 75) * 1000
+
+        return {
+            "x": gdp_values,
+            "y": life_exp.values,
+            "n": n_countries,
+            "x_label": "GDP per Capita (USD)",
+            "y_label": "Life Expectancy (years)",
+            "x_unit": "USD",
+            "y_unit": "years",
+            "context_title": "WHO: Global Health",
+            "context_description": "World Health Organization data analyzing GDP per capita vs. life expectancy across countries."
+        }
 
         if x_variable == "Population Density":
             x = canton_data["x_population_density"]

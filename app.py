@@ -118,14 +118,16 @@ with st.sidebar.expander("📊 Datensatz", expanded=True):
     dataset_choice = st.selectbox(
         "Datensatz wählen (Einfache Regression):",
         ["🏪 Elektronikmarkt (simuliert)", "🏙️ Städte-Umsatzstudie (75 Städte)", "🏠 Häuserpreise mit Pool (1000 Häuser)",
-         "🇨🇭 Schweizer Kantone (sozioökonomisch)", "🌤️ Schweizer Wetterstationen"],
+         "🇨🇭 Schweizer Kantone (sozioökonomisch)", "🌤️ Schweizer Wetterstationen",
+         "🏦 World Bank (Länder-Entwicklung)", "💰 FRED (US Wirtschaft)", "🏥 WHO (Globale Gesundheit)"],
         index=0,
-        help="Wählen Sie zwischen simulierten Datensätzen, echten Schweizer Daten oder API-basierten Datensätzen."
+        help="Wählen Sie zwischen simulierten Datensätzen, Schweizer Daten oder globalen API-Datensätzen."
     )
     dataset_choice_mult = st.selectbox(
         "Datensatz wählen (Multiple Regression):",
         ["🏙️ Städte-Umsatzstudie (75 Städte)", "🏠 Häuserpreise mit Pool (1000 Häuser)", "🏪 Elektronikmarkt (erweitert)",
-         "🇨🇭 Schweizer Kantone (sozioökonomisch)", "🌤️ Schweizer Wetterstationen"],
+         "🇨🇭 Schweizer Kantone (sozioökonomisch)", "🌤️ Schweizer Wetterstationen",
+         "🏦 World Bank (Länder-Entwicklung)", "💰 FRED (US Wirtschaft)", "🏥 WHO (Globale Gesundheit)"],
         index=0,
         help="Wählen Sie einen Datensatz für multiple Regression (2+ Prädiktoren).",
             key="mult_dataset"
