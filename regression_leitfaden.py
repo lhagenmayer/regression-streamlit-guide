@@ -802,6 +802,28 @@ if regression_type == "📈 Einfache Regression":
                                     help="Zeige mathematische Formeln in der Anleitung")
         show_true_line = st.checkbox("Wahre Linie zeigen", value=has_true_line,
                                      help="Zeige die wahre Regressionslinie (nur bei Simulation)") if has_true_line else False
+    
+    # Ensure all required variables are defined (fallback initialization)
+    if 'x_label' not in locals() or 'y_label' not in locals():
+        x_label = "X"
+        y_label = "Y"
+    if 'x' not in locals() or 'y' not in locals():
+        # Fallback: create minimal dataset
+        np.random.seed(42)
+        n = 12
+        x = np.linspace(2, 12, n)
+        y = 0.6 + 0.52 * x + np.random.normal(0, 0.4, n)
+        x_label = "Verkaufsfläche (100qm)"
+        y_label = "Umsatz (Mio. €)"
+        x_unit = "100 qm"
+        y_unit = "Mio. €"
+        context_title = "Elektronikfachmärkte"
+        context_description = "Standarddatensatz"
+        has_true_line = False
+        true_intercept = 0
+        true_beta = 0
+    if 'n' not in locals():
+        n = len(x) if 'x' in locals() else 12
 
 # ---------------------------------------------------------
 # MODELL & KENNZAHLEN BERECHNEN (nur einfache Regression)
@@ -3139,16 +3161,27 @@ elif regression_type == "📈 Einfache Regression":
             showlegend=False
         )
         
-        # Update all 3D scenes
-        for i in range(1, 4):
-            fig_var.update_scenes(
-                {f'scene{i}': dict(
-                    xaxis=dict(title='X', range=[0, 1]),
-                    yaxis=dict(title='Y', range=[0, 1]),
-                    zaxis=dict(title='Varianz', range=[0, 1]),
-                    camera=dict(eye=dict(x=1.5, y=1.5, z=1.2))
-                )}
+        # Update all 3D scenes - use update_layout with individual scene specifications
+        fig_var.update_layout(
+            scene=dict(
+                xaxis=dict(title='X', range=[0, 1]),
+                yaxis=dict(title='Y', range=[0, 1]),
+                zaxis=dict(title='Varianz', range=[0, 1]),
+                camera=dict(eye=dict(x=1.5, y=1.5, z=1.2))
+            ),
+            scene2=dict(
+                xaxis=dict(title='X', range=[0, 1]),
+                yaxis=dict(title='Y', range=[0, 1]),
+                zaxis=dict(title='Varianz', range=[0, 1]),
+                camera=dict(eye=dict(x=1.5, y=1.5, z=1.2))
+            ),
+            scene3=dict(
+                xaxis=dict(title='X', range=[0, 1]),
+                yaxis=dict(title='Y', range=[0, 1]),
+                zaxis=dict(title='Varianz', range=[0, 1]),
+                camera=dict(eye=dict(x=1.5, y=1.5, z=1.2))
             )
+        )
     
         st.plotly_chart(fig_var, use_container_width=True)
             
