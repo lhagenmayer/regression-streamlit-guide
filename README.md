@@ -1,128 +1,187 @@
-## Linear Regression Guide
+# Linear Regression Guide
 
-Interaktiver Leitfaden zur linearen Regression mit Streamlit. Gedacht für alle, die Regression visuell und nachvollziehbar lernen wollen.
+Eine interaktive Web-App zum Erlernen linearer Regression. Gebaut mit Streamlit, plotly und statsmodels - für alle, die Regression verstehen wollen, ohne sich durch Formeln zu kämpfen.
 
-### Funktionsumfang
+**Warum diese App?**
+Regression ist ein wichtiges statistisches Werkzeug, aber die Theorie kann überwältigend sein. Diese App macht Regression greifbar: Spiele mit Daten herum, sieh live, wie Modelle funktionieren, und verstehe die Konzepte visuell. Perfekt für Studierende, Datenanalysten und alle, die Regression anwenden wollen.
 
-* Interaktive Plots (plotly, statsmodels)
-* Zwei Datensätze: simuliert und echte Stadtdaten
-* Kapitelweise Navigation von Grundlagen bis ANOVA
-* R-ähnliche Ausgabeformate mit Erklärungen
-* Performance-optimiert mit Caching und Session State Management
+## Was kann die App?
 
-### Schnellstart
+**Interaktive Visualisierungen:**
+- Scatterplots mit Regressionslinien
+- 3D-Oberflächen für multiple Regression
+- Residuenplots und Diagnostik
+- Live-Updates bei Parameteränderungen
 
-1) Python 3.9+ und optional ein virtuelles Environment
-2) Abhängigkeiten installieren:
-   ```bash
-   pip install -r requirements.txt
-   ```
-3) App starten:
-   ```bash
-   streamlit run app.py
-   ```
-   Browser öffnet automatisch oder manuell `http://localhost:8501` aufrufen.
+**Verschiedene Datensätze:**
+- Simulierte Daten (Elektronikmarkt, Häuser, Städte)
+- Echte Schweizer Daten (Kantone, Wetterstationen)
+- Vollständig offline - keine API-Abhängigkeiten
 
-### Development
+**Lernpfad:**
+- Grundlagen der linearen Regression
+- Multiple Regression mit mehreren Prädiktoren
+- Modellinterpretation und Diagnostik
+- Statistische Tests und Hypothesen
 
-#### Code Quality Standards
+**Benutzerfreundlich:**
+- Einfache Navigation mit Tabs
+- Anpassbare Parameter (Stichprobengröße, Rauschen, Seeds)
+- Klare Erklärungen statt komplizierter Formeln
+- Performance-optimiert für flüssige Bedienung
 
-Das Projekt verwendet moderne Code-Quality-Tools für konsistente Formatierung und Qualität:
+## Los geht's
 
-- **Black**: Automatische Code-Formatierung (Zeilenlänge: 100)
-- **Flake8**: Style-Guide-Enforcement und Error-Checking
-- **MyPy**: Statische Type-Checking (optional)
-- **Pre-commit Hooks**: Automatische Checks vor jedem Commit
+**Voraussetzungen:**
+- Python 3.9 oder neuer
+- Ein virtuelles Environment (empfohlen)
 
-#### Setup für Entwicklung
+**Installation:**
+```bash
+# Repository klonen
+git clone <repository-url>
+cd linear-regression-guide
+
+# Abhängigkeiten installieren
+pip install -r requirements.txt
+
+# App starten
+streamlit run app.py
+```
+
+Die App öffnet sich automatisch im Browser. Wenn nicht, gehe zu `http://localhost:8501`.
+
+**Erste Schritte:**
+1. Wähle ein Kapitel in der Sidebar
+2. Spiele mit den Parametern herum
+3. Beobachte, wie sich die Plots ändern
+4. Lies die Erklärungen zu den statistischen Konzepten
+
+## Für Entwickler
+
+Das Projekt legt Wert auf Code-Qualität. Wir verwenden moderne Tools, um den Code konsistent und wartbar zu halten.
+
+### Setup
 
 ```bash
-# Entwicklungs-Abhängigkeiten installieren
+# Zusätzliche Tools für Entwicklung installieren
 pip install -r requirements-dev.txt
 
-# Pre-commit Hooks einrichten
+# Git Hooks einrichten (automatische Code-Qualität)
 pre-commit install
+```
 
-# Code formatieren
+### Code-Qualität
+
+**Automatische Formatierung:**
+```bash
+# Code automatisch formatieren
 black *.py tests/*.py
+```
 
-# Linting überprüfen
+**Qualitätsprüfung:**
+```bash
+# Style und Fehler prüfen
 flake8 *.py tests/*.py
 
-# Type-Checking (optional)
+# Type-Checking (optional, aber empfohlen)
 mypy app.py config.py data.py plots.py
 ```
 
-#### Pre-commit Hooks
+**Git Hooks:**
+Die pre-commit Hooks laufen automatisch bei jedem Commit und prüfen:
+- Entfernung von Leerzeichen am Zeilenende
+- Korrekte Dateienden
+- Code-Formatierung mit Black
+- Style-Regeln mit Flake8
 
-Pre-commit Hooks führen automatisch Code-Formatierung und Checks durch:
-
+Manuell ausführen:
 ```bash
-# Manuell ausführen
 pre-commit run --all-files
-
-# Hooks werden automatisch bei 'git commit' ausgeführt
-git commit -m "Your message"
 ```
 
-Die Hooks prüfen:
-- Trailing Whitespace
-- End-of-File Fixer
-- YAML/JSON/TOML Syntax
-- Code-Formatierung (Black)
-- Linting (Flake8)
+## Tests
 
-### Testing
+Das Projekt hat eine umfassende Test-Suite, um sicherzustellen, dass alles funktioniert.
 
-Umfassende Test-Suite mit:
-- Unit-Tests für Datengenerie und Plotting-Funktionen
-- Integration-Tests mit Streamlit AppTest Framework
-- Performance-Regressionstests
-- GitHub Actions CI/CD
+**Verfügbare Tests:**
+- Unit-Tests für Datenfunktionen und Plots
+- Integration-Tests für die Streamlit-App
+- Performance-Tests mit Caching-Validierung
+- Automatische Tests bei jedem Push (GitHub Actions)
 
 ```bash
-# Tests ausführen
-pip install -r requirements-dev.txt
+# Alle Tests laufen lassen
 pytest tests/
 
-# Mit Coverage-Report
+# Mit Coverage-Report (zeigt, wie viel Code getestet ist)
 pytest --cov --cov-report=html
+
+# Nur schnelle Tests (ohne Performance-Tests)
+pytest tests/ -m "not slow"
 ```
 
-Siehe [TESTING.md](TESTING.md) für Details zur Test-Infrastruktur.
+Für detaillierte Informationen zu den Tests siehe [TESTING.md](TESTING.md).
 
-### Dateien
+## Projekt-Struktur
 
-| Datei | Beschreibung |
-|-------|--------------|
-| app.py | Haupt-App mit Streamlit UI und Tab-Navigation |
-| data.py | Datengenerie functions und data handling |
-| plots.py | Plotting functions (plotly visualizations) |
-| config.py | Configuration constants |
-| requirements.txt | Laufzeitabhängigkeiten |
-| requirements-dev.txt | Entwicklungs- und Test-Abhängigkeiten |
-| tests/ | Comprehensive test suite |
-| pyproject.toml | Black und Pytest Konfiguration |
-| .flake8 | Flake8 Konfiguration |
-| mypy.ini | MyPy Konfiguration |
-| .pre-commit-config.yaml | Pre-commit Hooks Konfiguration |
-| TESTING.md | Testing documentation |
-| PERFORMANCE_OPTIMIZATIONS.md | Performance optimization details |
-| README.md | Projektüberblick |
+| Datei/Ordner | Was ist da drin? |
+|-------------|------------------|
+| `app.py` | Die Haupt-Streamlit-App mit Tabs und Navigation |
+| `data.py` | Funktionen zur Datengenerierung und -verarbeitung |
+| `plots.py` | Alle Plotly-Visualisierungen und Charts |
+| `config.py` | Konfiguration, Konstanten und Einstellungen |
+| `content.py` | Texte, Formeln und Beschreibungen für die UI |
+| `requirements.txt` | Python-Pakete für den Betrieb |
+| `requirements-dev.txt` | Zusätzliche Tools für Entwicklung |
+| `tests/` | Automatisierte Tests für alles |
+| `pyproject.toml` | Konfiguration für Black und Tests |
+| `.flake8` | Style-Regeln für Python-Code |
+| `mypy.ini` | Type-Checking Konfiguration |
+| `.pre-commit-config.yaml` | Automatische Code-Qualitäts-Checks |
+| `DEVELOPMENT.md` | Detaillierte Anleitung für Entwickler |
+| `TESTING.md` | Alles über Tests und Qualitätssicherung |
 
-### Nutzung
+## Wie benutzt man die App?
 
-In der Sidebar Kapitel auswählen, Parameter anpassen, Visualisierungen beobachten. Für Reproduzierbarkeit: Seed und Stichprobengröße sind einstellbar.
+1. **Kapitel wählen:** In der Sidebar ein Thema auswählen
+2. **Parameter anpassen:** Spiele mit Stichprobengröße, Rauschen und Seeds
+3. **Visualisierungen beobachten:** Siehe live, wie sich Modelle ändern
+4. **Erklärungen lesen:** Verstehe die statistischen Konzepte
 
-### Performance Optimizations
+**Tipp:** Verwende verschiedene Seeds, um zu sehen, wie zufällige Variationen die Ergebnisse beeinflussen.
 
-Die App nutzt umfassende Performance-Optimierungen:
-- `@st.cache_data` für Datengenerie (50x-100x Geschwindigkeitsverbesserung)
-- Session State für Model-Caching
-- Smart Recalculation (nur bei Parameter-Änderungen)
-- Loading-Indikatoren für bessere UX
-- Lazy Tab Loading
+## Technische Details
 
-### Lizenz
+**Performance:**
+- Smart Caching für schnelle Reaktionen
+- Session State für nahtlose Interaktionen
+- Lazy Loading für effiziente Ressourcennutzung
+- Optimiert für Desktop und Mobile
 
-MIT. Siehe LICENSE.
+**Qualität:**
+- Automatische Code-Formatierung und Tests
+- Professionelle Entwicklungsumgebung
+- Umfassende Dokumentation
+
+## Mitmachen
+
+Beiträge sind willkommen! Das Projekt legt Wert auf Qualität und Benutzerfreundlichkeit.
+
+**Bevor du beiträgst:**
+1. Installiere die Entwicklungs-Tools: `pip install -r requirements-dev.txt`
+2. Richte pre-commit Hooks ein: `pre-commit install`
+3. Führe Tests aus: `pytest tests/`
+4. Stelle sicher, dass alles formatiert ist: `black *.py tests/*.py`
+
+**Code-Qualität:**
+- Verwende beschreibende Variablennamen
+- Schreibe Tests für neue Funktionen
+- Halte die Dokumentation aktuell
+- Folge dem bestehenden Stil
+
+Für detaillierte Anleitungen siehe [DEVELOPMENT.md](DEVELOPMENT.md).
+
+## Lizenz
+
+MIT License - siehe [LICENSE](LICENSE) für Details. Frei verwendbar für Bildung und Forschung.
