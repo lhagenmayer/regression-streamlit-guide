@@ -11,8 +11,8 @@ textColor = "#262730"
 font = "sans serif"
 
 [server]
-# Set to false to disable CORS protection
-enableCORS = false
+# Set to true for better security, disable only if needed
+enableCORS = true
 # Set to false to disable XSRF protection
 enableXsrfProtection = true
 # Maximum size of messages that can be sent via the WebSocket connection (in MB)

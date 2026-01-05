@@ -2,9 +2,9 @@
 
 Interaktiver Leitfaden zur linearen Regression mit Streamlit. Gedacht für alle, die Regression visuell und nachvollziehbar lernen wollen.
 
-[![Tests](https://github.com/lhagenmayer/linear-regression-guide/workflows/Run%20Tests/badge.svg)](https://github.com/lhagenmayer/linear-regression-guide/actions/workflows/tests.yml)
-[![Lint](https://github.com/lhagenmayer/linear-regression-guide/workflows/Lint/badge.svg)](https://github.com/lhagenmayer/linear-regression-guide/actions/workflows/lint.yml)
-[![Deployment Validation](https://github.com/lhagenmayer/linear-regression-guide/workflows/Deployment%20Validation/badge.svg)](https://github.com/lhagenmayer/linear-regression-guide/actions/workflows/deployment-validation.yml)
+[![Tests](https://github.com/lhagenmayer/linear-regression-guide/actions/workflows/tests.yml/badge.svg)](https://github.com/lhagenmayer/linear-regression-guide/actions/workflows/tests.yml)
+[![Lint](https://github.com/lhagenmayer/linear-regression-guide/actions/workflows/lint.yml/badge.svg)](https://github.com/lhagenmayer/linear-regression-guide/actions/workflows/lint.yml)
+[![Deployment Validation](https://github.com/lhagenmayer/linear-regression-guide/actions/workflows/deployment-validation.yml/badge.svg)](https://github.com/lhagenmayer/linear-regression-guide/actions/workflows/deployment-validation.yml)
 
 <!-- Deployment badge - uncomment and update URL after deployment -->
 <!-- [![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://your-app-url.streamlit.app) -->

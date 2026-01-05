@@ -31,7 +31,7 @@ The repository is already configured for Streamlit Cloud deployment:
    - Click "New app" button
 
 2. **Configure Deployment Settings**
-   - **Repository**: `lhagenmayer/linear-regression-guide`
+   - **Repository**: `yourusername/linear-regression-guide` (your forked repository)
    - **Branch**: `main` (or your preferred branch)
    - **Main file path**: `app.py`
    - **App URL**: Choose a custom URL (e.g., `linear-regression-guide`)

@@ -31,7 +31,7 @@ git push origin main
 
 1. Go to [share.streamlit.io](https://share.streamlit.io)
 2. Click "New app"
-3. Select your repository: `lhagenmayer/linear-regression-guide`
+3. Select your repository: `yourusername/linear-regression-guide` (your forked repository)
 4. Set branch: `main` (or your preferred branch)
 5. Set main file: `app.py`
 6. Click "Deploy!"

@@ -42,7 +42,7 @@ Use this checklist when deploying the Linear Regression Guide to Streamlit Cloud
 
 ### Deployment Configuration
 - [ ] "New app" created in Streamlit Cloud dashboard
-- [ ] Correct repository selected: `lhagenmayer/linear-regression-guide`
+- [ ] Correct repository selected: `yourusername/linear-regression-guide` (your forked repository)
 - [ ] Correct branch selected (e.g., `main`)
 - [ ] Main file path set to: `app.py`
 - [ ] Python version selected (recommended: 3.11)

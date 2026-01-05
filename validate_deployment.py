@@ -9,6 +9,9 @@ import sys
 import os
 from pathlib import Path
 
+# Required packages that must be present in requirements.txt
+REQUIRED_PACKAGES = ["streamlit", "numpy", "pandas", "plotly", "statsmodels", "scipy"]
+
 def check_file_exists(filepath, description):
     """Check if a required file exists."""
     if Path(filepath).exists():
@@ -24,13 +27,12 @@ def check_requirements_file():
         print("❌ requirements.txt not found")
         return False
     
-    with open("requirements.txt", "r") as f:
+    with open("requirements.txt", "r", encoding="utf-8") as f:
         content = f.read()
     
-    required_packages = ["streamlit", "numpy", "pandas", "plotly", "statsmodels", "scipy"]
     missing = []
     
-    for package in required_packages:
+    for package in REQUIRED_PACKAGES:
         if package.lower() not in content.lower():
             missing.append(package)
     
