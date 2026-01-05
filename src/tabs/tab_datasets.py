@@ -181,4 +181,4 @@ def _render_comparison_table() -> None:
         }
     )
     
-    st.dataframe(comparison_df, use_container_width=True, hide_index=True)
+    st.dataframe(comparison_df, width='stretch', hide_index=True)

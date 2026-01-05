@@ -46,7 +46,7 @@ def render_r_output_section(
                     feature_names=feature_names, 
                     figsize=figsize
                 )
-                st.plotly_chart(fig_r, use_container_width=True)
+                st.plotly_chart(fig_r, width='stretch')
             else:
                 st.info("ℹ️ Wählen Sie einen Datensatz und Parameter aus, um das R Output zu sehen.")
         except Exception as e:
@@ -157,7 +157,7 @@ def _render_interpretation_section(model: Any, feature_names: List[str]) -> None
         st.session_state.interpretation_prompt_data = None
     
     # Button to trigger interpretation
-    if st.button("🔍 Interpretation generieren", type="primary", use_container_width=True):
+    if st.button("🔍 Interpretation generieren", type="primary", width='stretch'):
         st.session_state.interpretation_loading = True
         
         with st.spinner("🤔 Analysiere Modell mit Perplexity AI..."):
@@ -202,7 +202,7 @@ def _render_interpretation_section(model: Any, feature_names: List[str]) -> None
                             data=prompt_data,
                             file_name="perplexity_prompt.txt",
                             mime="text/plain",
-                            use_container_width=True
+                            width='stretch'
                         )
                     with col2:
                         st.info("💡 Tipp: Text unten auswählen & kopieren (Strg+C / Cmd+C)")
@@ -218,7 +218,7 @@ def _render_interpretation_section(model: Any, feature_names: List[str]) -> None
                     )
             
             # Option to clear interpretation
-            if st.button("🔄 Neue Interpretation", use_container_width=True):
+            if st.button("🔄 Neue Interpretation", width='stretch'):
                 st.session_state.interpretation_result = None
                 st.session_state.interpretation_prompt_data = None
                 st.rerun()
@@ -226,7 +226,7 @@ def _render_interpretation_section(model: Any, feature_names: List[str]) -> None
             st.error(f"❌ {result.get('error', 'Unbekannter Fehler')}")
             
             # Option to retry
-            if st.button("🔄 Erneut versuchen", use_container_width=True):
+            if st.button("🔄 Erneut versuchen", width='stretch'):
                 st.session_state.interpretation_result = None
                 st.session_state.interpretation_prompt_data = None
                 st.rerun()
