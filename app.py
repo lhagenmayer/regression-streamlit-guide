@@ -64,6 +64,7 @@ from content import (  # noqa: F401
     get_simple_regression_content,
 )
 from logger import get_logger
+from accessibility import inject_accessibility_styles
 
 # Initialize logger for the app
 logger = get_logger(__name__)
@@ -80,6 +81,9 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded",
 )
+
+# Inject accessibility improvements
+inject_accessibility_styles()
 
 # ---------------------------------------------------------
 # SESSION STATE INITIALIZATION

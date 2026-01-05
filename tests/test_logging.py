@@ -4,6 +4,7 @@ Tests for logging functionality.
 
 import logging
 import os
+import time
 import pytest
 from logger import (
     setup_logging,
@@ -123,8 +124,6 @@ class TestLogCleanup:
         old_log.touch()
 
         # Set modification time to 40 days ago
-        import time
-
         old_time = time.time() - (40 * 24 * 60 * 60)
         os.utime(old_log, (old_time, old_time))
 
