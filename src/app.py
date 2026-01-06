@@ -20,26 +20,36 @@ warnings.filterwarnings('ignore', category=DeprecationWarning)
 # Import from our modules
 import sys
 import os
-sys.path.insert(0, os.path.dirname(__file__))
 
-from config import UI_DEFAULTS
-from logger import get_logger
-from accessibility import inject_accessibility_styles
-from r_output import render_r_output_section
-from session_state import initialize_session_state
-from sidebar import (
+# Setup proper Python path for imports
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)  # Project root
+
+# Add both src and project root to path
+for path_dir in [current_dir, parent_dir]:
+    if path_dir not in sys.path:
+        sys.path.insert(0, path_dir)
+
+# Use relative imports (this works with Streamlit)
+# For direct execution, the PYTHONPATH setup above should make it work
+from .config import UI_DEFAULTS
+from .config import get_logger
+from .ui import inject_accessibility_styles
+from .ui import render_r_output_section
+from .utils import initialize_session_state
+from .ui import (
     render_sidebar_header,
     render_dataset_selection,
     render_multiple_regression_params,
     render_simple_regression_params,
     render_display_options,
 )
-from data_loading import (
+from .data import (
     load_multiple_regression_data,
     load_simple_regression_data,
     compute_simple_regression_model,
 )
-from tabs import (
+from .ui import (
     render_simple_regression_tab,
     render_multiple_regression_tab,
     render_datasets_tab,
