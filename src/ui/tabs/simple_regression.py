@@ -66,6 +66,7 @@ def render_simple_regression_tab(
     x = model_data["x"]
     y = model_data["y"]
     y_pred = model_data["y_pred"]
+    residuals = model_data.get("residuals", [])
     b0 = model_data["b0"]
     b1 = model_data["b1"]
     
@@ -89,19 +90,37 @@ def render_simple_regression_tab(
         st.metric("R²", f"{model.rsquared:.4f}")
     
     # Create scatter plot with regression line
-    fig = create_plotly_scatter_with_line(
+    traces = create_plotly_scatter_with_line(
         x=x,
         y=y,
-        y_pred=y_pred,
-        x_label=x_label,
-        y_label=y_label,
-        title=f"Regression: {y_label} vs {x_label}"
+        line_x=x,
+        line_y=y_pred,
+        name_scatter="Observed Data",
+        name_line="Fitted Line"
     )
+    
+    # Create figure from traces
+    import plotly.graph_objects as go
+    fig = go.Figure(data=traces)
+    
+    # Add labels and title to the figure
+    fig.update_layout(
+        title=f"Regression: {y_label} vs {x_label}",
+        xaxis_title=x_label,
+        yaxis_title=y_label
+    )
+    
     st.plotly_chart(fig, key="simple_regression_scatter", use_container_width=True)
     
     # Create residual plot
-    fig_resid = create_plotly_residual_plot(
-        y_pred, model.resid, title="Residual Plot"
+    residual_trace = create_plotly_residual_plot(
+        y_pred, residuals, name="Residuals"
+    )
+    fig_resid = go.Figure(data=[residual_trace])
+    fig_resid.update_layout(
+        title="Residual Plot",
+        xaxis_title="Fitted Values",
+        yaxis_title="Residuals"
     )
     st.plotly_chart(fig_resid, key="simple_regression_residuals", use_container_width=True)
     
