@@ -329,13 +329,22 @@ linear-regression-guide/
 ├── .github/workflows/      # CI/CD Pipelines
 ├── config/                 # Konfigurationsdateien (Black, MyPy, etc.)
 ├── docs/                   # Umfassende Dokumentation
+│   ├── REFACTORING.md     # 🆕 Refactoring-Dokumentation
+│   └── REFACTORING_SUMMARY.md # 🆕 Refactoring-Zusammenfassung
 ├── scripts/                # Hilfsskripte für Entwicklung
-│   ├── validate_architecture.py    # 🆕 Strenge Architekturvalidierung
-│   └── check_modular_separation.py # 🆕 Modulare Trennung prüfen
+│   ├── validate_architecture.py    # Strenge Architekturvalidierung
+│   └── check_modular_separation.py # Modulare Trennung prüfen
 ├── src/                    # Haupt-Code
-│   ├── app.py             # Haupt-Streamlit-Anwendung
+│   ├── app.py             # 🆕 Haupt-Orchestrator (297 Zeilen, war 5,284)
+│   ├── data_loading.py    # 🆕 Datenladen und Modellberechnung
+│   ├── tabs/              # 🆕 Modulare Tab-Komponenten
+│   │   ├── simple_regression.py   # Einfache Regression Tab
+│   │   ├── multiple_regression.py # Multiple Regression Tab
+│   │   └── datasets.py            # Datensätze-Übersicht Tab
+│   ├── sidebar.py         # Sidebar-Komponenten
+│   ├── session_state.py   # Session State Management
 │   ├── data.py            # Daten-Generierung und -Verarbeitung
-│   ├── statistics.py      # 🆕 Statistische Berechnungen
+│   ├── statistics.py      # Statistische Berechnungen
 │   ├── plots.py           # Visualisierungskomponenten
 │   ├── accessibility.py   # Barrierefreiheits-Features
 │   ├── config.py          # App-Konfiguration
@@ -343,7 +352,7 @@ linear-regression-guide/
 │   └── logger.py          # Logging-Konfiguration
 ├── tests/                  # Umfassende Testsuite
 │   ├── test_*.py          # Verschiedene Test-Arten
-│   ├── test_modular_separation.py  # 🆕 Modulare Tests
+│   ├── test_modular_separation.py  # Modulare Tests
 │   └── conftest.py        # Test-Konfiguration
 ├── requirements.txt        # Produktionsabhängigkeiten
 ├── requirements-dev.txt    # Entwicklungsabhängigkeiten
@@ -352,6 +361,19 @@ linear-regression-guide/
 ```
 
 ## Architektur & Qualitätssicherung
+
+### 🎯 Refactored Modular Architecture
+Die App wurde kürzlich refaktorisiert für bessere Wartbarkeit:
+- **`app.py`**: Schlanker Orchestrator (297 Zeilen, war 5,284 - **94% Reduktion!**)
+- **`data_loading.py`**: Zentralisierte Datenladung und Model-Caching
+- **`tabs/`**: Separate Module für jeden Tab
+  - `simple_regression.py`: Einfache Regression
+  - `multiple_regression.py`: Multiple Regression  
+  - `datasets.py`: Datensätze-Übersicht
+- **`sidebar.py`**: Parameter-Konfiguration
+- **`session_state.py`**: Session State Management
+
+Siehe [REFACTORING.md](docs/REFACTORING.md) für Details.
 
 ### Modulare Trennung
 Das Projekt folgt einer strikten modularen Architektur:
