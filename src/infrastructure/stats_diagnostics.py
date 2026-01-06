@@ -11,7 +11,7 @@ from statsmodels.stats.stattools import jarque_bera
 from statsmodels.stats.diagnostic import het_breuschpagan
 from statsmodels.graphics.gofplots import ProbPlot
 from typing import Dict, Any, List, Optional
-from ..config.config import get_logger
+from ..config import get_logger
 
 logger = get_logger(__name__)
 

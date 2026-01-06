@@ -9,7 +9,7 @@ import pandas as pd
 from typing import Dict, Any, List, Union, Tuple
 from functools import lru_cache
 import time
-from ..config.config import get_logger
+from ..config import get_logger
 
 logger = get_logger(__name__)
 

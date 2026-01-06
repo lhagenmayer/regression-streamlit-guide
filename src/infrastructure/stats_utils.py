@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 import statsmodels.api as sm
 from typing import Dict, Any, List
-from ..config.config import get_logger
+from ..config import get_logger
 
 logger = get_logger(__name__)
 

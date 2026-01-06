@@ -9,7 +9,7 @@ import pandas as pd
 import statsmodels.api as sm
 from typing import Tuple, Any
 from functools import lru_cache
-from ..config.config import get_logger
+from ..config import get_logger
 
 logger = get_logger(__name__)
 
