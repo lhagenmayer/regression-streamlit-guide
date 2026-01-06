@@ -6,6 +6,9 @@ maintaining backward compatibility while delegating to the refactored services.
 """
 
 from typing import Dict, Any, Optional
+import numpy as np
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import r2_score, mean_squared_error
 
 
 class ModelWrapper:
@@ -131,9 +134,6 @@ def load_simple_regression_data(
     Returns:
         Dictionary containing all prepared data and model results
     """
-    import numpy as np
-    from sklearn.linear_model import LinearRegression
-    
     # Import the data generator directly
     from .data_generators.simple_regression_generator import generate_simple_regression_data
 
@@ -175,7 +175,6 @@ def load_simple_regression_data(
     }
 
     # Compute R-squared and other statistics
-    from sklearn.metrics import r2_score, mean_squared_error
     r_squared = r2_score(y_array, y_pred)
     mse = mean_squared_error(y_array, y_pred)
     
