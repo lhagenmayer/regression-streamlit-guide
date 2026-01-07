@@ -1,30 +1,113 @@
 """
-Domain layer - contains business rules and domain logic.
+Domain Layer - Core Business Logic und DDD Patterns.
 
-This package implements Domain-Driven Design principles with:
-- Value Objects for immutable data structures
-- Entities for domain objects with identity
-- Domain Services for business logic
-- Repository interfaces for data access
+Diese Package implementiert Domain-Driven Design Prinzipien mit:
+- Value Objects: Immutable Datenstrukturen
+- Entities: Domain Objects mit Identität
+- Aggregates: Konsistenzgrenzen
+- Domain Services: Komplexe Geschäftslogik
+- Repository Interfaces: Datenzugriffsabstraktion
+- Domain Events: Event Sourcing
+- Specifications: Geschäftsregeln
+- Result Pattern: Fehlerbehandlung
+- Unit of Work: Transaktionsmanagement
+- Factories: Objekt-Erstellung
 """
 
+# Value Objects
 from .value_objects import (
     DatasetConfig,
     RegressionParameters,
     StatisticalSummary,
     ModelMetrics
 )
+
+# Entities
 from .entities import RegressionModel, Dataset
+
+# Aggregates
+from .aggregates import (
+    AggregateRoot,
+    DatasetAggregate,
+    RegressionModelAggregate
+)
+
+# Services
 from .services import RegressionAnalysisService
+
+# Repositories
 from .repositories import DatasetRepository, RegressionModelRepository
+
+# Events
 from .events import (
     DomainEvent,
+    EventMetadata,
     DatasetCreated,
-    # DatasetUpdated,  # Commented out - not yet implemented
-    # DatasetDeleted,  # Commented out - not yet implemented
+    DatasetUpdated,
+    DatasetDeleted,
+    DatasetValidated,
     RegressionModelCreated,
     RegressionModelValidated,
-    ModelsCompared
+    ModelsCompared,
+    ModelPredictionMade,
+    EventStore,
+    InMemoryEventStore,
+    EventDispatcher
+)
+
+# Result Pattern
+from .result import (
+    Result,
+    Error,
+    DomainError,
+    ValidationError,
+    NotFoundError,
+    BusinessRuleError,
+    ValidationResult
+)
+
+# Specifications
+from .specifications import (
+    Specification,
+    AndSpecification,
+    OrSpecification,
+    NotSpecification,
+    # Dataset Specifications
+    DatasetSpecification,
+    HasMinimumSampleSize,
+    HasRequiredVariables,
+    HasNoMissingValues,
+    HasSufficientVariation,
+    IsReadyForAnalysis,
+    # Model Specifications
+    ModelSpecification,
+    HasMinimumRSquared,
+    IsStatisticallySignificant,
+    HasReasonableComplexity,
+    IsProductionReady,
+    # Factory
+    SpecificationFactory
+)
+
+# Unit of Work
+from .unit_of_work import (
+    UnitOfWork,
+    InMemoryUnitOfWork,
+    unit_of_work_scope,
+    UnitOfWorkFactory,
+    DefaultUnitOfWorkFactory,
+    TransactionScript
+)
+
+# Factories
+from .factories import (
+    DatasetConfigFactory,
+    RegressionParametersFactory,
+    ModelMetricsFactory,
+    DatasetFactory,
+    RegressionModelFactory,
+    DatasetAggregateFactory,
+    RegressionModelAggregateFactory
 )
 
 __all__ = [
@@ -33,20 +116,79 @@ __all__ = [
     'RegressionParameters',
     'StatisticalSummary',
     'ModelMetrics',
+
     # Entities
     'RegressionModel',
     'Dataset',
+
+    # Aggregates
+    'AggregateRoot',
+    'DatasetAggregate',
+    'RegressionModelAggregate',
+
     # Services
     'RegressionAnalysisService',
+
     # Repositories
     'DatasetRepository',
     'RegressionModelRepository',
+
     # Events
     'DomainEvent',
+    'EventMetadata',
     'DatasetCreated',
-    # 'DatasetUpdated',  # Commented out - not yet implemented
-    # 'DatasetDeleted',  # Commented out - not yet implemented
+    'DatasetUpdated',
+    'DatasetDeleted',
+    'DatasetValidated',
     'RegressionModelCreated',
     'RegressionModelValidated',
     'ModelsCompared',
+    'ModelPredictionMade',
+    'EventStore',
+    'InMemoryEventStore',
+    'EventDispatcher',
+
+    # Result Pattern
+    'Result',
+    'Error',
+    'DomainError',
+    'ValidationError',
+    'NotFoundError',
+    'BusinessRuleError',
+    'ValidationResult',
+
+    # Specifications
+    'Specification',
+    'AndSpecification',
+    'OrSpecification',
+    'NotSpecification',
+    'DatasetSpecification',
+    'HasMinimumSampleSize',
+    'HasRequiredVariables',
+    'HasNoMissingValues',
+    'HasSufficientVariation',
+    'IsReadyForAnalysis',
+    'ModelSpecification',
+    'HasMinimumRSquared',
+    'IsStatisticallySignificant',
+    'HasReasonableComplexity',
+    'IsProductionReady',
+    'SpecificationFactory',
+
+    # Unit of Work
+    'UnitOfWork',
+    'InMemoryUnitOfWork',
+    'unit_of_work_scope',
+    'UnitOfWorkFactory',
+    'DefaultUnitOfWorkFactory',
+    'TransactionScript',
+
+    # Factories
+    'DatasetConfigFactory',
+    'RegressionParametersFactory',
+    'ModelMetricsFactory',
+    'DatasetFactory',
+    'RegressionModelFactory',
+    'DatasetAggregateFactory',
+    'RegressionModelAggregateFactory',
 ]

@@ -1,30 +1,43 @@
 """
-Application Layer - Use Cases and Application Services.
+Application Layer - Use Cases, CQRS und Application Services.
 
-This layer orchestrates domain objects to fulfill business use cases.
-It defines the application boundary and coordinates between domain
-and infrastructure layers.
+Diese Schicht orchestriert Domain Objects für Business Use Cases.
+Sie definiert die Anwendungsgrenze und koordiniert zwischen
+Domain und Infrastructure Layer.
 
-Key principles:
-- Use Cases encapsulate application logic
-- CQRS: Commands (write operations) and Queries (read operations)
-- Application Services coordinate domain objects
+Prinzipien:
+- Use Cases kapseln Anwendungslogik
+- CQRS: Commands (Schreiboperationen) und Queries (Leseoperationen)
+- Handlers verarbeiten Commands und Queries
+- Mediator routet Anfragen an Handler
+- Application Services koordinieren Domain Objects
 """
 
+# Use Cases
 from .use_cases import (
+    CreateDatasetUseCase,
     CreateRegressionModelUseCase,
     AnalyzeModelQualityUseCase,
     CompareModelsUseCase,
     LoadDatasetUseCase,
     GenerateSyntheticDataUseCase
 )
+
+# Commands
 from .commands import (
+    Command,
+    CreateDatasetCommand,
+    UpdateDatasetCommand,
+    DeleteDatasetCommand,
     CreateRegressionModelCommand,
-    # LoadDatasetCommand,  # Not implemented
-    # GenerateDataCommand  # Not implemented
+    UpdateModelParametersCommand,
+    DeleteModelCommand,
+    GenerateSyntheticDataCommand
 )
+
+# Queries
 from .queries import (
-    # GetModelQuery,  # Not implemented
+    Query,
     GetModelByIdQuery,
     GetDatasetByIdQuery,
     ListModelsQuery,
@@ -35,16 +48,77 @@ from .queries import (
     GetAvailableDataSourcesQuery
 )
 
+# Handlers (Lazy import function um zirkuläre Imports zu vermeiden)
+def get_handlers():
+    """Lazy import für Handlers."""
+    from .handlers import (
+        CreateDatasetHandler,
+        CreateRegressionModelHandler,
+        DeleteDatasetHandler,
+        DeleteModelHandler,
+        GetDatasetByIdHandler,
+        ListDatasetsHandler,
+        GetModelByIdHandler,
+        ListModelsHandler,
+        GetDatasetStatisticsHandler,
+        GetModelDiagnosticsHandler,
+        CompareModelsHandler,
+        Mediator,
+        create_mediator
+    )
+    return {
+        'CreateDatasetHandler': CreateDatasetHandler,
+        'CreateRegressionModelHandler': CreateRegressionModelHandler,
+        'DeleteDatasetHandler': DeleteDatasetHandler,
+        'DeleteModelHandler': DeleteModelHandler,
+        'GetDatasetByIdHandler': GetDatasetByIdHandler,
+        'ListDatasetsHandler': ListDatasetsHandler,
+        'GetModelByIdHandler': GetModelByIdHandler,
+        'ListModelsHandler': ListModelsHandler,
+        'GetDatasetStatisticsHandler': GetDatasetStatisticsHandler,
+        'GetModelDiagnosticsHandler': GetModelDiagnosticsHandler,
+        'CompareModelsHandler': CompareModelsHandler,
+        'Mediator': Mediator,
+        'create_mediator': create_mediator
+    }
+
+
+def get_application_service_container():
+    """Lazy import für ApplicationServiceContainer."""
+    from .application_services import ApplicationServiceContainer
+    return ApplicationServiceContainer
+
+
+# Event Handlers
+from .event_handlers import (
+    EventBus,
+    DatasetEventHandler,
+    RegressionModelEventHandler,
+    get_event_bus,
+    publish_event
+)
+
 __all__ = [
     # Use Cases
+    'CreateDatasetUseCase',
     'CreateRegressionModelUseCase',
     'AnalyzeModelQualityUseCase',
     'CompareModelsUseCase',
     'LoadDatasetUseCase',
     'GenerateSyntheticDataUseCase',
 
-    # Commands & Queries
+    # Commands
+    'Command',
+    'CreateDatasetCommand',
+    'UpdateDatasetCommand',
+    'DeleteDatasetCommand',
     'CreateRegressionModelCommand',
+    'UpdateModelParametersCommand',
+    'DeleteModelCommand',
+    'GenerateSyntheticDataCommand',
+
+    # Queries
+    'Query',
     'GetModelByIdQuery',
     'GetDatasetByIdQuery',
     'ListModelsQuery',
@@ -52,5 +126,16 @@ __all__ = [
     'GetDatasetStatisticsQuery',
     'GetModelDiagnosticsQuery',
     'CompareModelsQuery',
-    'GetAvailableDataSourcesQuery'
+    'GetAvailableDataSourcesQuery',
+
+    # Lazy Load Functions
+    'get_handlers',
+    'get_application_service_container',
+
+    # Event Handlers
+    'EventBus',
+    'DatasetEventHandler',
+    'RegressionModelEventHandler',
+    'get_event_bus',
+    'publish_event'
 ]

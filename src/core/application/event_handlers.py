@@ -1,8 +1,13 @@
 """
 Event Handlers - Domain Event Processing in Application Layer.
 
-Event handlers process domain events and trigger side effects
-like logging, notifications, or external system updates.
+Event Handlers verarbeiten Domain Events und lösen Nebeneffekte aus
+wie Logging, Benachrichtigungen oder externe System-Updates.
+
+Verbesserungen:
+- Verwendung des neuen Event Systems
+- Bessere Fehlerbehandlung
+- Logging für alle Events
 """
 
 from typing import Protocol, Callable, Dict, Any, List
@@ -11,11 +16,13 @@ from abc import ABC, abstractmethod
 from ..domain.events import (
     DomainEvent,
     DatasetCreated,
-    # DatasetUpdated,  # Not yet implemented
-    # DatasetDeleted,  # Not yet implemented
+    DatasetUpdated,
+    DatasetDeleted,
+    DatasetValidated,
     RegressionModelCreated,
     RegressionModelValidated,
-    ModelsCompared
+    ModelsCompared,
+    ModelPredictionMade
 )
 
 from ...config import get_logger
