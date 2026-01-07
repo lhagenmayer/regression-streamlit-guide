@@ -1,9 +1,12 @@
 # Core Dependencies
-streamlit>=1.28.0
-plotly>=5.18.0
 numpy>=1.24.0
 pandas>=2.0.0
 scipy>=1.11.0
+plotly>=5.18.0
+
+# Web Frameworks (choose one or both)
+streamlit>=1.28.0
+flask>=3.0.0
 
 # Testing
 pytest>=7.4.0

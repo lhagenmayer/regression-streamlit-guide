@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2 class="section-header">📊 Multiple Lineare Regression: {{ dataset_name }}</h2>
+
+<div class="info-box">
+    <strong>Kontext:</strong> {{ content.get('main', 'Multiple Regression Analysis') }}
+    <br>
+    <strong>Fragestellung:</strong> Wie beeinflussen <strong>{{ data.x1_label }}</strong> und 
+    <strong>{{ data.x2_label }}</strong> gemeinsam die Variable <strong>{{ data.y_label }}</strong>?
+</div>
+
+<!-- Key Metrics -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="metric-card">
+            <div class="metric-value">{{ "%.4f"|format(stats.r_squared) }}</div>
+            <div class="metric-label">R²</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="metric-card">
+            <div class="metric-value">{{ "%.4f"|format(stats.r_squared_adj) }}</div>
+            <div class="metric-label">R² adj.</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="metric-card">
+            <div class="metric-value">{{ "%.2f"|format(stats.f_statistic) }}</div>
+            <div class="metric-label">F-Statistik</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="metric-card">
+            <div class="metric-value">{{ stats.n }}</div>
+            <div class="metric-label">n</div>
+        </div>
+    </div>
+</div>
+
+<!-- 3D Regression Plot -->
+<h3 class="section-header">🎯 3D Regressionsebene</h3>
+<div class="plot-container">
+    <div id="scatterPlot" style="height: 500px;"></div>
+</div>
+
+{% if show_formulas %}
+<div class="formula-box">
+    <strong>Das Modell:</strong>
+    <p>\[ \hat{y} = {{ "%.3f"|format(stats.intercept) }} + {{ "%.3f"|format(stats.coefficients[0]) }} \cdot x_1 + {{ "%.3f"|format(stats.coefficients[1]) }} \cdot x_2 \]</p>
+</div>
+{% endif %}
+
+<!-- Coefficients -->
+<h3 class="section-header">📐 Koeffizienten (Ceteris Paribus)</h3>
+<div class="row">
+    <div class="col-md-8">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Parameter</th>
+                    <th>Schätzwert</th>
+                    <th>t-Wert</th>
+                    <th>p-Wert</th>
+                    <th>Signifikanz</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>β₀ (Intercept)</td>
+                    <td>{{ "%.4f"|format(stats.intercept) }}</td>
+                    <td>{{ "%.3f"|format(stats.t_values[0]) }}</td>
+                    <td>{{ "%.4f"|format(stats.p_values[0]) }}</td>
+                    <td>{% if stats.p_values[0] < 0.001 %}***{% elif stats.p_values[0] < 0.01 %}**{% elif stats.p_values[0] < 0.05 %}*{% elif stats.p_values[0] < 0.1 %}.{% endif %}</td>
+                </tr>
+                <tr>
+                    <td>β₁ ({{ data.x1_label }})</td>
+                    <td>{{ "%.4f"|format(stats.coefficients[0]) }}</td>
+                    <td>{{ "%.3f"|format(stats.t_values[1]) }}</td>
+                    <td>{{ "%.4f"|format(stats.p_values[1]) }}</td>
+                    <td>{% if stats.p_values[1] < 0.001 %}***{% elif stats.p_values[1] < 0.01 %}**{% elif stats.p_values[1] < 0.05 %}*{% elif stats.p_values[1] < 0.1 %}.{% endif %}</td>
+                </tr>
+                <tr>
+                    <td>β₂ ({{ data.x2_label }})</td>
+                    <td>{{ "%.4f"|format(stats.coefficients[1]) }}</td>
+                    <td>{{ "%.3f"|format(stats.t_values[2]) }}</td>
+                    <td>{{ "%.4f"|format(stats.p_values[2]) }}</td>
+                    <td>{% if stats.p_values[2] < 0.001 %}***{% elif stats.p_values[2] < 0.01 %}**{% elif stats.p_values[2] < 0.05 %}*{% elif stats.p_values[2] < 0.1 %}.{% endif %}</td>
+                </tr>
+            </tbody>
+        </table>
+        <small class="text-muted">Signif.: *** p&lt;0.001, ** p&lt;0.01, * p&lt;0.05, . p&lt;0.1</small>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5>⚠️ Ceteris Paribus</h5>
+                <p>Die Koeffizienten zeigen den <strong>isolierten Effekt</strong> bei Konstanthaltung der anderen Variablen.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Interpretation -->
+<h3 class="section-header">📖 Interpretation</h3>
+<div class="row">
+    <div class="col-md-6">
+        <div class="card mb-3">
+            <div class="card-body">
+                <h5>β₁ = {{ "%.4f"|format(stats.coefficients[0]) }} ({{ data.x1_label }})</h5>
+                <p>Wenn {{ data.x1_label }} um <strong>1 Einheit</strong> steigt und {{ data.x2_label }} <strong>konstant bleibt</strong>, 
+                dann {% if stats.coefficients[0] > 0 %}steigt{% else %}sinkt{% endif %} {{ data.y_label }} um <strong>{{ "%.4f"|format(stats.coefficients[0]|abs) }}</strong> Einheiten.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card mb-3">
+            <div class="card-body">
+                <h5>β₂ = {{ "%.4f"|format(stats.coefficients[1]) }} ({{ data.x2_label }})</h5>
+                <p>Wenn {{ data.x2_label }} um <strong>1 Einheit</strong> steigt und {{ data.x1_label }} <strong>konstant bleibt</strong>, 
+                dann {% if stats.coefficients[1] > 0 %}steigt{% else %}sinkt{% endif %} {{ data.y_label }} um <strong>{{ "%.4f"|format(stats.coefficients[1]|abs) }}</strong> Einheiten.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Residuals -->
+<h3 class="section-header">📐 Residuenanalyse</h3>
+<div class="row">
+    <div class="col-md-6">
+        <div class="plot-container">
+            <div id="residualsPlot"></div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="plot-container">
+            <div id="diagnosticsPlot"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Model Fit -->
+<h3 class="section-header">📊 Modellgüte</h3>
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h5>Varianzzerlegung</h5>
+                <table class="table table-sm">
+                    <tr><td>R²</td><td>{{ "%.4f"|format(stats.r_squared) }}</td><td>{{ "%.1f"|format(stats.r_squared * 100) }}% erklärt</td></tr>
+                    <tr><td>R² adj.</td><td>{{ "%.4f"|format(stats.r_squared_adj) }}</td><td>Korrigiert für k={{ stats.k }}</td></tr>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h5>F-Test (Gesamtsignifikanz)</h5>
+                <table class="table table-sm">
+                    <tr><td>F-Statistik</td><td>{{ "%.2f"|format(stats.f_statistic) }}</td></tr>
+                    <tr><td>p-Wert</td><td>{{ "%.4f"|format(stats.f_pvalue) }}</td></tr>
+                </table>
+                
+                {% if stats.f_pvalue < 0.05 %}
+                <div class="alert alert-success">✅ Modell ist insgesamt signifikant</div>
+                {% else %}
+                <div class="alert alert-warning">⚠️ Modell ist nicht signifikant</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Summary -->
+<h3 class="section-header">📝 Zusammenfassung</h3>
+<div class="alert alert-success">
+    <h5>Ergebnisse der multiplen Regression</h5>
+    <p><strong>Modell:</strong> {{ data.y_label }} = {{ "%.3f"|format(stats.intercept) }} + {{ "%.3f"|format(stats.coefficients[0]) }}×{{ data.x1_label }} + {{ "%.3f"|format(stats.coefficients[1]) }}×{{ data.x2_label }}</p>
+    <p><strong>Modellgüte:</strong></p>
+    <ul>
+        <li>R² = {{ "%.4f"|format(stats.r_squared) }} → {{ "%.1f"|format(stats.r_squared * 100) }}% der Varianz erklärt</li>
+        <li>R² adj. = {{ "%.4f"|format(stats.r_squared_adj) }} (korrigiert für k={{ stats.k }})</li>
+        <li>F = {{ "%.2f"|format(stats.f_statistic) }}, p = {{ "%.4f"|format(stats.f_pvalue) }}</li>
+    </ul>
+    <p><strong>Stichprobe:</strong> n = {{ stats.n }}, k = {{ stats.k }} Prädiktoren</p>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Render plots from JSON
+    {% if plots.scatter %}
+    Plotly.newPlot('scatterPlot', {{ plots.scatter | safe }});
+    {% endif %}
+    
+    {% if plots.residuals %}
+    Plotly.newPlot('residualsPlot', {{ plots.residuals | safe }});
+    {% endif %}
+    
+    {% if plots.diagnostics %}
+    Plotly.newPlot('diagnosticsPlot', {{ plots.diagnostics | safe }});
+    {% endif %}
+</script>
+{% endblock %}

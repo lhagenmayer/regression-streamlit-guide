@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <h3>📈 Einfache Regression</h3>
+                <p class="text-muted">Eine unabhängige Variable</p>
+                <p>Analysiere den linearen Zusammenhang zwischen zwei Variablen.</p>
+                <a href="/simple" class="btn btn-primary">Starten →</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <h3>📊 Multiple Regression</h3>
+                <p class="text-muted">Mehrere unabhängige Variablen</p>
+                <p>Analysiere den Einfluss mehrerer Prädiktoren gleichzeitig.</p>
+                <a href="/multiple" class="btn btn-primary">Starten →</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="info-box">
+            <h5>🎓 Über dieses Tool</h5>
+            <p>Dieses interaktive Tool führt Sie durch die wichtigsten Konzepte der linearen Regression:</p>
+            <ul>
+                <li><strong>GET</strong> - Daten generieren oder laden</li>
+                <li><strong>CALCULATE</strong> - Statistiken berechnen (OLS)</li>
+                <li><strong>PLOT</strong> - Visualisierungen erstellen</li>
+                <li><strong>DISPLAY</strong> - Ergebnisse präsentieren</li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}
