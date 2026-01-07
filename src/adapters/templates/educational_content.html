@@ -3,79 +3,262 @@
 {% block title %}{{ title }}{% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-    <div class="row">
-        <!-- Sidebar -->
-        <nav class="col-md-3 col-lg-2 d-md-block bg-light sidebar">
-            <div class="position-sticky pt-3">
-                <h5>⚙️ Einstellungen</h5>
-                
-                <form action="{{ '/simple' if analysis_type == 'simple' else '/multiple' }}" method="get">
-                    <div class="mb-3">
-                        <label for="dataset" class="form-label">📊 Datensatz</label>
-                        <select class="form-select" name="dataset" id="dataset">
-                            {% if analysis_type == 'simple' %}
-                            <option value="Bildung & Einkommen" {{ 'selected' if dataset == 'Bildung & Einkommen' }}>Bildung & Einkommen</option>
-                            <option value="Grösse & Gewicht" {{ 'selected' if dataset == 'Grösse & Gewicht' }}>Grösse & Gewicht</option>
-                            <option value="Temperatur & Eisverkauf" {{ 'selected' if dataset == 'Temperatur & Eisverkauf' }}>Temperatur & Eisverkauf</option>
-                            {% else %}
-                            <option value="Immobilienpreise" {{ 'selected' if dataset == 'Immobilienpreise' }}>Immobilienpreise</option>
-                            <option value="Autoverbrauch" {{ 'selected' if dataset == 'Autoverbrauch' }}>Autoverbrauch</option>
-                            <option value="Marketing-Mix" {{ 'selected' if dataset == 'Marketing-Mix' }}>Marketing-Mix</option>
-                            {% endif %}
-                        </select>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="n" class="form-label">📏 Datenpunkte: {{ n_points }}</label>
-                        <input type="range" class="form-range" name="n" id="n" 
-                               min="20" max="200" value="{{ n_points }}">
-                    </div>
-                    
-                    <button type="submit" class="btn btn-primary w-100">Aktualisieren</button>
-                </form>
-                
-                <hr>
-                
-                <h6>📑 Kapitel</h6>
-                <nav class="nav flex-column">
-                    {% for chapter in chapters %}
-                    <a class="nav-link" href="#chapter-{{ chapter.number | replace('.', '-') }}">
-                        {{ chapter.icon }} {{ chapter.number }} {{ chapter.title[:20] }}...
-                    </a>
-                    {% endfor %}
-                </nav>
-                
-                <hr>
-                
-                <div class="d-grid gap-2">
-                    <a href="/simple" class="btn btn-outline-primary {{ 'active' if analysis_type == 'simple' }}">
-                        📈 Einfache Regression
-                    </a>
-                    <a href="/multiple" class="btn btn-outline-primary {{ 'active' if analysis_type == 'multiple' }}">
-                        📊 Multiple Regression
-                    </a>
-                    <a href="/" class="btn btn-outline-secondary">
-                        🏠 Startseite
-                    </a>
-                </div>
-            </div>
-        </nav>
+<!-- Sidebar -->
+<aside class="sidebar" :class="{ 'show': sidebarOpen }" @click.outside="sidebarOpen = false">
+    <a href="/" class="sidebar-brand">
+        <i class="bi bi-graph-up"></i>
+        <span>RegAnalysis</span>
+    </a>
+    
+    <!-- Analysis Type -->
+    <div class="mb-4">
+        <label class="form-label small text-uppercase">Analyse-Typ</label>
+        <div class="d-grid gap-2">
+            <a href="/simple" class="btn btn-sm {{ 'btn-primary' if analysis_type == 'simple' else 'btn-outline-primary' }}">
+                <i class="bi bi-graph-up-arrow me-2"></i>
+                Einfache Regression
+            </a>
+            <a href="/multiple" class="btn btn-sm {{ 'btn-primary' if analysis_type == 'multiple' else 'btn-outline-primary' }}">
+                <i class="bi bi-diagram-3 me-2"></i>
+                Multiple Regression
+            </a>
+        </div>
+    </div>
+    
+    <hr class="my-3" style="border-color: var(--border-color);">
+    
+    <!-- Dataset Selection -->
+    <form id="settings-form" 
+          hx-get="{{ '/simple' if analysis_type == 'simple' else '/multiple' }}"
+          hx-target="#main-content"
+          hx-swap="innerHTML"
+          hx-push-url="true"
+          hx-indicator="#loading-indicator">
+        
+        <div class="mb-3">
+            <label for="dataset" class="form-label small text-uppercase">
+                <i class="bi bi-database me-1"></i> Datensatz
+            </label>
+            <select class="form-select form-select-sm" name="dataset" id="dataset"
+                    hx-trigger="change" hx-include="#settings-form">
+                {% if analysis_type == 'simple' %}
+                <option value="Bildung & Einkommen" {{ 'selected' if dataset == 'Bildung & Einkommen' }}>
+                    📚 Bildung & Einkommen
+                </option>
+                <option value="Grösse & Gewicht" {{ 'selected' if dataset == 'Grösse & Gewicht' }}>
+                    📏 Grösse & Gewicht
+                </option>
+                <option value="Temperatur & Eisverkauf" {{ 'selected' if dataset == 'Temperatur & Eisverkauf' }}>
+                    🌡️ Temperatur & Eisverkauf
+                </option>
+                {% else %}
+                <option value="Immobilienpreise" {{ 'selected' if dataset == 'Immobilienpreise' }}>
+                    🏠 Immobilienpreise
+                </option>
+                <option value="Autoverbrauch" {{ 'selected' if dataset == 'Autoverbrauch' }}>
+                    🚗 Autoverbrauch
+                </option>
+                <option value="Marketing-Mix" {{ 'selected' if dataset == 'Marketing-Mix' }}>
+                    📢 Marketing-Mix
+                </option>
+                {% endif %}
+            </select>
+        </div>
+        
+        <div class="mb-3" x-data="{ n: {{ n_points }} }">
+            <label for="n" class="form-label small text-uppercase">
+                <i class="bi bi-hash me-1"></i> Datenpunkte: <span x-text="n" class="fw-bold text-primary"></span>
+            </label>
+            <input type="range" class="form-range" name="n" id="n" 
+                   min="20" max="200" step="10" x-model="n"
+                   hx-trigger="change" hx-include="#settings-form">
+        </div>
+    </form>
+    
+    <hr class="my-3" style="border-color: var(--border-color);">
+    
+    <!-- Chapter Navigation -->
+    <label class="form-label small text-uppercase mb-2">
+        <i class="bi bi-list-ol me-1"></i> Kapitel
+    </label>
+    <nav class="sidebar-nav">
+        {% for chapter in chapters %}
+        <li class="sidebar-nav-item">
+            <a href="#chapter-{{ chapter.number | replace('.', '-') }}" class="sidebar-nav-link">
+                <span>{{ chapter.icon }}</span>
+                <span class="small">{{ chapter.number }}</span>
+            </a>
+        </li>
+        {% endfor %}
+    </nav>
+    
+    <hr class="my-3" style="border-color: var(--border-color);">
+    
+    <!-- Quick Stats -->
+    <div class="p-3 rounded" style="background: var(--bg-primary);">
+        <label class="form-label small text-uppercase mb-2">
+            <i class="bi bi-speedometer2 me-1"></i> Quick Stats
+        </label>
+        <div class="d-flex justify-content-between mb-1">
+            <span class="small text-secondary">R²</span>
+            <span class="small fw-bold font-monospace">{{ "%.4f"|format(stats.r_squared) }}</span>
+        </div>
+        <div class="d-flex justify-content-between mb-1">
+            <span class="small text-secondary">n</span>
+            <span class="small fw-bold font-monospace">{{ stats.n }}</span>
+        </div>
+        <div class="d-flex justify-content-between">
+            <span class="small text-secondary">p-Wert</span>
+            {% set p_val = stats.p_slope if stats.p_slope is defined else stats.p_f %}
+            <span class="small fw-bold font-monospace {% if p_val < 0.05 %}text-success{% else %}text-warning{% endif %}">
+                {{ "%.4f"|format(p_val) }}
+            </span>
+        </div>
+    </div>
+</aside>
 
-        <!-- Main Content -->
-        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
-            <!-- Educational Content -->
-            {{ content_html | safe }}
-        </main>
+<!-- Loading Indicator -->
+<div id="loading-indicator" class="htmx-indicator" 
+     style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 2000;">
+    <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading...</span>
     </div>
 </div>
+
+<!-- Main Content -->
+<main class="main-content" id="main-content">
+    <!-- Header -->
+    <div class="d-flex align-items-center justify-content-between mb-4 fade-in">
+        <div>
+            <h1 class="h3 mb-1">{{ title }}</h1>
+            <p class="text-secondary mb-0">{{ subtitle }}</p>
+        </div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-primary btn-sm" onclick="window.print()">
+                <i class="bi bi-printer me-1"></i> Drucken
+            </button>
+            <a href="/" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-house me-1"></i> Home
+            </a>
+        </div>
+    </div>
+    
+    <!-- Metrics Grid -->
+    <div class="metrics-grid fade-in" style="animation-delay: 0.1s;">
+        <div class="metric-card">
+            <div class="metric-label">R²</div>
+            <div class="metric-value">{{ "%.4f"|format(stats.r_squared) }}</div>
+            <div class="metric-delta">
+                {% if stats.r_squared > 0.7 %}
+                <i class="bi bi-check-circle-fill"></i> Stark
+                {% elif stats.r_squared > 0.4 %}
+                <i class="bi bi-dash-circle"></i> Moderat
+                {% else %}
+                <i class="bi bi-x-circle"></i> Schwach
+                {% endif %}
+            </div>
+        </div>
+        
+        {% if analysis_type == 'simple' %}
+        <div class="metric-card">
+            <div class="metric-label">β₀ (Intercept)</div>
+            <div class="metric-value">{{ "%.2f"|format(stats.intercept) }}</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">β₁ (Slope)</div>
+            <div class="metric-value">{{ "%.4f"|format(stats.slope) }}</div>
+        </div>
+        {% else %}
+        <div class="metric-card">
+            <div class="metric-label">β₁</div>
+            <div class="metric-value">{{ "%.4f"|format(stats.beta1) }}</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">β₂</div>
+            <div class="metric-value">{{ "%.4f"|format(stats.beta2) }}</div>
+        </div>
+        {% endif %}
+        
+        {% set p_value = stats.p_slope if stats.p_slope is defined else stats.p_f %}
+        <div class="metric-card">
+            <div class="metric-label">p-Wert</div>
+            <div class="metric-value {% if p_value < 0.05 %}text-success{% else %}text-warning{% endif %}">
+                {{ "%.4f"|format(p_value) }}
+            </div>
+            <div class="metric-delta">
+                {% if p_value < 0.001 %}
+                *** Höchst signifikant
+                {% elif p_value < 0.01 %}
+                ** Sehr signifikant
+                {% elif p_value < 0.05 %}
+                * Signifikant
+                {% else %}
+                Nicht signifikant
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="metric-card">
+            <div class="metric-label">Stichprobe</div>
+            <div class="metric-value">{{ stats.n }}</div>
+            <div class="metric-delta">Beobachtungen</div>
+        </div>
+    </div>
+    
+    <!-- Educational Content -->
+    <div class="educational-content fade-in" style="animation-delay: 0.2s;">
+        {{ content_html | safe }}
+    </div>
+</main>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-// Auto-submit form when range changes
-document.getElementById('n').addEventListener('change', function() {
-    this.closest('form').submit();
-});
+    // Smooth scroll for chapter navigation
+    document.querySelectorAll('.sidebar-nav-link').forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            const target = document.querySelector(link.getAttribute('href'));
+            if (target) {
+                target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                // Close mobile sidebar
+                document.querySelector('.sidebar').classList.remove('show');
+            }
+        });
+    });
+    
+    // Highlight active chapter on scroll
+    const chapters = document.querySelectorAll('.chapter');
+    const navLinks = document.querySelectorAll('.sidebar-nav-link');
+    
+    const observerOptions = {
+        root: null,
+        rootMargin: '-20% 0px -80% 0px',
+        threshold: 0
+    };
+    
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const id = entry.target.id;
+                navLinks.forEach(link => {
+                    link.classList.remove('active');
+                    if (link.getAttribute('href') === '#' + id) {
+                        link.classList.add('active');
+                    }
+                });
+            }
+        });
+    }, observerOptions);
+    
+    chapters.forEach(chapter => observer.observe(chapter));
+    
+    // HTMX: Re-render plots after content swap
+    document.body.addEventListener('htmx:afterSwap', (e) => {
+        // Re-initialize any plots
+        if (typeof MathJax !== 'undefined') {
+            MathJax.typesetPromise();
+        }
+    });
 </script>
 {% endblock %}

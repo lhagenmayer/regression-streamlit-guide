@@ -70,9 +70,11 @@ class HTMLContentRenderer:
     def _render_chapter(self, chapter: Chapter) -> str:
         """Render a chapter with its sections."""
         html_parts = [
-            '<hr class="chapter-divider">',
-            f'<div class="chapter" id="chapter-{chapter.number.replace(".", "-")}">',
-            f'<h2 class="section-header">{chapter.icon} Kapitel {chapter.number}: {chapter.title}</h2>',
+            f'<div class="chapter fade-in" id="chapter-{chapter.number.replace(".", "-")}">',
+            f'''<div class="chapter-header">
+                <span class="chapter-icon">{chapter.icon}</span>
+                <span>Kapitel {chapter.number}: {chapter.title}</span>
+            </div>''',
         ]
         
         for section in chapter.sections:
@@ -166,10 +168,10 @@ class HTMLContentRenderer:
     def _render_metric(self, element: Metric) -> str:
         """Render a metric display."""
         help_attr = f'title="{element.help_text}"' if element.help_text else ''
-        delta_html = f'<span class="metric-delta">{element.delta}</span>' if element.delta else ''
+        delta_html = f'<div class="metric-delta">{element.delta}</div>' if element.delta else ''
         
         return f'''
-        <div class="metric" {help_attr}>
+        <div class="metric-card" {help_attr}>
             <div class="metric-label">{element.label}</div>
             <div class="metric-value">{element.value}</div>
             {delta_html}
@@ -179,14 +181,14 @@ class HTMLContentRenderer:
     def _render_metric_row(self, element: MetricRow) -> str:
         """Render a row of metrics."""
         metrics_html = '\n'.join(self._render_metric(m) for m in element.metrics)
-        return f'<div class="metric-row">{metrics_html}</div>'
+        return f'<div class="metrics-grid">{metrics_html}</div>'
     
     def _render_formula(self, element: Formula) -> str:
         """Render LaTeX formula."""
         if element.inline:
-            return f'<span class="math inline">\\({element.latex}\\)</span>'
+            return f'<span class="math-inline">\\({element.latex}\\)</span>'
         else:
-            return f'<div class="math display">\\[{element.latex}\\]</div>'
+            return f'<div class="math-display">\\[{element.latex}\\]</div>'
     
     def _render_plot(self, element: Plot) -> str:
         """Render a plot element."""
@@ -202,11 +204,15 @@ class HTMLContentRenderer:
                 json_str = plot_json.to_json() if hasattr(plot_json, 'to_json') else json.dumps(plot_json)
             
             return f'''
-            <div class="plot-container" id="{plot_id}">
-                <div class="plot-title">{element.title}</div>
+            <div class="plot-container">
+                {f'<div class="plot-title"><i class="bi bi-graph-up me-2"></i>{element.title}</div>' if element.title else ''}
                 <div id="{plot_id}_chart" style="height: {element.height}px;"></div>
                 <script>
-                    Plotly.newPlot('{plot_id}_chart', {json_str}.data, {json_str}.layout);
+                    (function() {{
+                        const plotData = {json_str};
+                        const layout = Object.assign({{}}, plotData.layout, getPlotlyLayout());
+                        Plotly.newPlot('{plot_id}_chart', plotData.data, layout, {{responsive: true}});
+                    }})();
                 </script>
             </div>
             '''
@@ -217,8 +223,14 @@ class HTMLContentRenderer:
             return plot_html
         
         return f'''
-        <div class="plot-placeholder" id="{plot_id}">
-            <p class="text-muted">Plot "{element.plot_key}" wird geladen...</p>
+        <div class="plot-container">
+            <div class="p-5 text-center">
+                <i class="bi bi-bar-chart-fill text-secondary" style="font-size: 3rem;"></i>
+                <p class="text-secondary mt-3 mb-0">
+                    Interaktiver Plot: <strong>{element.plot_key}</strong>
+                </p>
+                <small class="text-muted">Verfügbar in der Streamlit-Version</small>
+            </div>
         </div>
         '''
     
@@ -428,21 +440,32 @@ class HTMLContentRenderer:
     
     def _render_table(self, element: Table) -> str:
         """Render a table element."""
-        header_html = ''.join(f'<th>{h}</th>' for h in element.headers)
+        header_html = ''.join(f'<th scope="col">{h}</th>' for h in element.headers)
         rows_html = '\n'.join(
-            '<tr>' + ''.join(f'<td>{cell}</td>' for cell in row) + '</tr>'
+            '<tr>' + ''.join(f'<td><code>{cell}</code></td>' if i > 0 and self._is_numeric(cell) else f'<td>{cell}</td>' 
+                            for i, cell in enumerate(row)) + '</tr>'
             for row in element.rows
         )
         
-        caption_html = f'<caption>{element.caption}</caption>' if element.caption else ''
+        caption_html = f'<caption class="caption-top">{element.caption}</caption>' if element.caption else ''
         
         return f'''
-        <table class="table table-striped">
-            {caption_html}
-            <thead><tr>{header_html}</tr></thead>
-            <tbody>{rows_html}</tbody>
-        </table>
+        <div class="table-responsive">
+            <table class="table table-hover">
+                {caption_html}
+                <thead><tr>{header_html}</tr></thead>
+                <tbody>{rows_html}</tbody>
+            </table>
+        </div>
         '''
+    
+    def _is_numeric(self, value: str) -> bool:
+        """Check if a string value looks numeric."""
+        try:
+            float(value.replace(',', '.'))
+            return True
+        except (ValueError, AttributeError):
+            return False
     
     def _render_columns(self, element: Columns) -> str:
         """Render multi-column layout."""
@@ -461,17 +484,23 @@ class HTMLContentRenderer:
         expander_id = self._get_unique_id("expander")
         content_html = '\n'.join(self._render_element(item) for item in element.content)
         expanded_class = "show" if element.expanded else ""
+        collapsed_class = "" if element.expanded else "collapsed"
         
         return f'''
-        <div class="accordion-item">
-            <h2 class="accordion-header">
-                <button class="accordion-button {"" if element.expanded else "collapsed"}" 
-                        type="button" data-bs-toggle="collapse" 
-                        data-bs-target="#{expander_id}">
+        <div class="accordion-item mb-3">
+            <h2 class="accordion-header" id="heading-{expander_id}">
+                <button class="accordion-button {collapsed_class}" 
+                        type="button" 
+                        data-bs-toggle="collapse" 
+                        data-bs-target="#collapse-{expander_id}"
+                        aria-expanded="{"true" if element.expanded else "false"}"
+                        aria-controls="collapse-{expander_id}">
                     {element.title}
                 </button>
             </h2>
-            <div id="{expander_id}" class="accordion-collapse collapse {expanded_class}">
+            <div id="collapse-{expander_id}" 
+                 class="accordion-collapse collapse {expanded_class}"
+                 aria-labelledby="heading-{expander_id}">
                 <div class="accordion-body">
                     {content_html}
                 </div>
@@ -481,19 +510,46 @@ class HTMLContentRenderer:
     
     def _render_info_box(self, element: InfoBox) -> str:
         """Render information box."""
-        return f'<div class="alert alert-info">{self._simple_md_to_html(element.content)}</div>'
+        return f'''
+        <div class="alert alert-info d-flex align-items-start">
+            <i class="bi bi-info-circle-fill me-3 mt-1"></i>
+            <div>{self._simple_md_to_html(element.content)}</div>
+        </div>
+        '''
     
     def _render_warning_box(self, element: WarningBox) -> str:
         """Render warning box."""
-        return f'<div class="alert alert-warning">{self._simple_md_to_html(element.content)}</div>'
+        return f'''
+        <div class="alert alert-warning d-flex align-items-start">
+            <i class="bi bi-exclamation-triangle-fill me-3 mt-1"></i>
+            <div>{self._simple_md_to_html(element.content)}</div>
+        </div>
+        '''
     
     def _render_success_box(self, element: SuccessBox) -> str:
         """Render success box."""
-        return f'<div class="alert alert-success">{self._simple_md_to_html(element.content)}</div>'
+        return f'''
+        <div class="alert alert-success d-flex align-items-start">
+            <i class="bi bi-check-circle-fill me-3 mt-1"></i>
+            <div>{self._simple_md_to_html(element.content)}</div>
+        </div>
+        '''
     
     def _render_code_block(self, element: CodeBlock) -> str:
         """Render code block."""
-        return f'<pre><code class="language-{element.language}">{element.code}</code></pre>'
+        # Escape HTML in code
+        import html
+        escaped_code = html.escape(element.code)
+        return f'''
+        <div class="position-relative">
+            <pre class="mb-0"><code class="language-{element.language}">{escaped_code}</code></pre>
+            <button class="btn btn-sm btn-outline-secondary position-absolute top-0 end-0 m-2" 
+                    onclick="navigator.clipboard.writeText(this.parentElement.querySelector('code').textContent)"
+                    title="In Zwischenablage kopieren">
+                <i class="bi bi-clipboard"></i>
+            </button>
+        </div>
+        '''
     
     def _render_section(self, element: Section) -> str:
         """Render a section."""

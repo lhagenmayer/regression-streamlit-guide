@@ -1,82 +1,202 @@
 {% extends "base.html" %}
 
-{% block title %}Regression Analysis - Home{% endblock %}
+{% block title %}Regression Analysis - Interactive Learning Platform{% endblock %}
 
 {% block content %}
-<div class="container py-5">
-    <div class="text-center mb-5">
-        <h1 class="display-4">📊 Regression Analysis</h1>
-        <p class="lead text-muted">Interaktives Lernen mit statistischen Modellen</p>
-    </div>
-    
-    <div class="row justify-content-center">
-        <div class="col-md-5 mb-4">
-            <div class="card h-100 shadow">
-                <div class="card-body text-center">
-                    <h2 class="card-title">📈 Einfache Regression</h2>
-                    <p class="card-text">
-                        Analysiere den Zusammenhang zwischen einer unabhängigen 
-                        und einer abhängigen Variable.
-                    </p>
-                    <ul class="list-unstyled text-start mb-4">
-                        <li>✅ OLS-Schätzung</li>
-                        <li>✅ R² und Modellgüte</li>
-                        <li>✅ t-Tests und F-Tests</li>
-                        <li>✅ Residuendiagnostik</li>
-                        <li>✅ 3D-Visualisierungen</li>
-                    </ul>
-                    <a href="/simple" class="btn btn-primary btn-lg">
-                        Zur Analyse →
-                    </a>
+<div class="min-vh-100 d-flex align-items-center justify-content-center p-4">
+    <div class="container">
+        <!-- Hero Section -->
+        <div class="text-center mb-5 fade-in">
+            <div class="mb-4">
+                <span style="font-size: 4rem;">📊</span>
+            </div>
+            <h1 class="display-4 fw-bold mb-3">
+                Regression Analysis
+            </h1>
+            <p class="lead text-secondary mb-4" style="max-width: 600px; margin: 0 auto;">
+                Interaktive Lernplattform für statistische Modelle. 
+                Verstehe Regression durch Visualisierung und Exploration.
+            </p>
+            <div class="d-flex justify-content-center gap-2 flex-wrap">
+                <span class="badge bg-primary bg-opacity-10 text-primary px-3 py-2">
+                    <i class="bi bi-lightning-charge me-1"></i> Interaktiv
+                </span>
+                <span class="badge bg-success bg-opacity-10 text-success px-3 py-2">
+                    <i class="bi bi-graph-up me-1"></i> 3D Visualisierungen
+                </span>
+                <span class="badge bg-info bg-opacity-10 text-info px-3 py-2">
+                    <i class="bi bi-book me-1"></i> Educational
+                </span>
+            </div>
+        </div>
+        
+        <!-- Cards -->
+        <div class="row g-4 justify-content-center mb-5">
+            <!-- Simple Regression Card -->
+            <div class="col-lg-5 col-md-6 fade-in" style="animation-delay: 0.1s;">
+                <div class="card h-100 border-0 shadow-lg">
+                    <div class="card-body p-4">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="rounded-circle bg-primary bg-opacity-10 p-3 me-3">
+                                <i class="bi bi-graph-up-arrow text-primary" style="font-size: 1.5rem;"></i>
+                            </div>
+                            <div>
+                                <h3 class="h4 mb-0">Einfache Regression</h3>
+                                <small class="text-secondary">Y = β₀ + β₁X + ε</small>
+                            </div>
+                        </div>
+                        
+                        <p class="text-secondary mb-4">
+                            Analysiere den Zusammenhang zwischen einer unabhängigen 
+                            und einer abhängigen Variable.
+                        </p>
+                        
+                        <div class="mb-4">
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="bi bi-check-circle-fill text-success me-2"></i>
+                                <span>OLS-Schätzung & Residuenanalyse</span>
+                            </div>
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="bi bi-check-circle-fill text-success me-2"></i>
+                                <span>R², t-Tests, F-Tests</span>
+                            </div>
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="bi bi-check-circle-fill text-success me-2"></i>
+                                <span>Gauss-Markov Annahmen</span>
+                            </div>
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="bi bi-check-circle-fill text-success me-2"></i>
+                                <span>3D Visualisierungen</span>
+                            </div>
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-check-circle-fill text-success me-2"></i>
+                                <span>Heteroskedastizität & robuste SE</span>
+                            </div>
+                        </div>
+                        
+                        <a href="/simple" class="btn btn-primary w-100">
+                            <i class="bi bi-arrow-right me-2"></i>
+                            Zur Analyse
+                        </a>
+                    </div>
+                    <div class="card-footer bg-transparent border-0 p-4 pt-0">
+                        <small class="text-secondary">
+                            <i class="bi bi-book me-1"></i> 11 Kapitel
+                        </small>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Multiple Regression Card -->
+            <div class="col-lg-5 col-md-6 fade-in" style="animation-delay: 0.2s;">
+                <div class="card h-100 border-0 shadow-lg">
+                    <div class="card-body p-4">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="rounded-circle bg-info bg-opacity-10 p-3 me-3">
+                                <i class="bi bi-diagram-3 text-info" style="font-size: 1.5rem;"></i>
+                            </div>
+                            <div>
+                                <h3 class="h4 mb-0">Multiple Regression</h3>
+                                <small class="text-secondary">Y = β₀ + β₁X₁ + β₂X₂ + ε</small>
+                            </div>
+                        </div>
+                        
+                        <p class="text-secondary mb-4">
+                            Erweitere die Analyse auf mehrere Prädiktoren und 
+                            verstehe komplexere Zusammenhänge.
+                        </p>
+                        
+                        <div class="mb-4">
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="bi bi-check-circle-fill text-success me-2"></i>
+                                <span>OLS in Matrixnotation</span>
+                            </div>
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="bi bi-check-circle-fill text-success me-2"></i>
+                                <span>Partielle Effekte</span>
+                            </div>
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="bi bi-check-circle-fill text-success me-2"></i>
+                                <span>Multikollinearität & VIF</span>
+                            </div>
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="bi bi-check-circle-fill text-success me-2"></i>
+                                <span>Dummy-Variablen</span>
+                            </div>
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-check-circle-fill text-success me-2"></i>
+                                <span>3D Regressionsebene</span>
+                            </div>
+                        </div>
+                        
+                        <a href="/multiple" class="btn btn-primary w-100">
+                            <i class="bi bi-arrow-right me-2"></i>
+                            Zur Analyse
+                        </a>
+                    </div>
+                    <div class="card-footer bg-transparent border-0 p-4 pt-0">
+                        <small class="text-secondary">
+                            <i class="bi bi-book me-1"></i> 9 Kapitel
+                        </small>
+                    </div>
                 </div>
             </div>
         </div>
         
-        <div class="col-md-5 mb-4">
-            <div class="card h-100 shadow">
-                <div class="card-body text-center">
-                    <h2 class="card-title">📊 Multiple Regression</h2>
-                    <p class="card-text">
-                        Erweitere die Analyse auf mehrere Prädiktoren und 
-                        verstehe komplexere Zusammenhänge.
-                    </p>
-                    <ul class="list-unstyled text-start mb-4">
-                        <li>✅ Matrixnotation</li>
-                        <li>✅ Partielle Effekte</li>
-                        <li>✅ Multikollinearität & VIF</li>
-                        <li>✅ Dummy-Variablen</li>
-                        <li>✅ 3D-Regressionsebene</li>
-                    </ul>
-                    <a href="/multiple" class="btn btn-primary btn-lg">
-                        Zur Analyse →
-                    </a>
+        <!-- Architecture Info -->
+        <div class="row justify-content-center fade-in" style="animation-delay: 0.3s;">
+            <div class="col-lg-10">
+                <div class="card border-0 bg-opacity-50" style="background: var(--bg-secondary);">
+                    <div class="card-body p-4">
+                        <div class="row align-items-center">
+                            <div class="col-md-8">
+                                <h5 class="d-flex align-items-center mb-3">
+                                    <i class="bi bi-cpu text-primary me-2"></i>
+                                    Frontend-Agnostische Architektur
+                                </h5>
+                                <p class="text-secondary mb-0">
+                                    Diese App demonstriert <strong>Option B</strong>: Educational Content wird als 
+                                    <strong>Datenstruktur</strong> definiert und von Framework-spezifischen Renderern 
+                                    interpretiert. Derselbe Content läuft in <span class="badge bg-primary">Streamlit</span> 
+                                    und <span class="badge bg-success">Flask</span>.
+                                </p>
+                            </div>
+                            <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                                <code class="d-block mb-2" style="font-size: 0.75rem;">
+                                    ContentBuilder → EducationalContent
+                                </code>
+                                <code class="d-block" style="font-size: 0.75rem;">
+                                    ↓ StreamlitRenderer | HTMLRenderer
+                                </code>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
-    
-    <div class="row justify-content-center mt-5">
-        <div class="col-md-8">
-            <div class="card bg-light">
-                <div class="card-body">
-                    <h5 class="card-title">🏗️ Architektur</h5>
-                    <p class="card-text">
-                        Diese Anwendung demonstriert eine <strong>frontend-agnostische Architektur</strong>:
-                    </p>
-                    <ul>
-                        <li><strong>ContentBuilder</strong> - Definiert Inhalte als Datenstrukturen</li>
-                        <li><strong>StreamlitRenderer</strong> - Rendert für Streamlit</li>
-                        <li><strong>HTMLRenderer</strong> - Rendert für Flask/Web</li>
-                    </ul>
-                    <p class="mb-0">
-                        <small class="text-muted">
-                            Der gleiche Educational Content wird von beiden Frontends 
-                            gerendert - ohne Code-Duplizierung!
-                        </small>
-                    </p>
-                </div>
-            </div>
+        
+        <!-- Footer -->
+        <div class="text-center mt-5 pt-4 fade-in" style="animation-delay: 0.4s;">
+            <p class="text-secondary small mb-2">
+                <i class="bi bi-github me-1"></i>
+                Built with Flask, HTMX, Alpine.js & Plotly
+            </p>
+            <p class="text-secondary small">
+                Press <kbd>D</kbd> to toggle dark mode
+            </p>
         </div>
     </div>
 </div>
+
+<script>
+    // Keyboard shortcut for dark mode
+    document.addEventListener('keydown', (e) => {
+        if (e.key.toLowerCase() === 'd' && !e.target.matches('input, textarea')) {
+            const html = document.documentElement;
+            const current = html.getAttribute('data-bs-theme');
+            html.setAttribute('data-bs-theme', current === 'light' ? 'dark' : 'light');
+            localStorage.setItem('theme', current === 'light' ? 'dark' : 'light');
+        }
+    });
+</script>
 {% endblock %}
