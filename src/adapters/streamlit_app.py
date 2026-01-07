@@ -177,7 +177,7 @@ class StreamlitRenderer(BaseRenderer):
         # Run pipeline
         if analysis_type == "simple":
             result = self.pipeline.run_simple(dataset=dataset, n=n, seed=seed)
-            plots = self.pipeline.plot_builder.create_simple_plots(result.data, result.stats)
+            plots = self.pipeline.plotter.simple_regression_plots(result.data, result.stats)
             
             context = RenderContext(
                 analysis_type="simple",
@@ -190,7 +190,7 @@ class StreamlitRenderer(BaseRenderer):
             self.render_simple_regression(context)
         else:
             result = self.pipeline.run_multiple(dataset=dataset, n=n, seed=seed)
-            plots = self.pipeline.plot_builder.create_multiple_plots(result.data, result.stats)
+            plots = self.pipeline.plotter.multiple_regression_plots(result.data, result.stats)
             
             content = get_multiple_regression_descriptions(dataset)
             formulas = get_multiple_regression_formulas(dataset)
