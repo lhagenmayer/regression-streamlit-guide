@@ -1,26 +1,19 @@
 """
 Data loading module for the Linear Regression Guide.
 
-This module provides a simplified interface to the data and model services,
-using proper statsmodels OLS for real regression calculations.
+This module uses NATIVE numpy calculations (no sklearn/statsmodels for core OLS)
+so students can verify all results with a calculator.
 """
 
 from typing import Dict, Any, Optional
 import numpy as np
-import statsmodels.api as sm
+
+# Use our native OLS implementation for transparent, verifiable calculations
+from ..infrastructure.native_ols import OLS, add_constant, OLSResult
 
 
 def _map_dataset_name(display_name: str, regression_type: str) -> str:
-    """
-    Map UI display names to internal dataset names.
-    
-    Args:
-        display_name: The display name with emojis from the UI
-        regression_type: Either 'simple' or 'multiple'
-    
-    Returns:
-        Internal dataset name used by generators
-    """
+    """Map UI display names to internal dataset names."""
     if regression_type == 'multiple':
         multiple_mappings = {
             "🏙️ Städte-Umsatzstudie (75 Städte)": "Cities",
@@ -44,16 +37,12 @@ def load_multiple_regression_data(
     seed: int
 ) -> Dict[str, Any]:
     """
-    Load and prepare multiple regression data with REAL statsmodels OLS.
-
-    Args:
-        dataset_choice: Name of the dataset to load
-        n: Number of observations
-        noise_level: Noise level for data generation
-        seed: Random seed for reproducibility
-
-    Returns:
-        Dictionary containing all prepared data and model results
+    Load and prepare multiple regression data with NATIVE OLS calculations.
+    
+    All calculations use explicit formulas that can be verified with a calculator:
+    - b = (X'X)^(-1) X'y
+    - R² = 1 - SSE/SST
+    - t = b / SE(b)
     """
     from .data_generators.multiple_regression_generator import generate_multiple_regression_data
 
@@ -64,18 +53,18 @@ def load_multiple_regression_data(
     except ValueError:
         raw_data = generate_multiple_regression_data("Cities", n, noise_level, seed)
 
-    # Extract predictor and response arrays
+    # Extract arrays
     x1 = np.array(raw_data.get("x2_preis", raw_data.get("x1", np.random.randn(n))))
     x2 = np.array(raw_data.get("x3_werbung", raw_data.get("x2", np.random.randn(n))))
     y = np.array(raw_data.get("y_mult", raw_data.get("y", np.random.randn(n))))
     
-    # Fit REAL statsmodels OLS model
-    X = sm.add_constant(np.column_stack([x1, x2]))
-    model = sm.OLS(y, X).fit()
-    y_pred = model.predict(X)
-    residuals = y - y_pred
+    # =========================================================
+    # FIT NATIVE OLS - All formulas explicit for verification
+    # =========================================================
+    X = add_constant(np.column_stack([x1, x2]))  # Design matrix [1, x1, x2]
+    model: OLSResult = OLS(y, X).fit()
     
-    # Build coefficients info from REAL model
+    # Build coefficients info from model
     mult_coeffs = {
         "params": list(model.params),
         "bse": list(model.bse),
@@ -83,37 +72,32 @@ def load_multiple_regression_data(
         "pvalues": list(model.pvalues),
     }
     
-    # Build summary from REAL model
+    # Build summary
     mult_summary = {
         "rsquared": float(model.rsquared),
         "rsquared_adj": float(model.rsquared_adj),
-        "fvalue": float(model.fvalue) if hasattr(model, 'fvalue') and model.fvalue is not None else 0.0,
-        "f_pvalue": float(model.f_pvalue) if hasattr(model, 'f_pvalue') and model.f_pvalue is not None else 0.0,
+        "fvalue": float(model.fvalue),
+        "f_pvalue": float(model.f_pvalue),
     }
     
     # Build diagnostics
     mult_diagnostics = {
-        "resid": residuals,
-        "sse": float(np.sum(residuals ** 2)),
+        "resid": model.resid,
+        "sse": float(model.ssr),  # Note: our SSE is stored as ssr (statsmodels convention)
     }
-    
-    # Get labels
-    x1_name = raw_data.get("x1_name", "Variable 1")
-    x2_name = raw_data.get("x2_name", "Variable 2")
-    y_name = raw_data.get("y_name", "Zielvariable")
     
     return {
         "x2_preis": x1,
         "x3_werbung": x2,
         "y_mult": y,
-        "y_pred_mult": y_pred,
+        "y_pred_mult": model.fittedvalues,
         "model_mult": model,
         "mult_coeffs": mult_coeffs,
         "mult_summary": mult_summary,
         "mult_diagnostics": mult_diagnostics,
-        "x1_name": x1_name,
-        "x2_name": x2_name,
-        "y_name": y_name,
+        "x1_name": raw_data.get("x1_name", "Variable 1"),
+        "x2_name": raw_data.get("x2_name", "Variable 2"),
+        "y_name": raw_data.get("y_name", "Zielvariable"),
     }
 
 
@@ -127,19 +111,18 @@ def load_simple_regression_data(
     seed: int = 42
 ) -> Dict[str, Any]:
     """
-    Load and prepare simple regression data with REAL statsmodels OLS.
-
-    Args:
-        dataset_choice: Name of the dataset to load
-        x_variable: X variable to use (for multi-variable datasets)
-        n: Number of observations
-        true_intercept: True intercept (for simulated data)
-        true_beta: True slope (for simulated data)
-        noise_level: Noise level for data generation
-        seed: Random seed for reproducibility
-
-    Returns:
-        Dictionary containing all prepared data and model results
+    Load and prepare simple regression data with NATIVE OLS calculations.
+    
+    All calculations use explicit formulas that can be verified with a calculator:
+    
+    OLS Coefficients:
+        b1 = Σ(xi - x̄)(yi - ȳ) / Σ(xi - x̄)²  = Cov(x,y) / Var(x)
+        b0 = ȳ - b1 * x̄
+    
+    Statistics:
+        R² = 1 - SSE/SST = SSR/SST
+        SE(b) = s / √(Σ(xi - x̄)²)  where s = √(SSE/(n-2))
+        t = b / SE(b)
     """
     from .data_generators.simple_regression_generator import generate_simple_regression_data
 
@@ -152,50 +135,51 @@ def load_simple_regression_data(
         np.random.seed(seed)
         x = np.random.uniform(2, 10, n)
         y = true_intercept + true_beta * x + np.random.normal(0, noise_level, n)
-        raw_data = {
-            "x": x,
-            "y": y,
-            "x_label": "X",
-            "y_label": "Y",
-        }
+        raw_data = {"x": x, "y": y, "x_label": "X", "y_label": "Y"}
 
     # Extract arrays
     x = np.array(raw_data.get("x", np.random.randn(n)))
     y = np.array(raw_data.get("y", np.random.randn(n)))
-    
-    # Fit REAL statsmodels OLS model
-    X = sm.add_constant(x)
-    model = sm.OLS(y, X).fit()
-    y_pred = model.predict(X)
-    residuals = model.resid
-    
-    # Extract coefficients from REAL model
-    b0 = float(model.params[0])
-    b1 = float(model.params[1])
-    
-    # Compute statistics
     n_obs = len(x)
+    
+    # =========================================================
+    # MANUAL CALCULATIONS (for educational transparency)
+    # Students can verify each step with a calculator
+    # =========================================================
+    
+    # Step 1: Basic statistics
     x_mean = float(np.mean(x))
     y_mean_val = float(np.mean(y))
-    cov_xy = float(np.cov(x, y)[0, 1]) if n_obs > 1 else 0.0
-    var_x = float(np.var(x, ddof=1)) if n_obs > 1 else 0.0
-    var_y = float(np.var(y, ddof=1)) if n_obs > 1 else 0.0
-    corr_xy = float(np.corrcoef(x, y)[0, 1]) if n_obs > 1 else 0.0
     
-    # Compute sums of squares
-    sse = float(np.sum(residuals ** 2))
-    sst = float(np.sum((y - y_mean_val) ** 2))
-    ssr = sst - sse
-    mse = sse / (n_obs - 2) if n_obs > 2 else 0.0
-    se_regression = float(np.sqrt(mse)) if mse > 0 else 0.0
+    # Step 2: Deviations from mean
+    x_dev = x - x_mean  # (xi - x̄)
+    y_dev = y - y_mean_val  # (yi - ȳ)
     
-    # Get labels and context
-    x_label = raw_data.get("x_label", "X")
-    y_label = raw_data.get("y_label", "Y")
-    x_unit = raw_data.get("x_unit", "")
-    y_unit = raw_data.get("y_unit", "")
-    context_title = raw_data.get("context_title", dataset_choice)
-    context_description = raw_data.get("context_description", "")
+    # Step 3: Covariance and Variance (using sample formulas with n-1)
+    cov_xy = float(np.sum(x_dev * y_dev) / (n_obs - 1))  # Cov(x,y)
+    var_x = float(np.sum(x_dev ** 2) / (n_obs - 1))  # Var(x)
+    var_y = float(np.sum(y_dev ** 2) / (n_obs - 1))  # Var(y)
+    
+    # Step 4: Correlation
+    corr_xy = cov_xy / (np.sqrt(var_x) * np.sqrt(var_y)) if var_x > 0 and var_y > 0 else 0
+    
+    # =========================================================
+    # FIT NATIVE OLS
+    # =========================================================
+    X = add_constant(x)
+    model: OLSResult = OLS(y, X).fit()
+    
+    b0 = float(model.params[0])  # Intercept
+    b1 = float(model.params[1])  # Slope
+    y_pred = model.fittedvalues
+    residuals = model.resid
+    
+    # Sum of squares (from model)
+    sse = float(model.ssr)  # SSE = Σ(yi - ŷi)²
+    sst = float(model.centered_tss)  # SST = Σ(yi - ȳ)²
+    ssr = float(model.ess)  # SSR = Σ(ŷi - ȳ)²
+    mse = float(model.mse_resid)  # MSE = SSE/(n-2)
+    se_regression = float(np.sqrt(mse)) if mse > 0 else 0
     
     return {
         "x": x,
@@ -205,12 +189,14 @@ def load_simple_regression_data(
         "model": model,
         "b0": b0,
         "b1": b1,
-        "x_label": x_label,
-        "y_label": y_label,
-        "x_unit": x_unit,
-        "y_unit": y_unit,
-        "context_title": context_title,
-        "context_description": context_description,
+        "x_label": raw_data.get("x_label", "X"),
+        "y_label": raw_data.get("y_label", "Y"),
+        "x_unit": raw_data.get("x_unit", ""),
+        "y_unit": raw_data.get("y_unit", ""),
+        "context_title": raw_data.get("context_title", dataset_choice),
+        "context_description": raw_data.get("context_description", ""),
+        # Statistics for educational display
+        "n": n_obs,
         "x_mean": x_mean,
         "y_mean_val": y_mean_val,
         "cov_xy": cov_xy,
@@ -229,25 +215,13 @@ def compute_simple_regression_model(
     x, y, x_label: str, y_label: str, n: int
 ) -> Dict[str, Any]:
     """
-    Compute simple regression model using statsmodels OLS.
-
-    Args:
-        x: X variable data
-        y: Y variable data
-        x_label: Label for X variable
-        y_label: Label for Y variable
-        n: Number of observations
-
-    Returns:
-        Dictionary containing model and all computed statistics
+    Compute simple regression model using native OLS.
     """
     x = np.array(x)
     y = np.array(y)
     
-    # Fit REAL model
-    X = sm.add_constant(x)
-    model = sm.OLS(y, X).fit()
-    y_pred = model.predict(X)
+    X = add_constant(x)
+    model = OLS(y, X).fit()
     
     return {
         'model': model,
@@ -255,7 +229,7 @@ def compute_simple_regression_model(
         'y': y,
         'x_label': x_label,
         'y_label': y_label,
-        'y_pred': y_pred,
+        'y_pred': model.fittedvalues,
         'b0': float(model.params[0]),
         'b1': float(model.params[1]),
         'residuals': model.resid,
