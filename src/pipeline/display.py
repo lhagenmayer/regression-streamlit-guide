@@ -1,15 +1,18 @@
 """
 Step 4: DISPLAY
 
-This module handles UI rendering.
-It displays plots and statistics in Streamlit.
+This module connects the Pipeline to the UI tabs.
+It delegates rendering to the specialized tab modules in /ui/tabs/
+which contain the full educational content.
+
+The display step is responsible for:
+- Passing pipeline results to the correct tab renderer
+- Ensuring all plots have educational context
+- Dynamic content adaptation based on dataset
 """
 
-from dataclasses import dataclass
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Union
 import streamlit as st
-import pandas as pd
-import numpy as np
 
 from ..config import get_logger
 from .get_data import DataResult, MultipleRegressionDataResult
@@ -19,28 +22,18 @@ from .plot import PlotCollection
 logger = get_logger(__name__)
 
 
-def get_signif_stars(p: float) -> str:
-    """Get significance stars like R."""
-    if p < 0.001:
-        return "***"
-    if p < 0.01:
-        return "**"
-    if p < 0.05:
-        return "*"
-    if p < 0.1:
-        return "."
-    return ""
-
-
 class UIRenderer:
     """
     Step 4: DISPLAY
     
-    Renders all UI components in Streamlit.
+    Renders pipeline results using the educational tab modules.
+    Ensures all plots are embedded with meaningful educational content.
     
-    Example:
-        renderer = UIRenderer()
-        renderer.simple_regression(data, result, plots)
+    The actual rendering is delegated to:
+    - src/ui/tabs/simple_regression.py
+    - src/ui/tabs/multiple_regression.py
+    
+    These modules contain the full educational content (chapters, formulas, etc.)
     """
     
     def __init__(self):
@@ -52,55 +45,126 @@ class UIRenderer:
         result: RegressionResult,
         plots: PlotCollection,
         show_formulas: bool = True,
+        show_true_line: bool = False,
     ) -> None:
         """
-        Display complete simple regression analysis.
+        Display simple regression with full educational content.
         
-        Args:
-            data: Original data
-            result: Regression results
-            plots: Plot collection
-            show_formulas: Whether to show mathematical formulas
+        Delegates to the specialized tab renderer which contains
+        all chapters and educational material.
         """
-        # Header
-        st.markdown("# 📈 Einfache Lineare Regression")
-        st.markdown(f"### {data.context_title}")
+        # Build model_data dict expected by the tab renderer
+        model_data = self._build_simple_model_data(data, result)
+        
+        # Use the specialized educational tab renderer
+        from ..ui.tabs.simple_regression import render_simple_regression_tab
+        
+        render_simple_regression_tab(
+            model_data=model_data,
+            x_label=data.x_label,
+            y_label=data.y_label,
+            x_unit=data.x_unit,
+            y_unit=data.y_unit,
+            context_title=data.context_title,
+            context_description=data.context_description,
+            show_formulas=show_formulas,
+            show_true_line=show_true_line,
+            has_true_line=data.extra.get("true_slope", 0) != 0,
+            true_intercept=data.extra.get("true_intercept", 0),
+            true_beta=data.extra.get("true_slope", 0),
+        )
+    
+    def multiple_regression(
+        self,
+        data: MultipleRegressionDataResult,
+        result: MultipleRegressionResult,
+        plots: PlotCollection,
+        dataset_choice: str = "cities",
+        show_formulas: bool = True,
+    ) -> None:
+        """
+        Display multiple regression with full educational content.
+        
+        Delegates to the specialized tab renderer which contains
+        all chapters and educational material.
+        """
+        # Build model_data dict expected by the tab renderer
+        model_data = self._build_multiple_model_data(data, result)
+        
+        # Map internal dataset name to display name for content.py
+        dataset_display_name = self._map_dataset_name(dataset_choice)
+        
+        # Use the specialized educational tab renderer
+        from ..ui.tabs.multiple_regression import render_multiple_regression_tab
+        
+        render_multiple_regression_tab(
+            model_data=model_data,
+            dataset_choice=dataset_display_name,
+            show_formulas=show_formulas,
+        )
+    
+    def simple_regression_compact(
+        self,
+        data: DataResult,
+        result: RegressionResult,
+        plots: PlotCollection,
+        show_formulas: bool = True,
+    ) -> None:
+        """
+        Compact display for simple regression (without full chapters).
+        
+        Use this when you need a quick display without the full
+        educational content. All plots still have context.
+        """
+        import pandas as pd
+        
+        # Header with context
+        st.markdown(f"# 📈 {data.context_title}")
         st.info(data.context_description)
         
         # Key metrics
-        self._display_key_metrics_simple(result)
+        col1, col2, col3, col4 = st.columns(4)
+        col1.metric("R²", f"{result.r_squared:.4f}")
+        col2.metric("β₀", f"{result.intercept:.4f}")
+        col3.metric("β₁", f"{result.slope:.4f}")
+        col4.metric("n", f"{result.n}")
         
-        # Main scatter plot
-        st.plotly_chart(plots.scatter, use_container_width=True, key="main_scatter")
-        
-        # Model equation
-        self._display_equation_simple(result, data, show_formulas)
-        
-        # Coefficient table
-        self._display_coefficient_table_simple(result, data)
-        
-        # Residual analysis
+        # Main plot with educational context
         st.markdown("---")
-        st.markdown("## 📊 Residuenanalyse")
+        st.markdown("## 📊 Regressionsanalyse")
+        st.markdown(f"""
+        **Interpretation:** Die Regressionsgerade zeigt den geschätzten Zusammenhang
+        zwischen **{data.x_label}** und **{data.y_label}**.
+        
+        - Pro Einheit {data.x_label} ändert sich {data.y_label} um **{result.slope:.4f}** {data.y_unit}
+        - Bei {data.x_label} = 0 wäre der erwartete Wert **{result.intercept:.4f}** {data.y_unit}
+        """)
+        st.plotly_chart(plots.scatter, use_container_width=True, key="scatter_compact")
+        
+        # Equation
+        if show_formulas:
+            sign = "+" if result.slope >= 0 else ""
+            st.latex(rf"\hat{{y}} = {result.intercept:.4f} {sign} {result.slope:.4f} \cdot x")
+        
+        # Residual analysis with context
+        st.markdown("---")
+        st.markdown("## 🔍 Residuenanalyse")
+        st.markdown("""
+        **Warum wichtig?** Die Residuen zeigen, wie gut unser Modell die Daten beschreibt.
+        Zufällige Streuung um 0 = gutes Modell. Muster = Modellverletzung!
+        """)
         
         col1, col2 = st.columns(2)
         with col1:
-            st.plotly_chart(plots.residuals, use_container_width=True, key="residuals")
+            st.plotly_chart(plots.residuals, use_container_width=True, key="resid_compact")
         with col2:
             if plots.diagnostics:
-                st.plotly_chart(plots.diagnostics, use_container_width=True, key="diagnostics")
+                st.plotly_chart(plots.diagnostics, use_container_width=True, key="diag_compact")
         
-        # Data table
-        with st.expander("📋 Daten anzeigen"):
-            df = pd.DataFrame({
-                data.x_label: data.x,
-                data.y_label: data.y,
-                "ŷ (Predicted)": result.y_pred,
-                "Residuum": result.residuals,
-            })
-            st.dataframe(df.style.format("{:.4f}"), use_container_width=True)
+        # Coefficient table
+        self._display_coefficient_table_simple(result, data)
     
-    def multiple_regression(
+    def multiple_regression_compact(
         self,
         data: MultipleRegressionDataResult,
         result: MultipleRegressionResult,
@@ -108,182 +172,147 @@ class UIRenderer:
         show_formulas: bool = True,
     ) -> None:
         """
-        Display complete multiple regression analysis.
-        
-        Args:
-            data: Original data
-            result: Multiple regression results
-            plots: Plot collection
-            show_formulas: Whether to show mathematical formulas
+        Compact display for multiple regression.
         """
+        import pandas as pd
+        
         # Header
         st.markdown("# 📊 Multiple Regression")
         
         # Key metrics
-        self._display_key_metrics_multiple(result)
+        col1, col2, col3, col4 = st.columns(4)
+        col1.metric("R²", f"{result.r_squared:.4f}")
+        col2.metric("R² adj", f"{result.r_squared_adj:.4f}")
+        col3.metric("F", f"{result.f_statistic:.2f}")
+        col4.metric("n", f"{result.n}")
         
-        # 3D plot
-        st.plotly_chart(plots.scatter, use_container_width=True, key="scatter_3d")
+        # 3D Plot with context
+        st.markdown("---")
+        st.markdown("## 📊 Regressionsebene")
+        st.markdown(f"""
+        **Interpretation:** Die Ebene zeigt den geschätzten Zusammenhang zwischen
+        **{data.x1_label}**, **{data.x2_label}** und **{data.y_label}**.
         
-        # Model equation
-        self._display_equation_multiple(result, data, show_formulas)
+        - Pro Einheit {data.x1_label}: {data.y_label} ändert sich um **{result.coefficients[0]:.3f}** (ceteris paribus)
+        - Pro Einheit {data.x2_label}: {data.y_label} ändert sich um **{result.coefficients[1]:.3f}** (ceteris paribus)
+        """)
+        st.plotly_chart(plots.scatter, use_container_width=True, key="scatter3d_compact")
         
-        # Coefficient table
-        self._display_coefficient_table_multiple(result, data)
+        # Equation
+        if show_formulas:
+            b0 = result.intercept
+            b1, b2 = result.coefficients
+            sign1 = "+" if b1 >= 0 else ""
+            sign2 = "+" if b2 >= 0 else ""
+            st.latex(rf"\hat{{y}} = {b0:.3f} {sign1} {b1:.3f} \cdot x_1 {sign2} {b2:.3f} \cdot x_2")
         
         # Residual analysis
         st.markdown("---")
-        st.markdown("## 📊 Residuenanalyse")
-        
+        st.markdown("## 🔍 Residuenanalyse")
         col1, col2 = st.columns(2)
         with col1:
-            st.plotly_chart(plots.residuals, use_container_width=True, key="resid_mult")
+            st.plotly_chart(plots.residuals, use_container_width=True, key="resid_mult_compact")
         with col2:
             if plots.diagnostics:
-                st.plotly_chart(plots.diagnostics, use_container_width=True, key="diag_mult")
-    
-    def sidebar_simple(
-        self,
-        datasets: list = None,
-    ) -> Dict[str, Any]:
-        """
-        Render sidebar controls for simple regression.
+                st.plotly_chart(plots.diagnostics, use_container_width=True, key="diag_mult_compact")
         
-        Returns:
-            Dictionary with all selected parameters
-        """
-        if datasets is None:
-            datasets = ["electronics", "advertising", "temperature"]
-        
-        st.sidebar.markdown("## ⚙️ Parameter")
-        
-        dataset = st.sidebar.selectbox(
-            "Datensatz",
-            datasets,
-            format_func=lambda x: {
-                "electronics": "🏪 Elektronikmarkt",
-                "advertising": "📢 Werbestudie",
-                "temperature": "🍦 Eisverkauf",
-            }.get(x, x)
-        )
-        
-        n = st.sidebar.slider("Stichprobengrösse (n)", 10, 100, 50)
-        noise = st.sidebar.slider("Rauschen (σ)", 0.1, 2.0, 0.4, 0.1)
-        seed = st.sidebar.number_input("Random Seed", 1, 9999, 42)
-        
-        with st.sidebar.expander("Wahre Parameter"):
-            true_intercept = st.slider("β₀ (Intercept)", -2.0, 3.0, 0.6, 0.1)
-            true_slope = st.slider("β₁ (Steigung)", 0.1, 2.0, 0.52, 0.01)
-            show_true = st.checkbox("Wahre Linie zeigen", True)
-        
-        show_formulas = st.sidebar.checkbox("Formeln anzeigen", True)
-        
-        return {
-            "dataset": dataset,
-            "n": n,
-            "noise": noise,
-            "seed": seed,
-            "true_intercept": true_intercept,
-            "true_slope": true_slope,
-            "show_true_line": show_true,
-            "show_formulas": show_formulas,
-        }
-    
-    def sidebar_multiple(
-        self,
-        datasets: list = None,
-    ) -> Dict[str, Any]:
-        """
-        Render sidebar controls for multiple regression.
-        
-        Returns:
-            Dictionary with selected parameters
-        """
-        if datasets is None:
-            datasets = ["cities", "houses"]
-        
-        st.sidebar.markdown("## ⚙️ Parameter")
-        
-        dataset = st.sidebar.selectbox(
-            "Datensatz",
-            datasets,
-            format_func=lambda x: {
-                "cities": "🏙️ Städte-Umsatzstudie",
-                "houses": "🏠 Häuserpreise",
-            }.get(x, x)
-        )
-        
-        n = st.sidebar.slider("Stichprobengrösse (n)", 20, 200, 75)
-        noise = st.sidebar.slider("Rauschen (σ)", 1.0, 10.0, 3.5, 0.5)
-        seed = st.sidebar.number_input("Random Seed", 1, 9999, 42)
-        show_formulas = st.sidebar.checkbox("Formeln anzeigen", True)
-        
-        return {
-            "dataset": dataset,
-            "n": n,
-            "noise": noise,
-            "seed": seed,
-            "show_formulas": show_formulas,
-        }
+        # Coefficient table
+        self._display_coefficient_table_multiple(result, data)
     
     # =========================================================
-    # PRIVATE: Display Helpers
+    # PRIVATE HELPERS
     # =========================================================
     
-    def _display_key_metrics_simple(self, result: RegressionResult) -> None:
-        """Display key metrics in columns."""
-        col1, col2, col3, col4 = st.columns(4)
+    def _build_simple_model_data(
+        self, data: DataResult, result: RegressionResult
+    ) -> Dict[str, Any]:
+        """Build model_data dict for simple regression tab renderer."""
+        import numpy as np
         
-        col1.metric("R²", f"{result.r_squared:.4f}")
-        col2.metric("β₀ (Intercept)", f"{result.intercept:.4f}")
-        col3.metric("β₁ (Steigung)", f"{result.slope:.4f}")
-        col4.metric("n", f"{result.n}")
+        # Create a mock model object with required attributes
+        class MockModel:
+            def __init__(self, result):
+                self.rsquared = result.r_squared
+                self.rsquared_adj = result.r_squared_adj
+                self.params = [result.intercept, result.slope]
+                self.bse = [result.se_intercept, result.se_slope]
+                self.tvalues = [result.t_intercept, result.t_slope]
+                self.pvalues = [result.p_intercept, result.p_slope]
+                self.resid = result.residuals
+                self.fittedvalues = result.y_pred
+                self.ssr = result.sse  # Note: naming convention differs
+                self.centered_tss = result.sst
+                self.ess = result.ssr
+                self.mse_resid = result.mse
+                self.df_resid = result.df
+        
+        return {
+            "model": MockModel(result),
+            "x": data.x,
+            "y": data.y,
+            "y_pred": result.y_pred,
+            "b0": result.intercept,
+            "b1": result.slope,
+            "residuals": result.residuals,
+            "x_mean": result.extra.get("x_mean", np.mean(data.x)),
+            "y_mean_val": result.extra.get("y_mean", np.mean(data.y)),
+            "cov_xy": result.extra.get("cov_xy", np.cov(data.x, data.y)[0, 1]),
+            "var_x": np.var(data.x, ddof=1),
+            "var_y": np.var(data.y, ddof=1),
+            "corr_xy": result.extra.get("correlation", np.corrcoef(data.x, data.y)[0, 1]),
+            "sse": result.sse,
+            "sst": result.sst,
+            "ssr": result.ssr,
+            "mse": result.mse,
+            "se_regression": result.extra.get("se_regression", np.sqrt(result.mse)),
+        }
     
-    def _display_key_metrics_multiple(self, result: MultipleRegressionResult) -> None:
-        """Display key metrics for multiple regression."""
-        col1, col2, col3, col4 = st.columns(4)
-        
-        col1.metric("R²", f"{result.r_squared:.4f}")
-        col2.metric("R² adj", f"{result.r_squared_adj:.4f}")
-        col3.metric("F-Statistik", f"{result.f_statistic:.2f}")
-        col4.metric("n", f"{result.n}")
+    def _build_multiple_model_data(
+        self, data: MultipleRegressionDataResult, result: MultipleRegressionResult
+    ) -> Dict[str, Any]:
+        """Build model_data dict for multiple regression tab renderer."""
+        return {
+            "x2_preis": data.x1,
+            "x3_werbung": data.x2,
+            "y_mult": data.y,
+            "x1_name": data.x1_label,
+            "x2_name": data.x2_label,
+            "y_name": data.y_label,
+            "model_mult": None,  # Not needed for display
+            "y_pred_mult": result.y_pred,
+            "mult_coeffs": {
+                "params": [result.intercept] + result.coefficients,
+                "bse": result.se_coefficients,
+                "tvalues": result.t_values,
+                "pvalues": result.p_values,
+            },
+            "mult_summary": {
+                "rsquared": result.r_squared,
+                "rsquared_adj": result.r_squared_adj,
+                "fvalue": result.f_statistic,
+                "f_pvalue": result.f_pvalue,
+            },
+            "mult_diagnostics": {
+                "resid": result.residuals,
+                "sse": result.sse,
+            },
+        }
     
-    def _display_equation_simple(
-        self, result: RegressionResult, data: DataResult, show_formulas: bool
-    ) -> None:
-        """Display regression equation."""
-        st.markdown("### 📐 Regressionsgleichung")
-        
-        sign = "+" if result.slope >= 0 else ""
-        st.success(f"**ŷ = {result.intercept:.4f} {sign} {result.slope:.4f} · x**")
-        
-        if show_formulas:
-            st.markdown("**Interpretation:**")
-            st.markdown(f"- Wenn {data.x_label} um 1 steigt, ändert sich {data.y_label} um **{result.slope:.4f}**")
-            st.markdown(f"- Bei {data.x_label} = 0 ist der erwartete {data.y_label} = **{result.intercept:.4f}**")
-    
-    def _display_equation_multiple(
-        self, result: MultipleRegressionResult, data: MultipleRegressionDataResult, show_formulas: bool
-    ) -> None:
-        """Display multiple regression equation."""
-        st.markdown("### 📐 Regressionsgleichung")
-        
-        b0 = result.intercept
-        b1, b2 = result.coefficients
-        sign1 = "+" if b1 >= 0 else ""
-        sign2 = "+" if b2 >= 0 else ""
-        
-        st.success(f"**ŷ = {b0:.3f} {sign1} {b1:.3f}·x₁ {sign2} {b2:.3f}·x₂**")
-        
-        if show_formulas:
-            st.markdown("**Interpretation (ceteris paribus):**")
-            st.markdown(f"- Pro Einheit {data.x1_label}: {data.y_label} ändert sich um **{b1:.3f}**")
-            st.markdown(f"- Pro Einheit {data.x2_label}: {data.y_label} ändert sich um **{b2:.3f}**")
+    def _map_dataset_name(self, dataset: str) -> str:
+        """Map internal dataset name to display name for content.py."""
+        mapping = {
+            "cities": "🏙️ Städte-Umsatzstudie (75 Städte)",
+            "houses": "🏠 Häuserpreise mit Pool (1000 Häuser)",
+            "electronics": "🏪 Elektronikmarkt (simuliert)",
+        }
+        return mapping.get(dataset, dataset)
     
     def _display_coefficient_table_simple(
         self, result: RegressionResult, data: DataResult
     ) -> None:
-        """Display coefficient table."""
+        """Display coefficient table with significance."""
+        import pandas as pd
+        
         st.markdown("### 📋 Koeffizienten")
         
         df = pd.DataFrame({
@@ -292,7 +321,7 @@ class UIRenderer:
             "Std. Error": [result.se_intercept, result.se_slope],
             "t-Wert": [result.t_intercept, result.t_slope],
             "p-Wert": [result.p_intercept, result.p_slope],
-            "Signif.": [get_signif_stars(result.p_intercept), get_signif_stars(result.p_slope)],
+            "Signif.": [_get_signif_stars(result.p_intercept), _get_signif_stars(result.p_slope)],
         })
         
         st.dataframe(
@@ -305,13 +334,14 @@ class UIRenderer:
             use_container_width=True,
             hide_index=True,
         )
-        
         st.caption("Signif.: *** p<0.001, ** p<0.01, * p<0.05, . p<0.1")
     
     def _display_coefficient_table_multiple(
         self, result: MultipleRegressionResult, data: MultipleRegressionDataResult
     ) -> None:
         """Display coefficient table for multiple regression."""
+        import pandas as pd
+        
         st.markdown("### 📋 Koeffizienten")
         
         labels = ["β₀ (Intercept)", f"β₁ ({data.x1_label})", f"β₂ ({data.x2_label})"]
@@ -323,7 +353,7 @@ class UIRenderer:
             "Std. Error": result.se_coefficients,
             "t-Wert": result.t_values,
             "p-Wert": result.p_values,
-            "Signif.": [get_signif_stars(p) for p in result.p_values],
+            "Signif.": [_get_signif_stars(p) for p in result.p_values],
         })
         
         st.dataframe(
@@ -336,5 +366,17 @@ class UIRenderer:
             use_container_width=True,
             hide_index=True,
         )
-        
         st.caption("Signif.: *** p<0.001, ** p<0.01, * p<0.05, . p<0.1")
+
+
+def _get_signif_stars(p: float) -> str:
+    """Get significance stars like R."""
+    if p < 0.001:
+        return "***"
+    if p < 0.01:
+        return "**"
+    if p < 0.05:
+        return "*"
+    if p < 0.1:
+        return "."
+    return ""

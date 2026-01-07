@@ -14,11 +14,39 @@ Usage:
     result = pipeline.run(dataset="electronics", n=50)
 """
 
+# Core components (no external UI dependencies)
 from .get_data import DataFetcher
 from .calculate import StatisticsCalculator
-from .plot import PlotBuilder
-from .display import UIRenderer
-from .regression_pipeline import RegressionPipeline, PipelineResult
+
+# Lazy imports for components with external dependencies
+def get_plot_builder():
+    """Lazy import PlotBuilder (requires plotly)."""
+    from .plot import PlotBuilder
+    return PlotBuilder
+
+def get_ui_renderer():
+    """Lazy import UIRenderer (requires streamlit)."""
+    from .display import UIRenderer
+    return UIRenderer
+
+def get_pipeline():
+    """Lazy import RegressionPipeline (requires plotly)."""
+    from .regression_pipeline import RegressionPipeline, PipelineResult
+    return RegressionPipeline, PipelineResult
+
+# For convenience, try to import full pipeline
+try:
+    from .plot import PlotBuilder
+    from .regression_pipeline import RegressionPipeline, PipelineResult
+except ImportError:
+    PlotBuilder = None
+    RegressionPipeline = None
+    PipelineResult = None
+
+try:
+    from .display import UIRenderer
+except ImportError:
+    UIRenderer = None
 
 __all__ = [
     # Core pipeline
@@ -29,4 +57,8 @@ __all__ = [
     'StatisticsCalculator', 
     'PlotBuilder',
     'UIRenderer',
+    # Lazy loaders
+    'get_plot_builder',
+    'get_ui_renderer',
+    'get_pipeline',
 ]

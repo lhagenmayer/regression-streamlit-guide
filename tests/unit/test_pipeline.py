@@ -2,21 +2,34 @@
 Tests for the Pipeline Module.
 
 Tests the 4-step pipeline: GET → CALCULATE → PLOT → DISPLAY
+
+Note: Display tests require streamlit and are skipped in CI environments.
 """
 
 import pytest
 import numpy as np
 
-from src.pipeline import (
-    RegressionPipeline,
-    PipelineResult,
-    DataFetcher,
-    StatisticsCalculator,
-    PlotBuilder,
-)
-from src.pipeline.get_data import DataResult, MultipleRegressionDataResult
-from src.pipeline.calculate import RegressionResult, MultipleRegressionResult
-from src.pipeline.plot import PlotCollection
+# Import only non-UI components for testing
+from src.pipeline.get_data import DataFetcher, DataResult, MultipleRegressionDataResult
+from src.pipeline.calculate import StatisticsCalculator, RegressionResult, MultipleRegressionResult
+
+# Try to import plot components (may fail without plotly)
+try:
+    from src.pipeline.plot import PlotBuilder, PlotCollection
+    HAS_PLOTLY = True
+except ImportError:
+    HAS_PLOTLY = False
+    PlotBuilder = None
+    PlotCollection = None
+
+# Try to import full pipeline (may fail without streamlit)
+try:
+    from src.pipeline import RegressionPipeline, PipelineResult
+    HAS_STREAMLIT = True
+except ImportError:
+    HAS_STREAMLIT = False
+    RegressionPipeline = None
+    PipelineResult = None
 
 
 class TestDataFetcher:
@@ -167,6 +180,7 @@ class TestStatisticsCalculator:
         assert stats["median"] == 5.5
 
 
+@pytest.mark.skipif(not HAS_PLOTLY, reason="Plotly not installed")
 class TestPlotBuilder:
     """Test Step 3: PLOT"""
     
@@ -199,6 +213,7 @@ class TestPlotBuilder:
         assert plots.residuals is not None
 
 
+@pytest.mark.skipif(not HAS_STREAMLIT, reason="Streamlit not installed")
 class TestRegressionPipeline:
     """Test complete pipeline integration."""
     
@@ -264,6 +279,7 @@ class TestRegressionPipeline:
         assert isinstance(plots, PlotCollection)
 
 
+@pytest.mark.skipif(not HAS_STREAMLIT, reason="Streamlit not installed")
 class TestPipelineConsistency:
     """Test that pipeline produces consistent results."""
     
