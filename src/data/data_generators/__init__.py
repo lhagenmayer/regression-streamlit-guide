@@ -7,7 +7,6 @@ All generators follow a common interface defined by the DataGenerator Protocol.
 
 from abc import ABC, abstractmethod
 from typing import Dict, Any, Protocol
-from functools import lru_cache
 import time
 
 
@@ -27,12 +26,6 @@ class BaseDataGenerator(ABC):
     """
 
     def __init__(self, cache_ttl: int = 300):
-        """
-        Initialize the data generator.
-
-        Args:
-            cache_ttl: Time-to-live for cached results in seconds (default: 5 minutes)
-        """
         self.cache_ttl = cache_ttl
         self._cache = {}
 
@@ -46,9 +39,7 @@ class BaseDataGenerator(ABC):
             result, timestamp = self._cache[cache_key]
             if time.time() - timestamp < self.cache_ttl:
                 return True
-            else:
-                # Remove expired entry
-                del self._cache[cache_key]
+            del self._cache[cache_key]
         return False
 
     def _get_cached_result(self, cache_key: tuple) -> Any:
@@ -60,42 +51,59 @@ class BaseDataGenerator(ABC):
         self._cache[cache_key] = (result, time.time())
 
     def _validate_common_params(self, n: int, noise_level: float, seed: int) -> None:
-        """
-        Validate common parameters used by most generators.
-
-        Args:
-            n: Number of observations
-            noise_level: Noise level
-            seed: Random seed
-
-        Raises:
-            ValueError: If parameters are invalid
-        """
+        """Validate common parameters used by most generators."""
         if not isinstance(n, int) or n <= 0:
             raise ValueError(f"Sample size n must be a positive integer, got {n}")
-
         if not isinstance(seed, int):
             raise ValueError(f"Seed must be an integer, got {seed}")
-
         if not isinstance(noise_level, (int, float)) or noise_level < 0:
             raise ValueError(f"Noise level must be a non-negative number, got {noise_level}")
 
     @abstractmethod
     def generate(self, **kwargs) -> Dict[str, Any]:
-        """
-        Generate synthetic data.
-
-        Args:
-            **kwargs: Generator-specific parameters
-
-        Returns:
-            Dictionary containing generated data
-        """
+        """Generate synthetic data."""
         pass
 
 
-# Re-export for backward compatibility
+# ============================================================================
+# Re-export all data generation functions from specialized modules
+# ============================================================================
+from .multiple_regression_generator import (
+    generate_multiple_regression_data,
+    generate_custom_multiple_regression_data
+)
+from .simple_regression_generator import (
+    generate_simple_regression_data,
+    generate_custom_simple_regression_data
+)
+from .dummy_encoding_generator import (
+    create_dummy_encoded_dataset,
+    generate_categorical_regression_data
+)
+from .market_data_generator import (
+    generate_electronics_market_data,
+    generate_real_estate_market_data,
+    generate_stock_market_data
+)
+from .mock_data_generator import safe_scalar
+
 __all__ = [
+    # Base classes
     'DataGeneratorProtocol',
     'BaseDataGenerator',
+    # Multiple regression
+    'generate_multiple_regression_data',
+    'generate_custom_multiple_regression_data',
+    # Simple regression
+    'generate_simple_regression_data',
+    'generate_custom_simple_regression_data',
+    # Dummy encoding
+    'create_dummy_encoded_dataset',
+    'generate_categorical_regression_data',
+    # Market data
+    'generate_electronics_market_data',
+    'generate_real_estate_market_data',
+    'generate_stock_market_data',
+    # Utilities
+    'safe_scalar',
 ]
