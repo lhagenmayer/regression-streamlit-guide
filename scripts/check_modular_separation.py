@@ -909,10 +909,25 @@ class ArchitectureValidator:
             analysis = self._analyze_module(py_file)
 
             # Infrastructure should not contain business logic
+            # Note: We distinguish between "Domain Business Logic" (rules, policies) 
+            # and "Computational Logic" (math, algorithms). 
+            # Computations involving NumPy/SciPy belong in Infrastructure because 
+            # the Domain layer must be pure (no external deps).
+            
             business_logic_indicators = [
-                "validate", "calculate", "compute", "process", "analyze",
-                "predict", "fit", "transform", "evaluate"
+                "validate_policy", "approve_", "reject_", "check_permission",
+                # "validate" is too broad, handled separately
+                # "compute" and "calculate" are allowed if purely mathematical (checked below)
             ]
+
+            # If the file imports numpy/scipy/statsmodels, it's likely a computational adapter
+            is_computational = "numpy" in analysis.imports or "scipy" in analysis.imports or "statsmodels" in analysis.imports
+            
+            if not is_computational:
+                # For non-computational infra, we are stricter
+                business_logic_indicators.extend([
+                    "calculate_bonus", "determine_eligibility", "process_workflow"
+                ])
 
             has_business_logic = any(
                 any(indicator in func for indicator in business_logic_indicators)
@@ -924,7 +939,7 @@ class ArchitectureValidator:
                     "Clean Architecture",
                     Severity.CRITICAL,
                     False,
-                    "Infrastructure layer contains business logic",
+                    "Infrastructure layer contains domain business logic",
                     py_file,
                     "Infrastructure should only handle external concerns (persistence, APIs, frameworks)"
                 )

@@ -139,253 +139,7 @@ def render_simple_regression_tab(
     # =========================================================
     # KAPITEL 1.5: MEHRDIMENSIONALE VERTEILUNGEN
     # =========================================================
-    st.markdown("---")
-    st.markdown(
-        '<p class="section-header">1.5 Mehrdimensionale Verteilungen: Das Fundament für Zusammenhänge</p>',
-        unsafe_allow_html=True,
-    )
-
-    st.markdown(
-        """
-    Bevor wir Zusammenhänge zwischen Variablen analysieren können, müssen wir verstehen,
-    wie **zwei Zufallsvariablen gemeinsam** verteilt sein können. Dies ist die mathematische
-    Grundlage für alles, was folgt.
-    """
-    )
-
-    st.markdown(
-        '<p class="subsection-header">🎲 Gemeinsame Verteilung f(X,Y)</p>', unsafe_allow_html=True
-    )
-
-    col_joint1, col_joint2 = st.columns([2, 1])
-
-    with col_joint1:
-        # Slider für Korrelation in der bivariaten Normalverteilung
-        demo_corr = st.slider(
-            "Korrelation ρ zwischen X und Y",
-            min_value=-0.95,
-            max_value=0.95,
-            value=0.7,
-            step=0.05,
-            help="Bewege den Slider um zu sehen, wie sich die gemeinsame Verteilung verändert",
-            key="demo_corr_slider_simple",
-        )
-
-        # Bivariate Normalverteilung generieren
-        mean = [0, 0]
-        cov_matrix = [[1, demo_corr], [demo_corr, 1]]
-
-        x_grid = np.linspace(-3, 3, 100)
-        y_grid = np.linspace(-3, 3, 100)
-        X_grid, Y_grid = np.meshgrid(x_grid, y_grid)
-        pos = np.dstack((X_grid, Y_grid))
-
-        rv = multivariate_normal(mean, cov_matrix)
-        Z = rv.pdf(pos)
-
-        # 3D Visualization
-        fig_joint_3d = make_subplots(
-            rows=1,
-            cols=3,
-            specs=[[{"type": "surface"}, {"type": "scatter3d"}, {"type": "surface"}]],
-            subplot_titles=(
-                f"Gemeinsame Verteilung<br>ρ = {demo_corr:.2f}",
-                "Randverteilung f_X(x)",
-                f"Bedingte Verteilung<br>E(Y|X=1) = {demo_corr * 1.0:.2f}",
-            ),
-        )
-
-        # 1. 3D Surface Plot der gemeinsamen Verteilung
-        fig_joint_3d.add_trace(
-            go.Surface(x=X_grid, y=Y_grid, z=Z, colorscale="Blues", opacity=0.8, showscale=False),
-            row=1,
-            col=1,
-        )
-
-        # Stichprobe als Punkte auf z=0
-        np.random.seed(42)
-        sample = np.random.multivariate_normal(mean, cov_matrix, 100)
-        fig_joint_3d.add_trace(
-            go.Scatter3d(
-                x=sample[:, 0],
-                y=sample[:, 1],
-                z=np.zeros(100),
-                mode="markers",
-                marker=dict(size=2, color="red", opacity=0.3),
-                showlegend=False,
-            ),
-            row=1,
-            col=1,
-        )
-
-        # 2. Randverteilung als 3D
-        x_marg = np.linspace(-3, 3, 100)
-        y_marg_pdf = stats.norm.pdf(x_marg, 0, 1)
-
-        fig_joint_3d.add_trace(
-            go.Scatter3d(
-                x=x_marg,
-                y=y_marg_pdf,
-                z=np.zeros_like(x_marg),
-                mode="lines",
-                line=dict(color="blue", width=4),
-                showlegend=False,
-            ),
-            row=1,
-            col=2,
-        )
-
-        # 3. Bedingte Verteilung
-        x_cond = 1.0
-        cond_mean = demo_corr * x_cond
-        cond_var = max(1 - demo_corr**2, 0.01)
-        cond_std = np.sqrt(cond_var)
-
-        y_cond_grid = np.linspace(-3, 3, 100)
-        pdf_cond = stats.norm.pdf(y_cond_grid, cond_mean, cond_std)
-
-        fig_joint_3d.add_trace(
-            go.Scatter3d(
-                x=np.full_like(y_cond_grid, x_cond),
-                y=y_cond_grid,
-                z=pdf_cond,
-                mode="lines",
-                line=dict(color="green", width=4),
-                showlegend=False,
-            ),
-            row=1,
-            col=3,
-        )
-
-        fig_joint_3d.update_layout(
-            height=500,
-            showlegend=False,
-            scene1=dict(
-                xaxis_title="X",
-                yaxis_title="Y",
-                zaxis_title="f(X,Y)",
-                camera=CAMERA_PRESETS.get("default", dict(eye=dict(x=1.5, y=1.5, z=1.2))),
-            ),
-            scene2=dict(
-                xaxis_title="X",
-                yaxis_title="",
-                zaxis_title="f_X(x)",
-            ),
-            scene3=dict(
-                xaxis_title="X",
-                yaxis_title="Y",
-                zaxis_title="f(Y|X=1)",
-                camera=dict(eye=dict(x=1.5, y=-1.8, z=1.0)),
-            ),
-        )
-
-        st.plotly_chart(fig_joint_3d, key="joint_3d_distribution_simple", use_container_width=True)
-
-    with col_joint2:
-        if show_formulas:
-            st.markdown("### Gemeinsame Verteilung")
-            st.latex(r"f_{X,Y}(x,y) = P(X=x, Y=y)")
-
-            st.markdown("### Randverteilung")
-            st.latex(r"f_X(x) = \sum_y f_{X,Y}(x,y)")
-
-            st.markdown("### Bedingte Verteilung")
-            st.latex(r"f_{Y|X}(y|x) = \frac{f_{X,Y}(x,y)}{f_X(x)}")
-
-        st.info(
-            f"""
-        **Beobachte:**
-
-        Bei ρ = {demo_corr:.2f}:
-        - Die Punktewolke ist {"stark" if abs(demo_corr) > 0.7 else "schwach"} {"positiv" if demo_corr > 0 else "negativ" if demo_corr < 0 else "un"}korreliert
-        - E(Y|X=1) = {demo_corr:.2f} (nicht 0!)
-        - Die bedingte Varianz ist {max(1 - demo_corr**2, 0.01):.2f} < 1
-
-        **→ Je höher |ρ|, desto mehr "wissen" wir über Y, wenn wir X kennen!**
-        """
-        )
-
-    # Stochastische Unabhängigkeit
-    st.markdown(
-        '<p class="subsection-header">🔗 Stochastische Unabhängigkeit</p>', unsafe_allow_html=True
-    )
-
-    col_indep1, col_indep2 = st.columns([1, 1])
-
-    with col_indep1:
-        st.markdown(
-            """
-        Zwei Zufallsvariablen X und Y sind **stochastisch unabhängig**, wenn:
-        """
-        )
-        st.latex(r"f_{X,Y}(x,y) = f_X(x) \cdot f_Y(y)")
-        st.markdown(
-            """
-        Das bedeutet: Die gemeinsame Wahrscheinlichkeit ist einfach das **Produkt** der Einzelwahrscheinlichkeiten.
-
-        **Konsequenz:** Bei Unabhängigkeit gilt:
-        - $E(Y|X=x) = E(Y)$ – X sagt nichts über Y aus!
-        - $Cov(X,Y) = 0$
-        - $ρ = 0$
-        """
-        )
-
-    with col_indep2:
-        np.random.seed(123)
-        x_ind = np.random.normal(0, 1, 200)
-        y_ind = np.random.normal(0, 1, 200)
-
-        cov_dep = [[1, 0.8], [0.8, 1]]
-        sample_dep = np.random.multivariate_normal([0, 0], cov_dep, 200)
-
-        fig_indep = make_subplots(
-            rows=1,
-            cols=2,
-            subplot_titles=(
-                'Unabhängig (ρ = 0)<br>"Keine Struktur"',
-                'Abhängig (ρ = 0.8)<br>"Klare Struktur"',
-            ),
-        )
-
-        fig_indep.add_trace(
-            go.Scatter(
-                x=x_ind,
-                y=y_ind,
-                mode="markers",
-                marker=dict(size=5, color="gray", opacity=0.5),
-                showlegend=False,
-            ),
-            row=1,
-            col=1,
-        )
-
-        fig_indep.add_trace(
-            go.Scatter(
-                x=sample_dep[:, 0],
-                y=sample_dep[:, 1],
-                mode="markers",
-                marker=dict(size=5, color="blue", opacity=0.5),
-                showlegend=False,
-            ),
-            row=1,
-            col=2,
-        )
-
-        fig_indep.update_xaxes(title_text="X", row=1, col=1)
-        fig_indep.update_yaxes(title_text="Y", row=1, col=1)
-        fig_indep.update_xaxes(title_text="X", row=1, col=2)
-        fig_indep.update_yaxes(title_text="Y", row=1, col=2)
-
-        fig_indep.update_layout(height=400, template="plotly_white")
-
-        st.plotly_chart(fig_indep, key="independence_plot_simple", use_container_width=True)
-
-    st.success(
-        """
-    **Merke:** Die Regression nutzt genau diese Struktur! Wenn X und Y abhängig sind,
-    können wir $E(Y|X=x)$ als Funktion von x modellieren – das ist die Regressionsgerade!
-    """
-    )
+    _render_chapter_1_5(demo_corr, show_formulas)
 
     # =========================================================
     # KAPITEL 2.0: DAS FUNDAMENT
@@ -427,11 +181,21 @@ def render_simple_regression_tab(
     _render_chapter_5_0(
         model, n, b1, x_label, y_label, show_formulas
     )
+
+    # =========================================================
+    # KAPITEL 5.5: ANOVA FÜR GRUPPENVERGLEICHE
+    # =========================================================
+    _render_chapter_5_5(n, y_mean_val, y_label, show_formulas)
+
+    # =========================================================
+    # KAPITEL 5.6: HETEROSKEDASTIZITÄT
+    # =========================================================
+    _render_chapter_5_6(model)
     
     # =========================================================
     # KAPITEL 6.0: FAZIT
     # =========================================================
-    _render_chapter_6_0()
+    _render_chapter_6_0(x, y, y_pred, x_label, y_label, b0, b1)
 
     logger.info("Simple regression tab rendered with full educational content")
 
@@ -1080,36 +844,301 @@ def _render_chapter_5_0(model, n, b1, x_label, y_label, show_formulas):
             st.warning("⚠️ Die Steigung ist **nicht signifikant**.")
 
 
-def _render_chapter_6_0():
-    """Render Chapter 6.0: Fazit."""
+    logger.info("Simple regression tab rendered with full educational content")
+
+
+def _render_chapter_1_5(demo_corr, show_formulas):
+    """Render Chapter 1.5: Mehrdimensionale Verteilungen."""
     st.markdown("---")
-    st.markdown('<p class="section-header">6.0 Fazit und Ausblick</p>', unsafe_allow_html=True)
+    st.markdown(
+        '<p class="section-header">1.5 Mehrdimensionale Verteilungen: Das Fundament für Zusammenhänge</p>',
+        unsafe_allow_html=True,
+    )
 
     st.markdown(
         """
-    ### 📚 Was wir gelernt haben:
-
-    1. **Das Regressionsmodell** beschreibt lineare Zusammenhänge: ŷ = b₀ + b₁x
-
-    2. **OLS (Methode der kleinsten Quadrate)** findet die beste Gerade durch Minimierung der Residuenquadrate
-
-    3. **Kovarianz und Korrelation** messen Richtung und Stärke des Zusammenhangs
-
-    4. **R²** sagt uns, wie viel Varianz das Modell erklärt
-
-    5. **t-Test und F-Test** prüfen die statistische Signifikanz
-
-    6. **Residuen-Diagnose** validiert die Modellannahmen
+    Bevor wir Zusammenhänge zwischen Variablen analysieren können, müssen wir verstehen,
+    wie **zwei Zufallsvariablen gemeinsam** verteilt sein können. Dies ist die mathematische
+    Grundlage für alles, was folgt.
     """
     )
 
-    st.info(
+    st.markdown(
+        '<p class="subsection-header">🎲 Gemeinsame Verteilung f(X,Y)</p>', unsafe_allow_html=True
+    )
+
+    col_joint1, col_joint2 = st.columns([2, 1])
+
+    with col_joint1:
+        # Bivariate Normalverteilung generieren
+        mean = [0, 0]
+        cov_matrix = [[1, demo_corr], [demo_corr, 1]]
+
+        x_grid = np.linspace(-3, 3, 100)
+        y_grid = np.linspace(-3, 3, 100)
+        X_grid, Y_grid = np.meshgrid(x_grid, y_grid)
+        pos = np.dstack((X_grid, Y_grid))
+
+        rv = multivariate_normal(mean, cov_matrix)
+        Z = rv.pdf(pos)
+
+        # 3D Visualization
+        fig_joint_3d = make_subplots(
+            rows=1,
+            cols=3,
+            specs=[[{"type": "surface"}, {"type": "scatter3d"}, {"type": "surface"}]],
+            subplot_titles=(
+                f"Gemeinsame Verteilung<br>ρ = {demo_corr:.2f}",
+                "Randverteilung f_X(x)",
+                f"Bedingte Verteilung<br>E(Y|X=1) = {demo_corr * 1.0:.2f}",
+            ),
+        )
+
+        # 1. 3D Surface Plot der gemeinsamen Verteilung
+        fig_joint_3d.add_trace(
+            go.Surface(x=X_grid, y=Y_grid, z=Z, colorscale="Blues", opacity=0.8, showscale=False),
+            row=1,
+            col=1,
+        )
+
+        # Stichprobe als Punkte auf z=0
+        np.random.seed(42)
+        sample = np.random.multivariate_normal(mean, cov_matrix, 100)
+        fig_joint_3d.add_trace(
+            go.Scatter3d(
+                x=sample[:, 0],
+                y=sample[:, 1],
+                z=np.zeros(100),
+                mode="markers",
+                marker=dict(size=2, color="red", opacity=0.3),
+                showlegend=False,
+            ),
+            row=1,
+            col=1,
+        )
+
+        # 2. Randverteilung als 3D
+        x_marg = np.linspace(-3, 3, 100)
+        y_marg_pdf = stats.norm.pdf(x_marg, 0, 1)
+
+        fig_joint_3d.add_trace(
+            go.Scatter3d(
+                x=x_marg,
+                y=y_marg_pdf,
+                z=np.zeros_like(x_marg),
+                mode="lines",
+                line=dict(color="blue", width=4),
+                showlegend=False,
+            ),
+            row=1,
+            col=2,
+        )
+
+        # 3. Bedingte Verteilung
+        x_cond = 1.0
+        cond_mean = demo_corr * x_cond
+        cond_var = max(1 - demo_corr**2, 0.01)
+        cond_std = np.sqrt(cond_var)
+
+        y_cond_grid = np.linspace(-3, 3, 100)
+        pdf_cond = stats.norm.pdf(y_cond_grid, cond_mean, cond_std)
+
+        fig_joint_3d.add_trace(
+            go.Scatter3d(
+                x=np.full_like(y_cond_grid, x_cond),
+                y=y_cond_grid,
+                z=pdf_cond,
+                mode="lines",
+                line=dict(color="green", width=4),
+                showlegend=False,
+            ),
+            row=1,
+            col=3,
+        )
+
+        fig_joint_3d.update_layout(
+            height=500,
+            showlegend=False,
+            scene1=dict(
+                xaxis_title="X", yaxis_title="Y", zaxis_title="f(X,Y)",
+                camera=CAMERA_PRESETS.get("default", dict(eye=dict(x=1.5, y=1.5, z=1.2))),
+            ),
+            scene2=dict(xaxis_title="X", yaxis_title="", zaxis_title="f_X(x)"),
+            scene3=dict(
+                xaxis_title="X", yaxis_title="Y", zaxis_title="f(Y|X=1)",
+                camera=dict(eye=dict(x=1.5, y=-1.8, z=1.0)),
+            ),
+        )
+
+        st.plotly_chart(fig_joint_3d, key="joint_3d_distribution_simple_helper", use_container_width=True)
+
+    with col_joint2:
+        if show_formulas:
+            st.markdown("### Gemeinsame Verteilung")
+            st.latex(r"f_{X,Y}(x,y) = P(X=x, Y=y)")
+            st.markdown("### Randverteilung")
+            st.latex(r"f_X(x) = \sum_y f_{X,Y}(x,y)")
+            st.markdown("### Bedingte Verteilung")
+            st.latex(r"f_{Y|X}(y|x) = \frac{f_{X,Y}(x,y)}{f_X(x)}")
+
+        st.info(
+            f"""
+        **Beobachte:**
+        Bei ρ = {demo_corr:.2f}:
+        - Die Punktewolke ist {"stark" if abs(demo_corr) > 0.7 else "schwach"} {"positiv" if demo_corr > 0 else "negativ" if demo_corr < 0 else "un"}korreliert
+        - E(Y|X=1) = {demo_corr:.2f} (nicht 0!)
+        - Die bedingte Varianz ist {max(1 - demo_corr**2, 0.01):.2f} < 1
+        **→ Je höher |ρ|, desto mehr "wissen" wir über Y, wenn wir X kennen!**
         """
-    **🚀 Nächste Schritte:**
+        )
 
-    - Experimentieren Sie mit verschiedenen Datensätzen
-    - Vergleichen Sie einfache vs. multiple Regression
-    - Prüfen Sie die Residuen-Diagnostik
-    - Erkunden Sie Prognosen für verschiedene Szenarien
-    """
-    )
+    # Stochastische Unabhängigkeit
+    st.markdown('<p class="subsection-header">🔗 Stochastische Unabhängigkeit</p>', unsafe_allow_html=True)
+    col_indep1, col_indep2 = st.columns([1, 1])
+    with col_indep1:
+        st.markdown("Zwei Zufallsvariablen X und Y sind **stochastisch unabhängig**, wenn:")
+        st.latex(r"f_{X,Y}(x,y) = f_X(x) \cdot f_Y(y)")
+        st.markdown("Das bedeutet: Die gemeinsame Wahrscheinlichkeit ist einfach das **Produkt** der Einzelwahrscheinlichkeiten.")
+
+    with col_indep2:
+        np.random.seed(123)
+        x_ind = np.random.normal(0, 1, 200)
+        y_ind = np.random.normal(0, 1, 200)
+        cov_dep = [[1, 0.8], [0.8, 1]]
+        sample_dep = np.random.multivariate_normal([0, 0], cov_dep, 200)
+        fig_indep = make_subplots(rows=1, cols=2, subplot_titles=('Unabhängig (ρ = 0)', 'Abhängig (ρ = 0.8)'))
+        fig_indep.add_trace(go.Scatter(x=x_ind, y=y_ind, mode="markers", marker=dict(size=5, color="gray", opacity=0.5)), row=1, col=1)
+        fig_indep.add_trace(go.Scatter(x=sample_dep[:, 0], y=sample_dep[:, 1], mode="markers", marker=dict(size=5, color="blue", opacity=0.5)), row=1, col=2)
+        fig_indep.update_layout(height=400, template="plotly_white", showlegend=False)
+        st.plotly_chart(fig_indep, key="independence_plot_simple_helper", use_container_width=True)
+
+
+def _render_chapter_5_5(n, y_mean_val, y_label, show_formulas):
+    """Render Chapter 5.5: ANOVA für Gruppenvergleiche."""
+    st.markdown("---")
+    st.markdown('<p class="section-header">5.5 ANOVA für Gruppenvergleiche: Mehr als zwei Gruppen</p>', unsafe_allow_html=True)
+    st.markdown("""
+    Der F-Test ist ein **Spezialfall der ANOVA** (Analysis of Variance).
+    Die ANOVA erweitert den Vergleich auf **mehr als zwei Gruppen**.
+    **Praxisbeispiel:** Unser Elektronikmarkt hat Filialen in **3 Regionen** (Nord, Mitte, Süd).
+    Unterscheiden sich die durchschnittlichen Umsätze zwischen den Regionen signifikant?
+    """)
+    
+    with st.expander("🧪 Interaktives ANOVA-Beispiel", expanded=False):
+        anova_effect = st.slider("Effektstärke Regionen", 0.0, 2.0, 0.8, 0.1, key="anova_effect_slider")
+        anova_noise = st.slider("Streuung innerhalb Gruppen", 0.5, 2.0, 1.0, 0.1, key="anova_noise_slider")
+
+    # Generate ANOVA data
+    np.random.seed(42)
+    n_per_group = max(n // 3, 5)
+    region_nord = np.random.normal(y_mean_val - anova_effect, anova_noise, n_per_group)
+    region_mitte = np.random.normal(y_mean_val, anova_noise, n_per_group)
+    region_sued = np.random.normal(y_mean_val + anova_effect, anova_noise, n_per_group)
+
+    df_anova = pd.DataFrame({
+        "Umsatz": np.concatenate([region_nord, region_mitte, region_sued]),
+        "Region": ["Nord"]*n_per_group + ["Mitte"]*n_per_group + ["Süd"]*n_per_group
+    })
+    
+    # Simple ANOVA calculation
+    grand_mean = df_anova["Umsatz"].mean()
+    group_means = df_anova.groupby("Region")["Umsatz"].mean()
+    sstr = sum(n_per_group * (m - grand_mean)**2 for m in group_means)
+    sse = sum(sum((x - group_means[r])**2 for x in df_anova[df_anova["Region"]==r]["Umsatz"]) for r in df_anova["Region"].unique())
+    sst = sstr + sse
+    ms_between = sstr / 2
+    ms_within = sse / (len(df_anova) - 3)
+    f_stat = ms_between / ms_within
+    p_val = 1 - stats.f.cdf(f_stat, 2, len(df_anova) - 3)
+
+    col1, col2 = st.columns([2, 1])
+    with col1:
+        fig = make_subplots(rows=1, cols=2, specs=[[{"type": "scatter3d"}, {"type": "bar"}]], subplot_titles=("3D Verteilungslandschaft", "Varianzzerlegung (SST)"))
+        # 3D Verteilungen
+        x_range = np.linspace(df_anova["Umsatz"].min()-1, df_anova["Umsatz"].max()+1, 100)
+        for i, (r, color) in enumerate(zip(["Nord", "Mitte", "Süd"], ["#3498db", "#2ecc71", "#e74c3c"])):
+            y_pdf = stats.norm.pdf(x_range, group_means[r], anova_noise)
+            fig.add_trace(go.Scatter3d(x=x_range, y=np.full_like(x_range, i), z=y_pdf, mode="lines", line=dict(color=color, width=4), name=r), row=1, col=1)
+        
+        fig.add_trace(go.Bar(y=["Varianz"], x=[sstr], orientation="h", marker_color="green", name="SSTR (Zwischen)"), row=1, col=2)
+        fig.add_trace(go.Bar(y=["Varianz"], x=[sse], orientation="h", marker_color="red", name="SSE (Innerhalb)"), row=1, col=2)
+        fig.update_layout(height=450, barmode="stack", showlegend=True, scene=dict(xaxis_title=y_label, yaxis_title="Regionen", zaxis_title="Dichte", camera=CAMERA_PRESETS["default"]))
+        st.plotly_chart(fig, use_container_width=True)
+
+    with col2:
+        if show_formulas:
+            st.latex(r"F = \frac{MSTR}{MSE}")
+        st.metric("F-Wert", f"{f_stat:.2f}")
+        st.metric("p-Wert", f"{p_val:.4f}")
+        if p_val < 0.05: st.success("✅ Signifikanter Unterschied!")
+        else: st.warning("⚠️ Kein signifikanter Unterschied.")
+
+
+def _render_chapter_5_6(model):
+    """Render Chapter 5.6: Heteroskedasticity."""
+    st.markdown("---")
+    st.markdown('<p class="section-header">⚠️ Das grosse Problem: Heteroskedastizität</p>', unsafe_allow_html=True)
+    st.markdown("""
+    Die Varianz der Fehler ist **nicht konstant**. Die Daten "streuen" bei hohen Werten stärker – der klassische **"Trichter-Effekt"**.
+    Dies führt zu falschen (zu optimistischen) p-Werten!
+    """)
+    
+    col1, col2 = st.columns([1.5, 1])
+    with col1:
+        # Funnel illustration
+        x = np.linspace(1, 10, 100)
+        y_homo = 2 + 1.5*x + np.random.normal(0, 1, 100)
+        y_hetero = 2 + 1.5*x + np.random.normal(0, 0.5*x, 100)
+        
+        fig = make_subplots(rows=2, cols=2, subplot_titles=("Homoskedastizität", "Heteroskedastizität", "Residuen: OK", "Residuen: Trichter"))
+        fig.add_trace(go.Scatter(x=x, y=y_homo, mode="markers", marker=dict(color="green")), row=1, col=1)
+        fig.add_trace(go.Scatter(x=x, y=y_hetero, mode="markers", marker=dict(color="red")), row=1, col=2)
+        fig.add_trace(go.Scatter(x=x, y=y_homo - (2+1.5*x), mode="markers", marker=dict(color="green")), row=2, col=1)
+        fig.add_trace(go.Scatter(x=x, y=y_hetero - (2+1.5*x), mode="markers", marker=dict(color="red")), row=2, col=2)
+        fig.update_layout(height=500, showlegend=False, template="plotly_white")
+        st.plotly_chart(fig, use_container_width=True)
+
+    with col2:
+        st.error("### 🛡️ Die Lösung: Robuste SE")
+        st.markdown("Verwenden Sie **HC3-Standardfehler**, um p-Werte bei Heteroskedastizität zu korrigieren.")
+        try:
+            robust = model.get_robustcov_results(cov_type='HC3')
+            st.metric("Normaler SE", f"{model.bse[1]:.4f}")
+            st.metric("Robuster SE (HC3)", f"{robust.bse[1]:.4f}", delta=f"{(robust.bse[1]/model.bse[1]-1)*100:.1f}%")
+        except:
+            st.info("Robuste Fehler nur für statsmodels-Modelle verfügbar.")
+
+
+def _render_chapter_6_0(x, y, y_pred, x_label, y_label, b0, b1):
+    """Render Chapter 6.0: Fazit with Bonus Graphic."""
+    st.markdown("---")
+    st.markdown('<p class="section-header">6.0 Fazit und Ausblick</p>', unsafe_allow_html=True)
+    
+    col1, col2 = st.columns([2, 1])
+    with col1:
+        st.markdown("""
+        ### 📚 Zusammenfassung
+        Wir haben den gesamten Prozess der linearen Regression durchlaufen:
+        1. **Modellierung:** Theorie und mathematische Struktur
+        2. **Schätzung:** OLS-Prinzip (Kleinste Quadrate)
+        3. **Validierung:** R², ANOVA und t-Tests
+        4. **Diagnose:** Prüfung der Voraussetzungen
+        """)
+    
+    with col2:
+        # Bonus: Conditional Distribution 3D
+        st.markdown("**🌊 Bonus: Bedingte Verteilung f(y|x)**")
+        x_b = np.linspace(x.min(), x.max(), 50)
+        y_b = np.linspace(y.min(), y.max(), 50)
+        X_b, Y_b = np.meshgrid(x_b, y_b)
+        
+        # Mean depends on x: mu = b0 + b1 * x
+        mu_b = b0 + b1 * X_b
+        sigma_b = np.std(y - y_pred)
+        Z_b = stats.norm.pdf(Y_b, mu_b, sigma_b)
+        
+        fig = go.Figure(data=[go.Surface(x=X_b, y=Y_b, z=Z_b, colorscale="Viridis", opacity=0.8)])
+        fig.update_layout(height=400, scene=dict(xaxis_title=x_label, yaxis_title=y_label, zaxis_title="Dichte"), margin=dict(l=0,r=0,b=0,t=0))
+        st.plotly_chart(fig, key="bonus_conditional_3d", use_container_width=True)
+
+    st.info("**🚀 Nächste Schritte:** Vergleichen Sie dieses Modell mit einer multiplen Regression!")
