@@ -1,435 +1,302 @@
 # 🏗️ Architektur-Dokumentation
 
-**Regression Analysis Platform - 100% Plattform-Agnostisch**
+**Linear Regression Guide - Clean Architecture**
 
-Diese Dokumentation beschreibt die Architektur der Anwendung aus Top-Down und Bottom-Up Perspektive.
+Diese Dokumentation beschreibt die Architektur der Anwendung nach der Migration zu Clean Architecture.
 
 ---
 
 ## 📋 Inhaltsverzeichnis
 
 1. [Architektur-Übersicht](#architektur-übersicht)
-2. [Layer-Struktur (Top-Down)](#layer-struktur-top-down)
+2. [Layer-Struktur](#layer-struktur)
 3. [Datenfluss](#datenfluss)
 4. [Module im Detail](#module-im-detail)
 5. [Design-Prinzipien](#design-prinzipien)
-6. [Abhängigkeits-Regeln](#abhängigkeits-regeln)
-7. [Erweiterbarkeit](#erweiterbarkeit)
+6. [Code-Beispiele](#code-beispiele)
 
 ---
 
 ## 🏛️ Architektur-Übersicht
 
-Die Anwendung folgt einer **Schichtenarchitektur** mit strikter Trennung zwischen:
-
-- **Presentation Layer** (Adapters) - Framework-spezifischer Code
-- **API Layer** - REST-Schnittstelle für alle Frontends
-- **Business Logic** (Content) - Edukativer Content als Datenstruktur
-- **Core Layer** (Pipeline) - Statistische Berechnungen
-- **External Integration** (AI) - Perplexity AI
+Die Anwendung folgt strikt der **Clean Architecture** mit vier Schichten:
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                           ENTRY POINTS                                       │
-│                            run.py                                            │
-│         --api (REST) │ --flask (HTML) │ --streamlit (Interactive)           │
-└──────────────────────────────────┬──────────────────────────────────────────┘
-                                   │
-        ┌──────────────────────────┼──────────────────────────┐
-        ↓                          ↓                          ↓
-┌───────────────────┐   ┌───────────────────┐   ┌───────────────────────────┐
-│   src/api/        │   │  src/adapters/    │   │  src/adapters/streamlit/  │
-│   (Pure JSON)     │   │  flask_app.py     │   │  (Interactive Python)     │
-│   No frameworks   │   │  (HTML/Jinja2)    │   │                           │
-└─────────┬─────────┘   └─────────┬─────────┘   └─────────────┬─────────────┘
-          │                       │                           │
-          └───────────────────────┼───────────────────────────┘
-                                  ↓
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                        CONTENT LAYER - src/content/                          │
-│                                                                              │
-│   ContentBuilder → EducationalContent (Pure Data, JSON-serializable)        │
-│   SimpleRegressionContent | MultipleRegressionContent                        │
-└──────────────────────────────────┬──────────────────────────────────────────┘
-                                   ↓
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                        PIPELINE LAYER - src/pipeline/                        │
-│                                                                              │
-│   ┌─────────────┐    ┌──────────────────┐    ┌─────────────┐                │
-│   │ DataFetcher │ →  │ StatsCalculator  │ →  │ PlotBuilder │                │
-│   │ (get_data)  │    │   (calculate)    │    │   (plot)    │                │
-│   └─────────────┘    └──────────────────┘    └─────────────┘                │
-│                                                                              │
-│   Pure NumPy/SciPy, keine Framework-Abhängigkeiten                          │
-└──────────────────────────────────┬──────────────────────────────────────────┘
-                                   ↓
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                          AI LAYER - src/ai/                                  │
-│                                                                              │
-│   PerplexityClient (External API Integration)                                │
-│   100% Framework-agnostisch, nur Environment Variables                       │
+│                           src/                                               │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  ┌─────────────────────────────────────────────────────────────────────┐   │
+│  │                    CORE (Pure Python)                                │   │
+│  │  ┌─────────────────────────┐  ┌─────────────────────────────────┐   │   │
+│  │  │  core/domain/           │  │  core/application/              │   │   │
+│  │  │  • entities.py          │  │  • use_cases.py                 │   │   │
+│  │  │  • value_objects.py     │  │  • dtos.py                      │   │   │
+│  │  │  • interfaces.py        │  │                                 │   │   │
+│  │  │  (No numpy/pandas!)     │  │  (Orchestration only)           │   │   │
+│  │  └─────────────────────────┘  └─────────────────────────────────┘   │   │
+│  └─────────────────────────────────────────────────────────────────────┘   │
+│                                    ↑                                        │
+│                            (implements)                                     │
+│                                    │                                        │
+│  ┌─────────────────────────────────────────────────────────────────────┐   │
+│  │               INFRASTRUCTURE (External Dependencies)                 │   │
+│  │  ┌───────────────────┐  ┌───────────────────┐  ┌────────────────┐   │   │
+│  │  │  data/            │  │  services/        │  │  content/      │   │   │
+│  │  │  • generators.py  │  │  • calculate.py   │  │  • builder.py  │   │   │
+│  │  │  • provider.py    │  │  • plot.py        │  │                │   │   │
+│  │  │  (numpy, pandas)  │  │  (scipy)          │  │                │   │   │
+│  │  └───────────────────┘  └───────────────────┘  └────────────────┘   │   │
+│  │  ┌───────────────────┐  ┌───────────────────┐                       │   │
+│  │  │  ai/              │  │  regression_      │                       │   │
+│  │  │  perplexity.py    │  │  pipeline.py      │                       │   │
+│  │  └───────────────────┘  └───────────────────┘                       │   │
+│  └─────────────────────────────────────────────────────────────────────┘   │
+│                                    ↑                                        │
+│                               (uses)                                        │
+│                                    │                                        │
+│  ┌─────────────────────────────────────────────────────────────────────┐   │
+│  │                    INTERFACE ADAPTERS                                │   │
+│  │  ┌───────────────────┐  ┌───────────────────┐  ┌────────────────┐   │   │
+│  │  │  api/             │  │  adapters/        │  │  container.py  │   │   │
+│  │  │  • endpoints.py   │  │  • flask_app.py   │  │  (DI Wiring)   │   │   │
+│  │  │  • serializers.py │  │  • streamlit/     │  │                │   │   │
+│  │  └───────────────────┘  └───────────────────┘  └────────────────┘   │   │
+│  └─────────────────────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 📂 Layer-Struktur (Top-Down)
+## 📂 Layer-Struktur
 
-### Layer 1: Entry Points
+### Layer 1: Core Domain (`src/core/domain/`)
 
-| Datei | Zweck | Abhängigkeiten |
-|-------|-------|----------------|
-| `run.py` | Unified Entry Point | Auto-Detection |
-
-**Verantwortlichkeiten:**
-- Erkennung des gewünschten Frameworks (`--api`, `--flask`, `--streamlit`)
-- Delegation an entsprechenden Adapter
-- WSGI-Support für Production
-
-### Layer 2: API Layer (`src/api/`)
-
-| Datei | Zweck | LOC |
-|-------|-------|-----|
-| `endpoints.py` | Business Logic | ~600 |
-| `serializers.py` | JSON Conversion | ~500 |
-| `server.py` | HTTP Server | ~300 |
-
-**Verantwortlichkeiten:**
-- REST-Endpunkte für alle Operationen
-- JSON-Serialisierung aller Datenstrukturen
-- CORS-Support
-- OpenAPI/Swagger-Dokumentation
-
-**Erlaubt:** Import von `pipeline`, `content`, `ai`
-**Verboten:** Import von `adapters`, Framework-spezifischer Code
-
-### Layer 3: Adapters (`src/adapters/`)
-
-| Datei | Framework | Zweck |
-|-------|-----------|-------|
-| `flask_app.py` | Flask | HTML/Jinja2 Rendering |
-| `streamlit/app.py` | Streamlit | Interactive UI |
-| `renderers/` | Beide | Content → UI Conversion |
-| `ai_components.py` | Beide | AI UI Components |
-
-**Verantwortlichkeiten:**
-- Framework-spezifische UI-Logik
-- Template-Rendering
-- User Interactions
-
-**Erlaubt:** Import von allen anderen Modulen + Framework-Libraries
-**Verboten:** Geschäftslogik, Berechnungen
-
-### Layer 4: Content (`src/content/`)
+**PURE PYTHON - Keine externen Abhängigkeiten!**
 
 | Datei | Zweck |
 |-------|-------|
-| `structure.py` | Content-Datenklassen |
-| `builder.py` | Abstract Builder |
-| `simple_regression.py` | 11 Kapitel Simple Reg. |
-| `multiple_regression.py` | 9 Kapitel Multiple Reg. |
+| `entities.py` | `RegressionModel` - Entität mit Identität |
+| `value_objects.py` | `RegressionParameters`, `RegressionMetrics`, `DatasetMetadata` |
+| `interfaces.py` | `IDataProvider`, `IRegressionService` (Protocol) |
 
-**Verantwortlichkeiten:**
-- Definition des edukativen Contents als DATEN
-- Keine UI-Logik, nur Strukturen
-- Alle Klassen haben `to_dict()` für JSON
+**Regeln:**
+- ✅ Nur Python Standard Library
+- ❌ Kein `numpy`, `pandas`, `scipy`, `datetime`
+- ❌ Keine Framework-Abhängigkeiten
 
-**Erlaubt:** Import von `pipeline` für Statistik-Zugriff
-**Verboten:** Framework-Imports, UI-Code
+### Layer 2: Core Application (`src/core/application/`)
 
-### Layer 5: Pipeline (`src/pipeline/`)
-
-| Datei | Step | Zweck |
-|-------|------|-------|
-| `get_data.py` | GET | Datengenerierung |
-| `calculate.py` | CALCULATE | OLS, R², t-Tests |
-| `plot.py` | PLOT | Plotly Figures |
-| `regression_pipeline.py` | Orchestration | 4-Step Pipeline |
-
-**Verantwortlichkeiten:**
-- Statistische Berechnungen
-- Transparente, verifizierbare Formeln
-- Plotly-Visualisierungen
-
-**Erlaubt:** NumPy, SciPy, Plotly
-**Verboten:** Framework-Imports, UI-Code
-
-### Layer 6: AI (`src/ai/`)
+**Use Cases & DTOs**
 
 | Datei | Zweck |
 |-------|-------|
-| `perplexity_client.py` | Perplexity API Client |
+| `use_cases.py` | `RunRegressionUseCase` - Orchestrierung |
+| `dtos.py` | `RegressionRequestDTO`, `RegressionResponseDTO` |
 
-**Verantwortlichkeiten:**
-- Externe API-Integration
-- Response-Caching
-- Fallback-Interpretationen
+**Regeln:**
+- ✅ Importiert nur aus `core/domain`
+- ✅ Orchestriert, implementiert keine Business-Logik
+- ❌ Keine direkten Abhängigkeiten zu Infrastructure
 
-**Erlaubt:** `requests`, `os` (für Environment)
-**Verboten:** Framework-Imports
+### Layer 3: Infrastructure (`src/infrastructure/`)
 
-### Layer 7: Config (`src/config/`)
+**Konkrete Implementierungen**
 
-| Datei | Zweck |
+| Modul | Zweck |
 |-------|-------|
-| `config.py` | Globale Konfiguration |
-| `logger.py` | Logging-Setup |
+| `data/generators.py` | Datengenerierung (numpy) |
+| `data/provider.py` | `DataProviderImpl` implementiert `IDataProvider` |
+| `services/calculate.py` | `StatisticsCalculator` - OLS, R², t-Tests |
+| `services/plot.py` | `PlotBuilder` - Plotly Visualisierungen |
+| `services/regression.py` | `RegressionServiceImpl` implementiert `IRegressionService` |
+| `content/` | Edukativer Content Builder |
+| `ai/` | Perplexity AI Client |
+| `regression_pipeline.py` | 4-Step Pipeline Orchestrierung |
+
+**Regeln:**
+- ✅ Implementiert Interfaces aus `core/domain`
+- ✅ Darf externe Libraries nutzen (numpy, scipy, plotly)
+- ❌ Keine Framework-spezifische UI-Logik
+
+### Layer 4: Interface Adapters
+
+**Framework-spezifischer Code**
+
+| Modul | Framework |
+|-------|-----------|
+| `api/endpoints.py` | REST API (Framework-agnostisch) |
+| `api/serializers.py` | JSON Serialisierung |
+| `adapters/flask_app.py` | Flask HTML App |
+| `adapters/streamlit/` | Streamlit Interactive App |
+| `container.py` | Dependency Injection Container |
 
 ---
 
 ## 🔄 Datenfluss
 
-### Simple Regression Request
+### Clean Architecture Flow (Use Case)
 
 ```
-HTTP Request
-     │
-     ↓
-┌────────────────────────────────────────────────────────────────┐
-│ 1. API Layer (src/api/endpoints.py)                            │
-│    ContentAPI.get_simple_content(dataset="electronics", n=50)  │
-└────────────────────────────────┬───────────────────────────────┘
-                                 ↓
-┌────────────────────────────────────────────────────────────────┐
-│ 2. Pipeline (src/pipeline/regression_pipeline.py)              │
-│    RegressionPipeline.run_simple()                             │
-│    → DataFetcher.get_simple() → DataResult                     │
-│    → StatisticsCalculator.simple_regression() → RegressionResult│
-│    → PlotBuilder.simple_regression_plots() → PlotCollection    │
-└────────────────────────────────┬───────────────────────────────┘
-                                 ↓
-┌────────────────────────────────────────────────────────────────┐
-│ 3. Serialization (src/api/serializers.py)                      │
-│    StatsSerializer.to_flat_dict() → Dict                       │
-└────────────────────────────────┬───────────────────────────────┘
-                                 ↓
-┌────────────────────────────────────────────────────────────────┐
-│ 4. Content Build (src/content/simple_regression.py)            │
-│    SimpleRegressionContent(stats_dict, plot_keys)              │
-│    → EducationalContent (11 Chapters)                          │
-└────────────────────────────────┬───────────────────────────────┘
-                                 ↓
-┌────────────────────────────────────────────────────────────────┐
-│ 5. Final Serialization                                         │
-│    ContentSerializer.serialize() → JSON                        │
-│    PlotSerializer.serialize_collection() → Plotly JSON         │
-└────────────────────────────────┬───────────────────────────────┘
-                                 ↓
-                          HTTP Response
-                          {
-                            "success": true,
-                            "content": {...},
-                            "plots": {...},
-                            "stats": {...}
-                          }
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 1. API/Controller                                                            │
+│    RegressionRequestDTO { dataset_id="electronics", n=50, ... }             │
+└──────────────────────────────────────┬──────────────────────────────────────┘
+                                       ↓
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 2. Container                                                                 │
+│    container.run_regression_use_case                                        │
+│    (injects: DataProviderImpl, RegressionServiceImpl)                       │
+└──────────────────────────────────────┬──────────────────────────────────────┘
+                                       ↓
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 3. Use Case (Orchestration)                                                  │
+│    RunRegressionUseCase.execute(request)                                    │
+│    ├─ data_provider.get_dataset() → raw data                                │
+│    ├─ regression_service.train_simple() → RegressionModel                   │
+│    └─ _build_response() → RegressionResponseDTO                             │
+└──────────────────────────────────────┬──────────────────────────────────────┘
+                                       ↓
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 4. Response DTO                                                              │
+│    RegressionResponseDTO { r_squared=0.91, slope=0.51, predictions=[...] }  │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Legacy Pipeline Flow (Still Supported)
+
+```
+RegressionPipeline.run_simple()
+    ├─ DataFetcher.get_simple() → DataResult
+    ├─ StatisticsCalculator.simple_regression() → RegressionResult
+    └─ PlotBuilder.simple_regression_plots() → PlotCollection
 ```
 
 ---
 
 ## 📦 Module im Detail
 
-### Pipeline-Datentypen
+### Domain Value Objects
 
 ```python
-@dataclass
-class DataResult:
-    x: np.ndarray
-    y: np.ndarray
-    x_label: str
-    y_label: str
-    context_title: str
-    context_description: str
-
-@dataclass
-class RegressionResult:
+@dataclass(frozen=True)
+class RegressionParameters:
     intercept: float
-    slope: float
+    coefficients: Dict[str, float]
+
+@dataclass(frozen=True)
+class RegressionMetrics:
     r_squared: float
     r_squared_adj: float
-    se_slope: float
-    t_slope: float
-    p_slope: float
-    # ... weitere Statistiken
-
-@dataclass
-class PlotCollection:
-    scatter: go.Figure
-    residuals: go.Figure
-    diagnostics: go.Figure
-    extra: Dict[str, go.Figure]
+    mse: float
+    rmse: float
 ```
 
-### Content-Struktur
+### Domain Entity
 
 ```python
 @dataclass
-class EducationalContent:
-    title: str
-    subtitle: str
-    chapters: List[Chapter]
+class RegressionModel:
+    id: str
+    parameters: Optional[RegressionParameters]
+    metrics: Optional[RegressionMetrics]
+    
+    def is_trained(self) -> bool:
+        return self.parameters is not None
+    
+    def get_equation_string(self) -> str:
+        # Pure Python business logic
+```
 
-@dataclass
-class Chapter:
-    number: str
-    title: str
-    icon: str
-    sections: List[ContentElement]
+### Use Case
 
-# ContentElement Types:
-# - Markdown(text)
-# - Formula(latex, inline)
-# - Plot(plot_key, height)
-# - Metric(label, value, help_text)
-# - MetricRow(metrics)
-# - Table(headers, rows)
-# - Expander(title, content)
-# - InfoBox/WarningBox/SuccessBox(content)
+```python
+class RunRegressionUseCase:
+    def __init__(self, data_provider: IDataProvider, regression_service: IRegressionService):
+        self.data_provider = data_provider
+        self.regression_service = regression_service
+    
+    def execute(self, request: RegressionRequestDTO) -> RegressionResponseDTO:
+        # Orchestrate only - no calculations here
+```
+
+### DI Container
+
+```python
+class Container:
+    def __init__(self):
+        self._data_provider = DataProviderImpl()
+        self._regression_service = RegressionServiceImpl()
+    
+    @property
+    def run_regression_use_case(self) -> RunRegressionUseCase:
+        return RunRegressionUseCase(
+            data_provider=self._data_provider,
+            regression_service=self._regression_service
+        )
 ```
 
 ---
 
 ## 🎯 Design-Prinzipien
 
-### 1. Platform-Agnostik
+### 1. Dependency Inversion
 
-**Jeder** Output ist JSON-serialisierbar:
-- NumPy Arrays → Python Lists
-- Plotly Figures → JSON
-- Dataclasses → Dictionaries
-
-### 2. Layer-Isolation
-
-Jeder Layer kennt nur die Layer UNTER sich:
-
-```
-API Layer
-    ↓ (kann importieren)
-Content Layer
-    ↓ (kann importieren)
-Pipeline Layer
-    ↓ (kann importieren)
-AI Layer
-```
-
-### 3. Dependency Injection
-
-APIs werden lazy geladen, um zirkuläre Importe zu vermeiden:
+Domain definiert Interfaces, Infrastructure implementiert sie:
 
 ```python
-class RegressionAPI:
-    def __init__(self):
-        self._pipeline = None  # Lazy
-    
-    @property
-    def pipeline(self):
-        if self._pipeline is None:
-            from ..pipeline import RegressionPipeline
-            self._pipeline = RegressionPipeline()
-        return self._pipeline
+# Domain (interfaces.py)
+class IDataProvider(Protocol):
+    def get_dataset(self, dataset_id: str, n: int, **kwargs) -> Dict[str, Any]: ...
+
+# Infrastructure (provider.py)
+class DataProviderImpl(IDataProvider):
+    def get_dataset(self, dataset_id: str, n: int, **kwargs) -> Dict[str, Any]:
+        # Concrete implementation with numpy
 ```
 
-### 4. Single Responsibility
+### 2. Layer Isolation
 
-Jedes Modul hat eine klare, einzelne Verantwortlichkeit:
-- `get_data.py` - NUR Datengenerierung
-- `calculate.py` - NUR Statistik
-- `plot.py` - NUR Visualisierungen
+```
+Adapters → API → Application → Domain ← Infrastructure
+```
 
----
+- Domain kennt niemanden
+- Application kennt nur Domain
+- Infrastructure implementiert Domain-Interfaces
+- Adapters kann alles importieren
 
-## 🚦 Abhängigkeits-Regeln
-
-### ✅ ERLAUBT
+### 3. Pure Domain
 
 ```python
-# API kann Pipeline importieren
-from ..pipeline import RegressionPipeline
+# ❌ VERBOTEN in core/domain:
+import numpy as np
+from datetime import datetime
 
-# Adapters können alles importieren
-from ..api import RegressionAPI
-from ..content import SimpleRegressionContent
-import streamlit as st
-
-# Content kann Pipeline importieren
-from ..pipeline.calculate import RegressionResult
+# ✅ ERLAUBT in core/domain:
+from dataclasses import dataclass
+from typing import Dict, List, Optional
 ```
-
-### ❌ VERBOTEN
-
-```python
-# Pipeline darf NICHT Adapters/API importieren
-from ..api import ...  # NEIN!
-from ..adapters import ...  # NEIN!
-
-# Content darf NICHT Framework importieren
-import streamlit  # NEIN!
-from flask import ...  # NEIN!
-
-# AI darf NICHT Framework importieren
-import streamlit  # NEIN!
-```
-
----
-
-## 🔧 Erweiterbarkeit
-
-### Neues Frontend hinzufügen (z.B. Vue.js)
-
-1. **Keine Backend-Änderungen nötig!**
-2. Vue-App konsumiert `/api/content/simple` Endpunkt
-3. Rendert `content.chapters` mit Vue-Komponenten
-4. Zeigt Plots mit `plotly.js` an
-
-### Neuen Dataset-Typ hinzufügen
-
-1. `src/pipeline/get_data.py` erweitern
-2. Neue Methode in `DataFetcher`
-3. Automatisch in API verfügbar
-
-### Neuen Content-Typ hinzufügen
-
-1. `src/content/structure.py` - Neue Dataclass
-2. `src/content/builder.py` - Helper-Methode
-3. `src/adapters/renderers/` - Render-Logik
-
----
-
-## 📊 Metriken
-
-| Layer | Dateien | LOC | Abhängigkeiten |
-|-------|---------|-----|----------------|
-| Entry | 1 | ~230 | Auto-Detection |
-| API | 4 | ~1320 | Flask/FastAPI (optional) |
-| Adapters | 9 | ~2150 | Streamlit, Flask |
-| Content | 5 | ~1600 | NumPy |
-| Pipeline | 6 | ~1170 | NumPy, SciPy, Plotly |
-| AI | 2 | ~450 | requests |
-| Config | 3 | ~320 | - |
-
-**Gesamte Codebasis: ~7240 LOC**
 
 ---
 
 ## 🧪 Testing
 
 ```bash
-# Unit Tests
+# Unit Tests (alle Layer)
 pytest tests/unit/ -v
 
-# Integration Tests
-pytest tests/integration/ -v
+# Use Case Test
+pytest tests/unit/test_pipeline.py::TestCleanArchitectureUseCase -v
 
-# API Test
-curl http://localhost:8000/api/health
-curl -X POST http://localhost:8000/api/regression/simple \
-  -H "Content-Type: application/json" \
-  -d '{"dataset": "electronics", "n": 50}'
+# Validation: No external deps in domain
+grep -r "import numpy\|import pandas" src/core/
+# Should return nothing!
 ```
 
 ---
 
 ## 📚 Weiterführende Dokumentation
 
-- **[API.md](API.md)** - Vollständige REST API Dokumentation
+- **[API.md](API.md)** - REST API Dokumentation
 - **[INTEGRATION_GUIDE.md](INTEGRATION_GUIDE.md)** - Frontend-Integration
-- **[openapi.yaml](openapi.yaml)** - OpenAPI Specification
+- **[DEPLOYMENT.md](DEPLOYMENT.md)** - Deployment-Anleitung

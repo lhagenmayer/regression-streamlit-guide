@@ -8,7 +8,7 @@ Funktioniert mit **JEDEM Frontend**: Next.js, Vite, Vue, Angular, Flask, Streaml
 
 ![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)
 ![API](https://img.shields.io/badge/API-REST/JSON-green.svg)
-![License](https://img.shields.io/badge/License-MIT-yellow.svg)
+![Architecture](https://img.shields.io/badge/Architecture-Clean-purple.svg)
 
 ---
 
@@ -334,20 +334,20 @@ graph LR
 └────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Schlüsselprinzipien
+### Schlüsselprinzipien (Clean Architecture)
 
-1. **Keine Framework-Imports im Core**
-   - `/src/pipeline/` - Pure Python
-   - `/src/content/` - Pure Python
-   - `/src/ai/` - Pure Python
+1. **Domain Layer ist Framework-frei**
+   - `/src/core/domain/` - Pure Python, keine externen Deps
+   - `/src/core/application/` - Use Cases & DTOs
 
-2. **Alles JSON-serialisierbar**
+2. **Infrastructure implementiert Domain-Interfaces**
+   - `/src/infrastructure/` - numpy, scipy, plotly
+   - Dependency Injection via `container.py`
+
+3. **Alles JSON-serialisierbar**
    - Numpy Arrays → Listen
    - Plotly Figures → JSON
    - Content → Strukturierte Dicts
-
-3. **Strikte Trennung**
-   - Core Logic → API Layer → Adapters
 
 ---
 
@@ -355,27 +355,32 @@ graph LR
 
 ```
 src/
-├── api/                    # 🔌 REST API (100% agnostisch)
-│   ├── endpoints.py        #    Business logic
-│   ├── serializers.py      #    JSON serialization
-│   └── server.py           #    Flask/FastAPI server
+├── core/                   # 🏛️ Clean Architecture Core
+│   ├── domain/             #    Pure Python Entities, VOs, Interfaces
+│   │   ├── entities.py     #    RegressionModel
+│   │   ├── value_objects.py#    RegressionMetrics, RegressionParameters
+│   │   └── interfaces.py   #    IDataProvider, IRegressionService
+│   └── application/        #    Use Cases & DTOs
+│       ├── use_cases.py    #    RunRegressionUseCase
+│       └── dtos.py         #    Request/Response DTOs
 │
-├── pipeline/               # 🔧 Core Pipeline
-│   ├── get_data.py         #    Data fetching
-│   ├── calculate.py        #    Statistics
-│   └── plot.py             #    Visualizations
+├── infrastructure/         # 🔧 Implementations
+│   ├── data/               #    DataFetcher, generators
+│   ├── services/           #    StatisticsCalculator, PlotBuilder
+│   ├── content/            #    Educational Content Builder
+│   ├── ai/                 #    Perplexity API Client
+│   └── regression_pipeline.py  # 4-Step Pipeline
 │
-├── content/                # 📖 Educational Content
-│   ├── structure.py        #    Content elements
-│   ├── simple_regression.py    # 11 Kapitel
-│   └── multiple_regression.py  # 9 Kapitel
+├── api/                    # 🔌 REST API
+│   ├── endpoints.py        #    RegressionAPI, ContentAPI
+│   └── serializers.py      #    JSON Serialization
 │
-├── ai/                     # 🤖 AI Integration
-│   └── perplexity_client.py    # Perplexity API
+├── adapters/               # 🎨 Framework Adapters
+│   ├── flask_app.py        #    Flask HTML App
+│   └── streamlit/          #    Streamlit Interactive UI
 │
-└── adapters/               # 🎨 Framework Adapters
-    ├── flask_app.py        #    Flask HTML
-    └── streamlit/          #    Streamlit UI
+├── container.py            # 💉 Dependency Injection
+└── config/                 # ⚙️ Configuration
 ```
 
 ---
