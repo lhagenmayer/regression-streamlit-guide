@@ -5,7 +5,7 @@ Implements IDataProvider using the existing DataFetcher (which uses numpy/pandas
 from typing import Dict, Any, List
 from ...core.domain.interfaces import IDataProvider
 from ...core.domain.value_objects import DatasetMetadata
-from ...pipeline.get_data import DataFetcher
+from .generators import DataFetcher
 
 
 class DataProviderImpl(IDataProvider):

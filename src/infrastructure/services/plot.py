@@ -11,8 +11,8 @@ import numpy as np
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-from ..config import get_logger
-from .get_data import DataResult, MultipleRegressionDataResult
+from ...config import get_logger
+from ..data.generators import DataResult, MultipleRegressionDataResult
 from .calculate import RegressionResult, MultipleRegressionResult
 
 logger = get_logger(__name__)

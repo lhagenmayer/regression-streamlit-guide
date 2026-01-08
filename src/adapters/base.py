@@ -7,9 +7,9 @@ from dataclasses import dataclass, field
 from typing import Dict, Any, Optional, List
 import json
 
-from ..pipeline.get_data import DataResult, MultipleRegressionDataResult
-from ..pipeline.calculate import RegressionResult, MultipleRegressionResult
-from ..pipeline.plot import PlotCollection
+from ..infrastructure import DataResult, MultipleRegressionDataResult
+from ..infrastructure import RegressionResult, MultipleRegressionResult
+from ..infrastructure import PlotCollection
 
 
 @dataclass

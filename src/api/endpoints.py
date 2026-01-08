@@ -60,7 +60,7 @@ class RegressionAPI:
     def pipeline(self):
         """Lazy load pipeline to avoid import issues."""
         if self._pipeline is None:
-            from ..pipeline import RegressionPipeline
+            from ..infrastructure import RegressionPipeline
             self._pipeline = RegressionPipeline()
         return self._pipeline
     
@@ -386,7 +386,7 @@ class ContentAPI:
     @property
     def pipeline(self):
         if self._pipeline is None:
-            from ..pipeline import RegressionPipeline
+            from ..infrastructure import RegressionPipeline
             self._pipeline = RegressionPipeline()
         return self._pipeline
     

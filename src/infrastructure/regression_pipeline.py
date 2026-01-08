@@ -12,9 +12,9 @@ from dataclasses import dataclass
 from typing import Dict, Any, Optional, Union
 
 from ..config import get_logger
-from .get_data import DataFetcher, DataResult, MultipleRegressionDataResult
-from .calculate import StatisticsCalculator, RegressionResult, MultipleRegressionResult
-from .plot import PlotBuilder, PlotCollection
+from .data.generators import DataFetcher, DataResult, MultipleRegressionDataResult
+from .services.calculate import StatisticsCalculator, RegressionResult, MultipleRegressionResult
+from .services.plot import PlotBuilder, PlotCollection
 
 logger = get_logger(__name__)
 

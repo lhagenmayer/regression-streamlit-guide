@@ -9,8 +9,8 @@ from dataclasses import dataclass, field
 from typing import Dict, Any, List, Optional
 import numpy as np
 
-from ..config import get_logger
-from .get_data import DataResult, MultipleRegressionDataResult
+from ...config import get_logger
+from ..data.generators import DataResult, MultipleRegressionDataResult
 
 logger = get_logger(__name__)
 

@@ -1,5 +1,6 @@
 """
 Pipeline Package - Simple 4-step data processing pipeline.
+Migrated to infrastructure layer.
 
 The pipeline follows a clear flow:
     1. GET      → Fetch/generate data
@@ -8,45 +9,31 @@ The pipeline follows a clear flow:
     4. DISPLAY  → Render in UI
 
 Usage:
-    from src.pipeline import RegressionPipeline
+    from src.infrastructure import RegressionPipeline
     
     pipeline = RegressionPipeline()
     result = pipeline.run(dataset="electronics", n=50)
 """
 
-# Core components (no external UI dependencies)
-from .get_data import DataFetcher
-from .calculate import StatisticsCalculator
+# Core components from migrated infrastructure
+from .data.generators import DataFetcher
+from .services.calculate import StatisticsCalculator
 
 # Lazy imports for components with external dependencies
 def get_plot_builder():
     """Lazy import PlotBuilder (requires plotly)."""
-    from .plot import PlotBuilder
+    from .services.plot import PlotBuilder
     return PlotBuilder
-
-def get_ui_renderer():
-    """Lazy import UIRenderer (requires streamlit)."""
-    from .display import UIRenderer
-    return UIRenderer
-
-def get_pipeline():
-    """Lazy import RegressionPipeline (requires plotly)."""
-    from .regression_pipeline import RegressionPipeline, PipelineResult
-    return RegressionPipeline, PipelineResult
 
 # For convenience, try to import full pipeline
 try:
-    from .plot import PlotBuilder
+    from .services.plot import PlotBuilder, PlotCollection
     from .regression_pipeline import RegressionPipeline, PipelineResult
 except ImportError:
     PlotBuilder = None
+    PlotCollection = None
     RegressionPipeline = None
     PipelineResult = None
-
-try:
-    from .display import UIRenderer
-except ImportError:
-    UIRenderer = None
 
 __all__ = [
     # Core pipeline
@@ -56,9 +43,7 @@ __all__ = [
     'DataFetcher',
     'StatisticsCalculator', 
     'PlotBuilder',
-    'UIRenderer',
+    'PlotCollection',
     # Lazy loaders
     'get_plot_builder',
-    'get_ui_renderer',
-    'get_pipeline',
 ]

@@ -12,7 +12,7 @@ import pandas as pd
 import requests
 from typing import Dict, Any, Optional, List, Union
 
-from ..config import get_logger
+from ...config import get_logger
 
 logger = get_logger(__name__)
 
