@@ -25,12 +25,13 @@ src/
 │   │   ├── calculate.py    # StatisticsCalculator (scipy)
 │   │   ├── plot.py         # PlotBuilder (plotly)
 │   │   ├── regression.py   # RegressionServiceImpl implements IRegressionService
-│   │   └── classification.py # ClassificationServiceImpl (Pure NumPy)
+│   │   ├── classification.py # ClassificationServiceImpl (Pure NumPy)
+│   │   └── data_splitting.py # DataSplitterService
 │   ├── content/            # Educational content builder
-│   └── ai/                 # Perplexity client
+│   └── ai/                 # Perplexity client & ROutputFormatter
 │
 ├── api/                    # REST API Layer
-│   ├── endpoints.py        # RegressionAPI, ContentAPI
+│   ├── endpoints.py        # RegressionAPI, ContentAPI, AIInterpretationAPI
 │   └── serializers.py      # JSON serialization
 │
 ├── adapters/               # Framework Adapters
@@ -112,7 +113,8 @@ class RegressionModel:
 # src/core/domain/interfaces.py
 class IDataProvider(Protocol):
     def get_dataset(self, dataset_id: str, n: int, **kwargs) -> Dict[str, Any]: ...
-    def list_datasets(self) -> List[DatasetMetadata]: ...
+    def get_all_datasets(self) -> Dict[str, List[Dict[str, str]]]: ...
+    def get_raw_data(self, dataset_id: str) -> Dict[str, Any]: ...
 
 class IRegressionService(Protocol):
     def train_simple(self, x: List[float], y: List[float]) -> RegressionModel: ...
