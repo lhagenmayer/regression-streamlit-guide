@@ -120,11 +120,28 @@ class StreamlitContentRenderer:
         
         elif isinstance(element, Columns):
             # Streamlit columns collapse on mobile automatically.
-            cols = st.columns(element.widths)
-            for col, content in zip(cols, element.columns):
-                with col:
-                    for item in content:
-                        self._render_element(item)
+            # However, to ensure readability on tablets/small laptops (where they don't collapse),
+            # we limit the maximum number of side-by-side columns.
+            MAX_LAYOUT_COLS = 2
+            
+            num_cols = len(element.columns)
+            widths = element.widths or [1.0] * num_cols
+            
+            # Ensure widths list matches num_cols
+            if len(widths) != num_cols:
+                widths = [1.0] * num_cols
+            
+            # Process in chunks
+            for i in range(0, num_cols, MAX_LAYOUT_COLS):
+                chunk_cols = element.columns[i:i + MAX_LAYOUT_COLS]
+                chunk_widths = widths[i:i + MAX_LAYOUT_COLS]
+                
+                # Render chunk
+                cols = st.columns(chunk_widths)
+                for col_obj, content_list in zip(cols, chunk_cols):
+                    with col_obj:
+                        for item in content_list:
+                            self._render_element(item)
         
         elif isinstance(element, Expander):
             with st.expander(element.title, expanded=element.expanded):
