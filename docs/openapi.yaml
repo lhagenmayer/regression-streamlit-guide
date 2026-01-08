@@ -1,0 +1,861 @@
+openapi: 3.0.3
+info:
+  title: Regression Analysis API
+  description: |
+    Eine leistungsstarke REST API für statistische Regression und edukativen Content.
+    
+    ## Features
+    - 📈 Einfache & Multiple Regression
+    - 📖 Strukturierter edukativer Content
+    - 🤖 AI-gestützte Interpretation (Perplexity)
+    - 📊 Plotly-kompatible Visualisierungen
+    
+    ## Quick Start
+    ```bash
+    python3 run.py --api --port 8000
+    ```
+  version: 1.0.0
+  contact:
+    name: API Support
+  license:
+    name: MIT
+
+servers:
+  - url: http://localhost:8000
+    description: Lokaler Entwicklungsserver
+  - url: http://localhost:5000
+    description: Flask Entwicklungsserver
+
+tags:
+  - name: Health
+    description: Server Status
+  - name: Regression
+    description: Regression Analysis Endpunkte
+  - name: Content
+    description: Educational Content Endpunkte
+  - name: AI
+    description: AI Interpretation Endpunkte
+  - name: Data
+    description: Daten und Datasets
+
+paths:
+  /api/health:
+    get:
+      tags:
+        - Health
+      summary: Health Check
+      description: Prüft ob der API-Server läuft
+      operationId: healthCheck
+      responses:
+        '200':
+          description: Server ist gesund
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              example:
+                status: ok
+                framework: flask
+                api_powered: true
+
+  /api/datasets:
+    get:
+      tags:
+        - Data
+      summary: Verfügbare Datasets
+      description: Listet alle verfügbaren Datensätze für Simple und Multiple Regression
+      operationId: getDatasets
+      responses:
+        '200':
+          description: Liste der Datasets
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DatasetsResponse'
+
+  /api/regression/simple:
+    post:
+      tags:
+        - Regression
+      summary: Einfache Lineare Regression
+      description: |
+        Führt eine einfache lineare Regression durch.
+        
+        Berechnet:
+        - Koeffizienten (Intercept, Slope)
+        - R², adjustiertes R²
+        - T-Tests und P-Werte
+        - Residuen und Vorhersagen
+        - Plotly-Visualisierungen
+      operationId: runSimpleRegression
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SimpleRegressionRequest'
+            examples:
+              default:
+                summary: Standardanfrage
+                value:
+                  dataset: electronics
+                  n: 50
+                  noise: 0.4
+                  seed: 42
+              large:
+                summary: Große Stichprobe
+                value:
+                  dataset: advertising
+                  n: 200
+                  noise: 0.3
+                  seed: 123
+      responses:
+        '200':
+          description: Erfolgreich
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SimpleRegressionResponse'
+        '400':
+          description: Ungültige Anfrage
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/regression/multiple:
+    post:
+      tags:
+        - Regression
+      summary: Multiple Lineare Regression
+      description: |
+        Führt eine multiple lineare Regression mit zwei Prädiktoren durch.
+        
+        Zusätzlich zu einfacher Regression:
+        - F-Statistik
+        - VIF (Variance Inflation Factor)
+        - 3D-Visualisierungen
+      operationId: runMultipleRegression
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MultipleRegressionRequest'
+            examples:
+              default:
+                summary: Standardanfrage
+                value:
+                  dataset: cities
+                  n: 75
+                  noise: 3.5
+                  seed: 42
+      responses:
+        '200':
+          description: Erfolgreich
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MultipleRegressionResponse'
+        '400':
+          description: Ungültige Anfrage
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/content/simple:
+    post:
+      tags:
+        - Content
+      summary: Educational Content (Simple)
+      description: |
+        Generiert vollständigen edukativen Content für einfache Regression.
+        
+        Enthält:
+        - 11 strukturierte Kapitel
+        - Interaktive Plotly-Visualisierungen
+        - Statistiken und Rohdaten
+        - R-Style Output
+      operationId: getSimpleContent
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SimpleRegressionRequest'
+      responses:
+        '200':
+          description: Erfolgreich
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContentResponse'
+
+  /api/content/multiple:
+    post:
+      tags:
+        - Content
+      summary: Educational Content (Multiple)
+      description: |
+        Generiert vollständigen edukativen Content für multiple Regression.
+        
+        Enthält:
+        - 9 strukturierte Kapitel
+        - 3D-Visualisierungen
+        - VIF-Analyse
+      operationId: getMultipleContent
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MultipleRegressionRequest'
+      responses:
+        '200':
+          description: Erfolgreich
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContentResponse'
+
+  /api/content/schema:
+    get:
+      tags:
+        - Content
+      summary: Content Schema
+      description: Dokumentiert alle verfügbaren Content-Element-Typen
+      operationId: getContentSchema
+      responses:
+        '200':
+          description: Schema-Definition
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContentSchemaResponse'
+
+  /api/ai/status:
+    get:
+      tags:
+        - AI
+      summary: AI Status
+      description: Prüft ob die Perplexity AI-Integration konfiguriert ist
+      operationId: getAIStatus
+      responses:
+        '200':
+          description: AI Status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIStatusResponse'
+
+  /api/ai/interpret:
+    post:
+      tags:
+        - AI
+      summary: AI Interpretation
+      description: |
+        Interpretiert Regressionsergebnisse mit Perplexity AI.
+        
+        Falls kein API-Key konfiguriert ist, wird eine Fallback-Interpretation zurückgegeben.
+      operationId: interpretRegression
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AIInterpretRequest'
+            example:
+              stats:
+                intercept: 0.6610
+                slope: 0.5088
+                r_squared: 0.9114
+                t_slope: 20.77
+                p_slope: 0.00000
+                n: 50
+                x_label: Verkaufsfläche
+                y_label: Umsatz
+              use_cache: true
+      responses:
+        '200':
+          description: Interpretation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIInterpretResponse'
+
+  /api/ai/r-output:
+    post:
+      tags:
+        - AI
+      summary: R-Output generieren
+      description: Generiert einen R-Style Output aus Statistiken
+      operationId: generateROutput
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ROutputRequest'
+      responses:
+        '200':
+          description: R-Output
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ROutputResponse'
+
+  /api/ai/cache/clear:
+    post:
+      tags:
+        - AI
+      summary: Cache leeren
+      description: Löscht den Interpretation-Cache
+      operationId: clearCache
+      responses:
+        '200':
+          description: Cache geleert
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CacheClearResponse'
+
+  /api/openapi.json:
+    get:
+      tags:
+        - Health
+      summary: OpenAPI Specification
+      description: Maschinenlesbare API-Spezifikation
+      operationId: getOpenAPISpec
+      responses:
+        '200':
+          description: OpenAPI JSON
+          content:
+            application/json:
+              schema:
+                type: object
+
+components:
+  schemas:
+    # --- Request Schemas ---
+    SimpleRegressionRequest:
+      type: object
+      properties:
+        dataset:
+          type: string
+          description: Dataset ID
+          default: electronics
+          enum: [electronics, advertising, temperature]
+        n:
+          type: integer
+          description: Anzahl Datenpunkte
+          default: 50
+          minimum: 10
+          maximum: 500
+        noise:
+          type: number
+          description: Rausch-Level
+          default: 0.4
+          minimum: 0
+          maximum: 2
+        seed:
+          type: integer
+          description: Random Seed für Reproduzierbarkeit
+          default: 42
+        include_predictions:
+          type: boolean
+          description: Vorhersagen inkludieren
+          default: true
+
+    MultipleRegressionRequest:
+      type: object
+      properties:
+        dataset:
+          type: string
+          description: Dataset ID
+          default: cities
+          enum: [cities, houses]
+        n:
+          type: integer
+          description: Anzahl Datenpunkte
+          default: 75
+          minimum: 20
+          maximum: 500
+        noise:
+          type: number
+          description: Rausch-Level
+          default: 3.5
+          minimum: 0
+          maximum: 20
+        seed:
+          type: integer
+          description: Random Seed
+          default: 42
+
+    AIInterpretRequest:
+      type: object
+      required:
+        - stats
+      properties:
+        stats:
+          type: object
+          description: Statistiken aus der Regression
+          additionalProperties: true
+        use_cache:
+          type: boolean
+          description: Cache verwenden
+          default: true
+
+    ROutputRequest:
+      type: object
+      required:
+        - stats
+      properties:
+        stats:
+          type: object
+          description: Statistiken für R-Output
+          additionalProperties: true
+
+    # --- Response Schemas ---
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [ok, error]
+        framework:
+          type: string
+          enum: [flask, fastapi]
+        api_powered:
+          type: boolean
+
+    DatasetsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            simple:
+              type: array
+              items:
+                $ref: '#/components/schemas/Dataset'
+            multiple:
+              type: array
+              items:
+                $ref: '#/components/schemas/Dataset'
+
+    Dataset:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        icon:
+          type: string
+
+    SimpleRegressionResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            type:
+              type: string
+              enum: [simple]
+            data:
+              $ref: '#/components/schemas/SimpleRegressionData'
+            stats:
+              $ref: '#/components/schemas/SimpleRegressionStats'
+            plots:
+              $ref: '#/components/schemas/PlotCollection'
+            params:
+              type: object
+
+    MultipleRegressionResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            type:
+              type: string
+              enum: [multiple]
+            data:
+              $ref: '#/components/schemas/MultipleRegressionData'
+            stats:
+              $ref: '#/components/schemas/MultipleRegressionStats'
+            plots:
+              $ref: '#/components/schemas/PlotCollection'
+
+    SimpleRegressionData:
+      type: object
+      properties:
+        type:
+          type: string
+        x:
+          type: array
+          items:
+            type: number
+        y:
+          type: array
+          items:
+            type: number
+        n:
+          type: integer
+        x_label:
+          type: string
+        y_label:
+          type: string
+        context:
+          type: object
+          properties:
+            title:
+              type: string
+            description:
+              type: string
+
+    MultipleRegressionData:
+      type: object
+      properties:
+        type:
+          type: string
+        x1:
+          type: array
+          items:
+            type: number
+        x2:
+          type: array
+          items:
+            type: number
+        y:
+          type: array
+          items:
+            type: number
+        n:
+          type: integer
+        x1_label:
+          type: string
+        x2_label:
+          type: string
+        y_label:
+          type: string
+
+    SimpleRegressionStats:
+      type: object
+      properties:
+        type:
+          type: string
+        coefficients:
+          type: object
+          properties:
+            intercept:
+              type: number
+            slope:
+              type: number
+        model_fit:
+          type: object
+          properties:
+            r_squared:
+              type: number
+            r_squared_adj:
+              type: number
+        standard_errors:
+          type: object
+          properties:
+            intercept:
+              type: number
+            slope:
+              type: number
+        t_tests:
+          type: object
+          properties:
+            intercept:
+              $ref: '#/components/schemas/TTest'
+            slope:
+              $ref: '#/components/schemas/TTest'
+        sum_of_squares:
+          type: object
+          properties:
+            sse:
+              type: number
+            sst:
+              type: number
+            ssr:
+              type: number
+            mse:
+              type: number
+        sample:
+          type: object
+          properties:
+            n:
+              type: integer
+            df:
+              type: integer
+        predictions:
+          type: array
+          items:
+            type: number
+        residuals:
+          type: array
+          items:
+            type: number
+
+    MultipleRegressionStats:
+      type: object
+      properties:
+        type:
+          type: string
+        coefficients:
+          type: object
+          properties:
+            intercept:
+              type: number
+            slopes:
+              type: array
+              items:
+                type: number
+        model_fit:
+          type: object
+          properties:
+            r_squared:
+              type: number
+            r_squared_adj:
+              type: number
+            f_statistic:
+              type: number
+            f_p_value:
+              type: number
+        standard_errors:
+          type: array
+          items:
+            type: number
+        t_tests:
+          type: object
+          properties:
+            t_values:
+              type: array
+              items:
+                type: number
+            p_values:
+              type: array
+              items:
+                type: number
+        sample:
+          type: object
+          properties:
+            n:
+              type: integer
+            k:
+              type: integer
+
+    TTest:
+      type: object
+      properties:
+        t_value:
+          type: number
+        p_value:
+          type: number
+
+    PlotCollection:
+      type: object
+      description: Plotly JSON Figures
+      properties:
+        scatter:
+          $ref: '#/components/schemas/PlotlyFigure'
+        residuals:
+          $ref: '#/components/schemas/PlotlyFigure'
+        diagnostics:
+          $ref: '#/components/schemas/PlotlyFigure'
+      additionalProperties:
+        $ref: '#/components/schemas/PlotlyFigure'
+
+    PlotlyFigure:
+      type: object
+      description: Plotly JSON Figure Format
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+        layout:
+          type: object
+
+    ContentResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        content:
+          $ref: '#/components/schemas/EducationalContent'
+        plots:
+          $ref: '#/components/schemas/PlotCollection'
+        stats:
+          type: object
+        data:
+          type: object
+
+    EducationalContent:
+      type: object
+      properties:
+        title:
+          type: string
+        subtitle:
+          type: string
+        chapters:
+          type: array
+          items:
+            $ref: '#/components/schemas/Chapter'
+
+    Chapter:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [chapter]
+        number:
+          type: string
+        title:
+          type: string
+        icon:
+          type: string
+        sections:
+          type: array
+          items:
+            oneOf:
+              - $ref: '#/components/schemas/Section'
+              - $ref: '#/components/schemas/ContentElement'
+
+    Section:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [section]
+        title:
+          type: string
+        icon:
+          type: string
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/ContentElement'
+
+    ContentElement:
+      type: object
+      description: Eines von vielen Content-Element-Typen
+      properties:
+        type:
+          type: string
+          enum:
+            - markdown
+            - metric
+            - metric_row
+            - formula
+            - plot
+            - table
+            - columns
+            - expander
+            - info_box
+            - warning_box
+            - success_box
+            - code_block
+            - divider
+      additionalProperties: true
+
+    ContentSchemaResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        schema:
+          type: object
+          properties:
+            element_types:
+              type: array
+              items:
+                type: string
+            structure:
+              type: object
+
+    AIStatusResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        status:
+          type: object
+          properties:
+            configured:
+              type: boolean
+            model:
+              type: string
+            cache_size:
+              type: integer
+
+    AIInterpretResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        interpretation:
+          type: object
+          properties:
+            content:
+              type: string
+              description: Markdown-formatierte Interpretation
+            model:
+              type: string
+            cached:
+              type: boolean
+            latency_ms:
+              type: number
+        usage:
+          type: object
+          properties:
+            prompt_tokens:
+              type: integer
+            completion_tokens:
+              type: integer
+            total_tokens:
+              type: integer
+        citations:
+          type: array
+          items:
+            type: string
+
+    ROutputResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        r_output:
+          type: string
+          description: R-Style formatted output
+
+    CacheClearResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        cleared:
+          type: integer
+        cache_size:
+          type: integer
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum: [false]
+        error:
+          type: string

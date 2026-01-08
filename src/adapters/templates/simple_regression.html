@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2 class="section-header">📈 Einfache Lineare Regression: {{ data.context_title }}</h2>
+
+<div class="info-box">
+    <strong>Kontext:</strong> {{ data.context_description }}
+    <br>
+    <strong>Fragestellung:</strong> Gibt es einen linearen Zusammenhang zwischen 
+    <strong>{{ data.x_label }}</strong> und <strong>{{ data.y_label }}</strong>?
+</div>
+
+<!-- Key Metrics -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="metric-card">
+            <div class="metric-value">{{ "%.4f"|format(stats.r_squared) }}</div>
+            <div class="metric-label">R² (Bestimmtheitsmass)</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="metric-card">
+            <div class="metric-value">{{ "%.4f"|format(stats.intercept) }}</div>
+            <div class="metric-label">β₀ (Intercept)</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="metric-card">
+            <div class="metric-value">{{ "%.4f"|format(stats.slope) }}</div>
+            <div class="metric-label">β₁ (Steigung)</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="metric-card">
+            <div class="metric-value">{{ stats.n }}</div>
+            <div class="metric-label">n (Stichprobe)</div>
+        </div>
+    </div>
+</div>
+
+<!-- Regression Plot -->
+<h3 class="section-header">📊 Regressionsgerade</h3>
+<div class="plot-container">
+    <div id="scatterPlot"></div>
+</div>
+
+{% if show_formulas %}
+<div class="formula-box">
+    <strong>Das Modell:</strong>
+    <p>\[ \hat{y} = {{ "%.4f"|format(stats.intercept) }} + {{ "%.4f"|format(stats.slope) }} \cdot x \]</p>
+</div>
+{% endif %}
+
+<!-- Interpretation -->
+<h3 class="section-header">📖 Interpretation</h3>
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h5>Intercept (β₀ = {{ "%.4f"|format(stats.intercept) }})</h5>
+                <p>Wenn {{ data.x_label }} = 0, erwarten wir {{ data.y_label }} ≈ {{ "%.2f"|format(stats.intercept) }} {{ data.y_unit }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h5>Steigung (β₁ = {{ "%.4f"|format(stats.slope) }})</h5>
+                <p>Pro Einheit {{ data.x_label }} ändert sich {{ data.y_label }} um <strong>{{ "%.4f"|format(stats.slope) }}</strong> {{ data.y_unit }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Model Fit -->
+<h3 class="section-header">📐 Modellgüte</h3>
+<div class="row">
+    <div class="col-md-8">
+        <div class="plot-container">
+            <div id="residualsPlot"></div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5>Gütekennzahlen</h5>
+                <table class="table table-sm">
+                    <tr><td>R²</td><td>{{ "%.4f"|format(stats.r_squared) }}</td></tr>
+                    <tr><td>R² adj.</td><td>{{ "%.4f"|format(stats.r_squared_adj) }}</td></tr>
+                    <tr><td>MSE</td><td>{{ "%.4f"|format(stats.mse) }}</td></tr>
+                    <tr><td>SSE</td><td>{{ "%.4f"|format(stats.sse) }}</td></tr>
+                    <tr><td>SST</td><td>{{ "%.4f"|format(stats.sst) }}</td></tr>
+                </table>
+                
+                {% if stats.r_squared > 0.8 %}
+                <div class="alert alert-success">✅ Sehr gute Anpassung</div>
+                {% elif stats.r_squared > 0.5 %}
+                <div class="alert alert-info">ℹ️ Akzeptable Anpassung</div>
+                {% else %}
+                <div class="alert alert-warning">⚠️ Schwache Anpassung</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Significance -->
+<h3 class="section-header">🔬 Signifikanz</h3>
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h5>t-Test für β₁</h5>
+                <table class="table table-sm">
+                    <tr><td>t-Wert</td><td>{{ "%.3f"|format(stats.t_slope) }}</td></tr>
+                    <tr><td>p-Wert</td><td>{{ "%.4f"|format(stats.p_slope) }}</td></tr>
+                    <tr><td>df</td><td>{{ stats.df }}</td></tr>
+                </table>
+                
+                {% if stats.p_slope < 0.05 %}
+                <div class="alert alert-success">
+                    ✅ <strong>Signifikant!</strong> (p = {{ "%.4f"|format(stats.p_slope) }} < 0.05)
+                </div>
+                {% else %}
+                <div class="alert alert-warning">
+                    ⚠️ <strong>Nicht signifikant</strong> (p = {{ "%.4f"|format(stats.p_slope) }} ≥ 0.05)
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="plot-container">
+            <div id="diagnosticsPlot"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Summary -->
+<h3 class="section-header">📝 Zusammenfassung</h3>
+<div class="alert alert-success">
+    <h5>Ergebnisse der Analyse</h5>
+    <p><strong>Regressionsgleichung:</strong> {{ data.y_label }} = {{ "%.4f"|format(stats.intercept) }} + {{ "%.4f"|format(stats.slope) }} × {{ data.x_label }}</p>
+    <p><strong>Interpretation:</strong></p>
+    <ul>
+        <li>R² = {{ "%.4f"|format(stats.r_squared) }} → {{ "%.1f"|format(stats.r_squared * 100) }}% der Varianz erklärt</li>
+        <li>Pro Einheit {{ data.x_label }} ändert sich {{ data.y_label }} um {{ "%.4f"|format(stats.slope) }}</li>
+        <li>Die Steigung ist {% if stats.p_slope < 0.05 %}✅ signifikant{% else %}⚠️ nicht signifikant{% endif %} (p = {{ "%.4f"|format(stats.p_slope) }})</li>
+    </ul>
+    <p><strong>Stichprobe:</strong> n = {{ stats.n }} Beobachtungen</p>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Render plots from JSON
+    {% if plots.scatter %}
+    Plotly.newPlot('scatterPlot', {{ plots.scatter | safe }});
+    {% endif %}
+    
+    {% if plots.residuals %}
+    Plotly.newPlot('residualsPlot', {{ plots.residuals | safe }});
+    {% endif %}
+    
+    {% if plots.diagnostics %}
+    Plotly.newPlot('diagnosticsPlot', {{ plots.diagnostics | safe }});
+    {% endif %}
+</script>
+{% endblock %}

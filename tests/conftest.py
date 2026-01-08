@@ -1,39 +1,39 @@
 """
-Pytest configuration and shared fixtures.
+Pytest configuration and shared fixtures for Pipeline tests.
 """
 
 import pytest
-from unittest.mock import Mock
+import numpy as np
 
-from src.infrastructure.dependency_container import DependencyContainer, InfrastructureContainer
-from src.core.application.application_services import ApplicationServiceContainer
-
-
-@pytest.fixture
-def infrastructure_container():
-    """Provide a test infrastructure dependency container."""
-    return DependencyContainer().create_test_container()
+from src.pipeline.get_data import DataFetcher, DataResult
+from src.pipeline.calculate import StatisticsCalculator
 
 
 @pytest.fixture
-def application_container(infrastructure_container: InfrastructureContainer):
-    """Provide a test application service container."""
-    return ApplicationServiceContainer(infrastructure_container)
+def data_fetcher():
+    """Provide a DataFetcher instance."""
+    return DataFetcher()
 
 
 @pytest.fixture
-def container(application_container):
-    """Provide the full application container for backward compatibility."""
-    return application_container
+def calculator():
+    """Provide a StatisticsCalculator instance."""
+    return StatisticsCalculator()
 
 
 @pytest.fixture
-def mock_dataset_repository():
-    """Provide a mock dataset repository."""
-    return Mock()
-
-
-@pytest.fixture
-def mock_model_repository():
-    """Provide a mock model repository."""
-    return Mock()
+def simple_data():
+    """Provide simple regression test data."""
+    np.random.seed(42)
+    n = 50
+    x = np.random.uniform(10, 100, n)
+    y = 5 + 2 * x + np.random.normal(0, 10, n)
+    
+    return DataResult(
+        x=x,
+        y=y,
+        x_label="X",
+        y_label="Y",
+        context_title="Test Data",
+        context_description="Test dataset for unit tests"
+    )

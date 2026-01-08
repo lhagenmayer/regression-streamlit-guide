@@ -1,23 +1,19 @@
-# Production Dependencies
-# Linear Regression Guide - Streamlit Application
+# Core Dependencies
+numpy>=1.24.0
+pandas>=2.0.0
+scipy>=1.11.0
+plotly>=5.18.0
 
-# Core web framework for interactive data apps
-streamlit>=1.28.0,<2.0.0
+# Web Frameworks
+streamlit>=1.28.0
+flask>=3.0.0
 
-# Data manipulation and numerical computing
-numpy>=1.24.0,<2.0.0
-pandas>=2.0.0,<3.0.0
+# AI Integration
+requests>=2.31.0
+markdown>=3.5.0
 
-# Interactive visualizations
-plotly>=5.14.0,<6.0.0
+# API Documentation
+pyyaml>=6.0.0
 
-# Statistical modeling
-statsmodels>=0.14.0,<1.0.0
-scipy>=1.11.0,<2.0.0
-# scikit-learn removed - using native numpy OLS for educational transparency
-
-# HTTP requests for external data (Swiss Open Government Data API)
-requests>=2.31.0,<3.0.0
-
-# Perplexity API for LLM-based interpretation
-openai>=1.0.0,<2.0.0  # Perplexity API is OpenAI-compatible
+# Testing
+pytest>=7.4.0

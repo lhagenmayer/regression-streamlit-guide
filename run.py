@@ -1,160 +1,295 @@
 #!/usr/bin/env python3
 """
-Entry point for the Linear Regression Guide application.
+Unified Entry Point - 100% Platform Agnostic Application.
 
-This application is designed to run with Streamlit.
+This module provides THREE ways to run the application:
+
+1. **API Server** (for ANY frontend: Next.js, Vite, Vue, Angular, etc.)
+   python run.py --api
+   python run.py --api --port 8000
+
+2. **Flask Web App** (traditional server-rendered HTML)
+   python run.py --flask
+   python run.py --flask --port 5000
+
+3. **Streamlit App** (interactive Python UI)
+   streamlit run run.py
+   python run.py --streamlit
+
+Architecture:
+    ┌─────────────────────────────────────────────────────────────────────┐
+    │                              run.py                                  │
+    │                         (Auto-Detection)                             │
+    └──────────────────────────────┬──────────────────────────────────────┘
+                                   │
+           ┌───────────────────────┼───────────────────────┐
+           ↓                       ↓                       ↓
+    ┌─────────────────┐   ┌─────────────────┐   ┌─────────────────────────┐
+    │   REST API      │   │   Flask App     │   │   Streamlit App         │
+    │   (JSON only)   │   │   (HTML)        │   │   (Interactive)         │
+    └────────┬────────┘   └────────┬────────┘   └────────────┬────────────┘
+             │                     │                         │
+             │                     │                         │
+             └─────────────────────┴─────────────────────────┘
+                                   │
+                                   ↓
+    ┌─────────────────────────────────────────────────────────────────────┐
+    │                    Core Pipeline (Platform-Agnostic)                 │
+    │         DataFetcher → StatisticsCalculator → PlotBuilder             │
+    └─────────────────────────────────────────────────────────────────────┘
+                                   │
+                                   ↓
+    ┌─────────────────────────────────────────────────────────────────────┐
+    │                 Content Layer (Pure Data Structures)                 │
+    │       ContentBuilder → EducationalContent (JSON-serializable)        │
+    └─────────────────────────────────────────────────────────────────────┘
+
+Frontend Integration Examples:
+
+    # Next.js / Vite / React:
+    fetch('http://localhost:8000/api/content/simple', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dataset: 'electronics', n: 50 })
+    })
+    .then(res => res.json())
+    .then(data => {
+        // data.content - Educational content structure
+        // data.plots   - Plotly figures (JSON)
+        // data.stats   - Statistics
+    });
+
+    # Vue.js:
+    const { data } = await axios.post('/api/content/simple', { n: 50 });
+    
+    # Any HTTP client:
+    curl -X POST http://localhost:8000/api/content/simple \\
+         -H "Content-Type: application/json" \\
+         -d '{"dataset": "electronics", "n": 50}'
 """
 
 import sys
 import os
-import warnings
-import streamlit as st
-
-# Detect execution context
-def _is_running_with_streamlit():
-    try:
-        from streamlit.runtime.scriptrunner import get_script_run_ctx
-        return get_script_run_ctx() is not None
-    except (ImportError, AttributeError):
-        return any('streamlit' in arg.lower() for arg in sys.argv)
-
-if __name__ == "__main__" and not _is_running_with_streamlit():
-    print("❌ Direct execution not supported. Use: streamlit run run.py")
-    sys.exit(1)
-
-# Suppress warnings
-warnings.filterwarnings('ignore', category=FutureWarning)
-warnings.filterwarnings('ignore', category=UserWarning)
+import argparse
 
 # Add src to path
-src_path = os.path.join(os.path.dirname(__file__), 'src')
-sys.path.insert(0, src_path)
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-# Import application modules
-from src.config import UI_DEFAULTS, get_logger
-from src.ui import inject_accessibility_styles, render_r_output_section
-from src.utils import initialize_session_state
-from src.ui import (
-    render_sidebar_header,
-    render_dataset_selection,
-    render_multiple_regression_params,
-    render_simple_regression_params,
-    render_display_options,
-    render_simple_regression_tab,
-    render_multiple_regression_tab,
-    render_datasets_tab,
-)
-from src.data import (
-    load_multiple_regression_data,
-    load_simple_regression_data,
-)
 
-logger = get_logger(__name__)
+def detect_framework() -> str:
+    """
+    Detect which framework to use.
+    
+    Priority:
+    1. Command line arguments (--api, --flask, --streamlit)
+    2. Environment variables
+    3. Runtime detection (Streamlit context)
+    4. Default to showing help
+    
+    Returns:
+        'api', 'streamlit', 'flask', or 'help'
+    """
+    # Check command line arguments
+    if '--api' in sys.argv:
+        return 'api'
+    if '--flask' in sys.argv:
+        return 'flask'
+    if '--streamlit' in sys.argv:
+        return 'streamlit'
+    
+    # Check environment variables
+    if os.environ.get('RUN_API'):
+        return 'api'
+    if os.environ.get('FLASK_APP'):
+        return 'flask'
+    
+    # Check if running in Streamlit
+    try:
+        import streamlit.runtime.scriptrunner as sr
+        ctx = sr.get_script_run_ctx()
+        if ctx is not None:
+            return 'streamlit'
+    except (ImportError, Exception):
+        pass
+    
+    # Check if imported by Streamlit CLI
+    if any('streamlit' in arg.lower() for arg in sys.argv):
+        return 'streamlit'
+    
+    # Default: show help if run directly without arguments
+    if __name__ == '__main__' and len(sys.argv) == 1:
+        return 'help'
+    
+    return 'streamlit'
+
+
+def run_api_server(host: str = "0.0.0.0", port: int = 8000, cors_origins: list = None):
+    """
+    Run pure REST API server.
+    
+    This server can be consumed by ANY frontend:
+    - Next.js
+    - Vite/React
+    - Vue.js
+    - Angular
+    - Mobile Apps
+    - Any HTTP client
+    """
+    from src.api import create_api_server
+    
+    print("""
+╔══════════════════════════════════════════════════════════════════════════╗
+║                    🚀 Regression Analysis REST API                        ║
+║                      100% Platform Agnostic                               ║
+╠══════════════════════════════════════════════════════════════════════════╣
+║  Use this API with ANY frontend framework:                                ║
+║  • Next.js / React                                                        ║
+║  • Vite / Vue.js                                                          ║
+║  • Angular / Svelte                                                       ║
+║  • Mobile Apps (iOS/Android)                                              ║
+║  • Any HTTP client                                                        ║
+╚══════════════════════════════════════════════════════════════════════════╝
+    """)
+    
+    app = create_api_server(cors_origins=cors_origins or ["*"])
+    
+    print(f"📡 API Server: http://{host}:{port}")
+    print(f"📚 OpenAPI Spec: http://{host}:{port}/api/openapi.json")
+    print(f"❤️  Health Check: http://{host}:{port}/api/health")
+    print()
+    print("Endpoints:")
+    print("  POST /api/regression/simple     - Run simple regression")
+    print("  POST /api/regression/multiple   - Run multiple regression")
+    print("  POST /api/content/simple        - Get educational content (simple)")
+    print("  POST /api/content/multiple      - Get educational content (multiple)")
+    print("  GET  /api/content/schema        - Get content schema")
+    print("  POST /api/ai/interpret          - AI interpretation")
+    print("  GET  /api/datasets              - List available datasets")
+    print()
+    
+    app.run(host=host, port=port, debug=False, threaded=True)
+
+
+def run_streamlit():
+    """Run Streamlit application."""
+    from src.adapters.streamlit.app import run_streamlit_app
+    run_streamlit_app()
+
+
+def run_flask(host: str = "0.0.0.0", port: int = 5000):
+    """Run Flask web application (HTML rendering)."""
+    from src.adapters.flask_app import run_flask as flask_run
+    
+    print("""
+╔══════════════════════════════════════════════════════════════════════════╗
+║                    🌐 Flask Web Application                               ║
+║                    Server-Side HTML Rendering                             ║
+╚══════════════════════════════════════════════════════════════════════════╝
+    """)
+    
+    flask_run(host=host, port=port)
+
+
+def create_app():
+    """Create Flask app for WSGI servers (gunicorn, uwsgi, etc.)."""
+    from src.adapters.flask_app import create_flask_app
+    return create_flask_app()
+
+
+def create_api_app():
+    """Create API app for WSGI servers."""
+    from src.api import create_api_server
+    return create_api_server()
+
+
+def show_help():
+    """Show usage help."""
+    print("""
+╔══════════════════════════════════════════════════════════════════════════╗
+║              📊 Regression Analysis - Platform Agnostic                   ║
+╠══════════════════════════════════════════════════════════════════════════╣
+║                                                                           ║
+║  Usage:                                                                   ║
+║                                                                           ║
+║    1. REST API (for Next.js, Vite, Vue, etc.):                           ║
+║       python run.py --api [--port 8000]                                  ║
+║                                                                           ║
+║    2. Flask Web App (server-rendered HTML):                              ║
+║       python run.py --flask [--port 5000]                                ║
+║                                                                           ║
+║    3. Streamlit App (interactive Python UI):                             ║
+║       streamlit run run.py                                               ║
+║       python run.py --streamlit                                          ║
+║                                                                           ║
+║  Options:                                                                 ║
+║    --api        Run pure REST API server                                 ║
+║    --flask      Run Flask web application                                ║
+║    --streamlit  Run Streamlit application                                ║
+║    --port PORT  Specify port number                                      ║
+║    --host HOST  Specify host (default: 0.0.0.0)                         ║
+║                                                                           ║
+║  Examples:                                                                ║
+║    python run.py --api --port 8000                                       ║
+║    python run.py --flask --port 5000                                     ║
+║    streamlit run run.py -- --port 8501                                   ║
+║                                                                           ║
+╚══════════════════════════════════════════════════════════════════════════╝
+    """)
+
 
 def main():
-    # 1. MUST BE THE FIRST STREAMLIT COMMAND
-    st.set_page_config(
-        page_title="🎓 Linear Regression Guide",
-        page_icon="📊",
-        layout="wide",
-        initial_sidebar_state=UI_DEFAULTS["sidebar_expanded"]
+    """Main entry point with argument parsing."""
+    parser = argparse.ArgumentParser(
+        description="Regression Analysis - Platform Agnostic Application",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-
-    # 2. Initializations after page config
-    initialize_session_state()
-    inject_accessibility_styles()
-
-    logger.info("Application starting...")
-
-    # 3. Sidebar
-    with st.sidebar:
-        render_sidebar_header()
-        dataset_selection = render_dataset_selection()
-        
-        mult_params = render_multiple_regression_params(dataset_selection.multiple_dataset)
-        
-        has_true_line = (dataset_selection.simple_dataset == "🏪 Elektronikmarkt (simuliert)")
-        simple_params = render_simple_regression_params(dataset_selection.simple_dataset, has_true_line)
-        
-        display_opts_simple = render_display_options(has_true_line, key_suffix="_simple")
-        display_opts_mult = render_display_options(has_true_line=False, key_suffix="_mult")
-
-    # 4. Main content title
-    st.title("🎓 Umfassender Leitfaden zur Linearen Regression")
-    st.markdown("Von der Frage zur validierten Erkenntnis")
-
-    # 5. Load data with error handling
-    try:
-        simple_data = load_simple_regression_data(
-            dataset_choice=dataset_selection.simple_dataset,
-            x_variable=simple_params.x_variable,
-            n=simple_params.n,
-            true_intercept=simple_params.true_intercept,
-            true_beta=simple_params.true_beta,
-            noise_level=simple_params.noise_level,
-            seed=simple_params.seed
-        )
-        mult_data = load_multiple_regression_data(
-            dataset_choice=dataset_selection.multiple_dataset,
-            n=mult_params.n,
-            noise_level=mult_params.noise_level,
-            seed=mult_params.seed
-        )
-    except Exception as e:
-        st.error(f"❌ Fehler beim Laden der Daten: {e}")
-        logger.error(f"Data loading error: {e}")
+    
+    parser.add_argument('--api', action='store_true', help='Run REST API server')
+    parser.add_argument('--flask', action='store_true', help='Run Flask web app')
+    parser.add_argument('--streamlit', action='store_true', help='Run Streamlit app')
+    parser.add_argument('--port', type=int, default=None, help='Port number')
+    parser.add_argument('--host', type=str, default='0.0.0.0', help='Host to bind')
+    
+    # Parse known args (ignore Streamlit args)
+    args, _ = parser.parse_known_args()
+    
+    framework = detect_framework()
+    
+    if framework == 'help':
+        show_help()
         return
+    
+    if framework == 'api':
+        port = args.port or 8000
+        run_api_server(host=args.host, port=port)
+    elif framework == 'flask':
+        port = args.port or 5000
+        run_flask(host=args.host, port=port)
+    elif framework == 'streamlit':
+        run_streamlit()
+    else:
+        show_help()
 
-    # 6. Global R output section
-    try:
-        from src.utils import update_current_model
-        update_current_model(simple_data['model'], [simple_params.x_variable or "X"])
-    except Exception as e:
-        logger.warning(f"Could not update model state: {e}")
 
-    render_r_output_section(
-        model=st.session_state.get("current_model"),
-        feature_names=st.session_state.get("current_feature_names"),
-        figsize=(18, 13)
-    )
+# =========================================================================
+# Execution
+# =========================================================================
 
-    # 7. Render tabs
-    tab1, tab2, tab3 = st.tabs(["📈 Einfache Regression", "📊 Multiple Regression", "📋 Datensätze"])
+framework = detect_framework()
 
-    with tab1:
-        render_simple_regression_tab(
-            model_data=simple_data,
-            x_label=simple_data.get('x_label', 'X'),
-            y_label=simple_data.get('y_label', 'Y'),
-            x_unit=simple_data.get('x_unit', ''),
-            y_unit=simple_data.get('y_unit', ''),
-            context_title=simple_data.get('context_title', ''),
-            context_description=simple_data.get('context_description', ''),
-            show_formulas=display_opts_simple.show_formulas,
-            show_true_line=display_opts_simple.show_true_line,
-            has_true_line=has_true_line,
-            true_intercept=simple_params.true_intercept,
-            true_beta=simple_params.true_beta,
-        )
-
-    with tab2:
-        render_multiple_regression_tab(
-            model_data=mult_data,
-            dataset_choice=dataset_selection.multiple_dataset,
-            show_formulas=display_opts_mult.show_formulas,
-        )
-
-    with tab3:
-        render_datasets_tab()
-
-    # 8. Footer
-    st.markdown("---")
-    st.markdown("<div style='text-align: center; color: gray; font-size: 12px;'>📖 Linear Regression Guide | statsmodels & Streamlit</div>", unsafe_allow_html=True)
-
-if __name__ == "__main__":
-    try:
+if framework == 'streamlit':
+    # Streamlit mode - execute immediately
+    run_streamlit()
+elif framework in ('api', 'flask', 'help'):
+    # Other modes - run main()
+    if __name__ == '__main__':
         main()
-    except Exception as e:
-        st.error(f"❌ Kritischer Fehler: {e}")
-        import traceback
-        st.expander("Details").code(traceback.format_exc())
+    else:
+        # For WSGI servers
+        if framework == 'api':
+            app = create_api_app()
+        else:
+            app = create_app()
+else:
+    if __name__ == '__main__':
+        main()

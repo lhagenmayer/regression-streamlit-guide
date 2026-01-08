@@ -1,12 +1,15 @@
 """
-Data handling package for the Linear Regression Guide.
-
-This package contains data generation, API clients, and content management.
+Data module - Dynamic content for regression analysis.
 """
 
-from .data_generators import *
-from .data_generators.mock_data_generator import safe_scalar
-from .api_clients import *
-from .content import *
-from .data_loading import *
-from .data_preparation import *
+from .content import (
+    get_multiple_regression_formulas,
+    get_multiple_regression_descriptions,
+    get_simple_regression_content,
+)
+
+__all__ = [
+    "get_multiple_regression_formulas",
+    "get_multiple_regression_descriptions", 
+    "get_simple_regression_content",
+]
