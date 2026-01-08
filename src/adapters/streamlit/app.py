@@ -27,8 +27,8 @@ def run_streamlit_app():
     st.set_page_config(
         page_title="Regression Analysis",
         page_icon="📈",
-        layout="wide",
-        initial_sidebar_state="expanded"
+        layout="centered",
+        initial_sidebar_state="auto"
     )
     
     # Custom CSS - Removed for native look

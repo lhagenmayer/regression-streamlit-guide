@@ -94,6 +94,9 @@ class StreamlitContentRenderer:
             st.metric(element.label, element.value, help=element.help_text or None)
         
         elif isinstance(element, MetricRow):
+            # On mobile/narrow screens, stacking might be better than columns
+            # but Streamlit's columns are responsive. 
+            # We keep it simple.
             cols = st.columns(len(element.metrics))
             for col, metric in zip(cols, element.metrics):
                 with col:
@@ -112,6 +115,7 @@ class StreamlitContentRenderer:
             self._render_table(element)
         
         elif isinstance(element, Columns):
+            # Streamlit columns collapse on mobile automatically.
             cols = st.columns(element.widths)
             for col, content in zip(cols, element.columns):
                 with col:
