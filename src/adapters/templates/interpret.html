@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}AI-Interpretation - {{ stats.context_title }}{% endblock %}
+{% block title %}AI-Interpretation - {{ stats.context_title | default('Regressionsanalyse') }}{% endblock %}
 
 {% block content %}
 <div class="container py-5">
@@ -13,6 +13,23 @@
         <p class="lead text-secondary">
             Perplexity AI erklärt den R-Output deiner Regressionsanalyse
         </p>
+        <div class="d-flex justify-content-center gap-2 mt-3">
+            {% if ai_configured %}
+            <span class="badge bg-success">
+                <i class="bi bi-check-circle me-1"></i> Perplexity AI verbunden
+            </span>
+            {% else %}
+            <span class="badge bg-warning text-dark">
+                <i class="bi bi-exclamation-triangle me-1"></i> Fallback-Modus
+            </span>
+            {% endif %}
+            <span class="badge bg-primary">
+                {{ 'Einfache' if analysis_type == 'simple' else 'Multiple' }} Regression
+            </span>
+            <span class="badge bg-secondary">
+                n = {{ stats.n }}
+            </span>
+        </div>
     </div>
     
     <!-- Stats Overview -->
@@ -22,10 +39,7 @@
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <span>
                         <i class="bi bi-graph-up me-2"></i>
-                        {{ stats.context_title }}
-                    </span>
-                    <span class="badge bg-primary">
-                        {{ 'Einfache' if analysis_type == 'simple' else 'Multiple' }} Regression
+                        {{ stats.context_title | default('Statistiken') }}
                     </span>
                 </div>
                 <div class="card-body">
@@ -33,22 +47,54 @@
                         <div class="metric-card">
                             <div class="metric-label">R²</div>
                             <div class="metric-value">{{ "%.4f"|format(stats.r_squared) }}</div>
+                            <div class="metric-delta">
+                                {% if stats.r_squared > 0.7 %}
+                                <i class="bi bi-check-circle-fill text-success"></i> Stark
+                                {% elif stats.r_squared > 0.4 %}
+                                <i class="bi bi-dash-circle text-warning"></i> Moderat
+                                {% else %}
+                                <i class="bi bi-x-circle text-danger"></i> Schwach
+                                {% endif %}
+                            </div>
                         </div>
+                        
                         {% if stats.slope is defined %}
+                        <div class="metric-card">
+                            <div class="metric-label">β₀ (Intercept)</div>
+                            <div class="metric-value">{{ "%.4f"|format(stats.intercept) }}</div>
+                        </div>
                         <div class="metric-card">
                             <div class="metric-label">β₁ (Slope)</div>
                             <div class="metric-value">{{ "%.4f"|format(stats.slope) }}</div>
                         </div>
                         <div class="metric-card">
-                            <div class="metric-label">p-Wert</div>
+                            <div class="metric-label">p-Wert (Slope)</div>
                             <div class="metric-value {% if stats.p_slope < 0.05 %}text-success{% else %}text-warning{% endif %}">
                                 {{ "%.4f"|format(stats.p_slope) }}
                             </div>
+                            <div class="metric-delta">
+                                {% if stats.p_slope < 0.001 %}***{% elif stats.p_slope < 0.01 %}**{% elif stats.p_slope < 0.05 %}*{% endif %}
+                            </div>
+                        </div>
+                        {% else %}
+                        <div class="metric-card">
+                            <div class="metric-label">β₁</div>
+                            <div class="metric-value">{{ "%.4f"|format(stats.beta1) }}</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">β₂</div>
+                            <div class="metric-value">{{ "%.4f"|format(stats.beta2) }}</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">F-Statistik</div>
+                            <div class="metric-value">{{ "%.2f"|format(stats.f_statistic) }}</div>
                         </div>
                         {% endif %}
+                        
                         <div class="metric-card">
-                            <div class="metric-label">n</div>
+                            <div class="metric-label">Stichprobe</div>
                             <div class="metric-value">{{ stats.n }}</div>
+                            <div class="metric-delta">Beobachtungen</div>
                         </div>
                     </div>
                 </div>
@@ -60,20 +106,18 @@
     <div class="row justify-content-center mb-4 fade-in" style="animation-delay: 0.2s;">
         <div class="col-lg-10">
             <div class="card">
-                <div class="card-header">
-                    <i class="bi bi-code-square me-2"></i>
-                    R-Output
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span>
+                        <i class="bi bi-code-square me-2"></i>
+                        R-Style Output
+                    </span>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="copyROutput()">
+                        <i class="bi bi-clipboard me-1"></i>
+                        Kopieren
+                    </button>
                 </div>
-                <div class="card-body">
-                    <pre class="mb-0" style="font-size: 0.85rem;"><code>{{ r_output if r_output else "Call:
-lm(formula = " + stats.y_label + " ~ " + stats.x_label + ")
-
-Coefficients:
-              Estimate Std. Error t value Pr(>|t|)    
-(Intercept)  " + "%.4f"|format(stats.intercept) + "   " + "%.4f"|format(stats.se_intercept) + "  " + "%.3f"|format(stats.t_intercept) + "   " + "%.2e"|format(stats.p_intercept) + "
-" + stats.x_label[:12] + "   " + "%.4f"|format(stats.slope) + "   " + "%.4f"|format(stats.se_slope) + "  " + "%.3f"|format(stats.t_slope) + "   " + "%.2e"|format(stats.p_slope) + "
-
-Multiple R-squared:  " + "%.4f"|format(stats.r_squared) + ",    Adjusted R-squared:  " + "%.4f"|format(stats.r_squared_adj) }}</code></pre>
+                <div class="card-body p-0">
+                    <pre id="r-output" class="mb-0 p-3" style="font-size: 0.85rem; background: var(--bg-secondary); border-radius: 0;"><code>{{ r_output }}</code></pre>
                 </div>
             </div>
         </div>
@@ -82,26 +126,68 @@ Multiple R-squared:  " + "%.4f"|format(stats.r_squared) + ",    Adjusted R-squar
     <!-- AI Interpretation -->
     <div class="row justify-content-center fade-in" style="animation-delay: 0.3s;">
         <div class="col-lg-10">
-            <div class="card border-primary">
-                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <div class="card border-0 shadow-lg">
+                <div class="card-header bg-gradient text-white d-flex justify-content-between align-items-center"
+                     style="background: linear-gradient(135deg, var(--primary) 0%, #8b5cf6 100%);">
                     <span>
                         <i class="bi bi-robot me-2"></i>
                         Gesamtheitliche Interpretation
                     </span>
-                    {% if ai_configured %}
-                    <span class="badge bg-success">
-                        <i class="bi bi-check-circle me-1"></i>
-                        Perplexity AI
+                    {% if interpretation.cached %}
+                    <span class="badge bg-white text-primary">
+                        <i class="bi bi-lightning-charge me-1"></i>
+                        Cached
                     </span>
                     {% else %}
-                    <span class="badge bg-warning text-dark">
-                        <i class="bi bi-exclamation-triangle me-1"></i>
-                        Fallback
+                    <span class="badge bg-white text-primary">
+                        <i class="bi bi-broadcast me-1"></i>
+                        Live
                     </span>
                     {% endif %}
                 </div>
-                <div class="card-body">
-                    {{ interpretation_html | safe }}
+                <div class="card-body p-4">
+                    <div class="interpretation-content">
+                        {{ interpretation.content | safe }}
+                    </div>
+                    
+                    <!-- Metadata -->
+                    <hr class="my-4">
+                    <div class="d-flex flex-wrap gap-3 text-secondary small">
+                        <span>
+                            <i class="bi bi-cpu me-1"></i>
+                            {{ interpretation.model | default('perplexity') }}
+                        </span>
+                        <span>
+                            <i class="bi bi-clock me-1"></i>
+                            {{ "%.0f"|format(interpretation.latency_ms | default(0)) }}ms
+                        </span>
+                        {% if usage %}
+                        <span>
+                            <i class="bi bi-file-text me-1"></i>
+                            {{ usage.total_tokens | default('N/A') }} Tokens
+                        </span>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Citations -->
+                    {% if citations %}
+                    <div class="mt-4">
+                        <h6 class="text-secondary">
+                            <i class="bi bi-bookmark me-2"></i>
+                            Quellen
+                        </h6>
+                        <ul class="list-unstyled small">
+                            {% for citation in citations %}
+                            <li>
+                                <a href="{{ citation }}" target="_blank" class="text-decoration-none">
+                                    <i class="bi bi-link-45deg me-1"></i>
+                                    {{ citation | truncate(60) }}
+                                </a>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -109,8 +195,8 @@ Multiple R-squared:  " + "%.4f"|format(stats.r_squared) + ",    Adjusted R-squar
     
     <!-- Back Button -->
     <div class="row justify-content-center mt-4 fade-in" style="animation-delay: 0.4s;">
-        <div class="col-lg-10 d-flex gap-3">
-            <a href="/{{ analysis_type }}?dataset={{ dataset }}&n={{ n_points }}" class="btn btn-outline-primary">
+        <div class="col-lg-10 d-flex gap-3 flex-wrap">
+            <a href="/{{ analysis_type }}?dataset={{ dataset }}&n={{ n_points }}" class="btn btn-primary">
                 <i class="bi bi-arrow-left me-2"></i>
                 Zurück zur Analyse
             </a>
@@ -118,7 +204,21 @@ Multiple R-squared:  " + "%.4f"|format(stats.r_squared) + ",    Adjusted R-squar
                 <i class="bi bi-house me-2"></i>
                 Startseite
             </a>
+            <button class="btn btn-outline-primary" onclick="window.print()">
+                <i class="bi bi-printer me-2"></i>
+                Drucken
+            </button>
         </div>
     </div>
 </div>
+
+<script>
+function copyROutput() {
+    const text = document.getElementById('r-output').textContent;
+    navigator.clipboard.writeText(text).then(() => {
+        // Show toast or feedback
+        alert('R-Output kopiert!');
+    });
+}
+</script>
 {% endblock %}

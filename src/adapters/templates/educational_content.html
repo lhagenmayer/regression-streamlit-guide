@@ -41,27 +41,11 @@
             </label>
             <select class="form-select form-select-sm" name="dataset" id="dataset"
                     hx-trigger="change" hx-include="#settings-form">
-                {% if analysis_type == 'simple' %}
-                <option value="Bildung & Einkommen" {{ 'selected' if dataset == 'Bildung & Einkommen' }}>
-                    📚 Bildung & Einkommen
+                {% for ds in datasets %}
+                <option value="{{ ds.id }}" {{ 'selected' if dataset == ds.id }}>
+                    {{ ds.icon }} {{ ds.name }}
                 </option>
-                <option value="Grösse & Gewicht" {{ 'selected' if dataset == 'Grösse & Gewicht' }}>
-                    📏 Grösse & Gewicht
-                </option>
-                <option value="Temperatur & Eisverkauf" {{ 'selected' if dataset == 'Temperatur & Eisverkauf' }}>
-                    🌡️ Temperatur & Eisverkauf
-                </option>
-                {% else %}
-                <option value="Immobilienpreise" {{ 'selected' if dataset == 'Immobilienpreise' }}>
-                    🏠 Immobilienpreise
-                </option>
-                <option value="Autoverbrauch" {{ 'selected' if dataset == 'Autoverbrauch' }}>
-                    🚗 Autoverbrauch
-                </option>
-                <option value="Marketing-Mix" {{ 'selected' if dataset == 'Marketing-Mix' }}>
-                    📢 Marketing-Mix
-                </option>
-                {% endif %}
+                {% endfor %}
             </select>
         </div>
         
@@ -229,14 +213,14 @@
                     aller statistischen Werte durch Perplexity AI zu erhalten.
                 </p>
                 
-                <div class="d-flex gap-3 mb-4">
+                <div class="d-flex gap-3 mb-4 flex-wrap">
                     <a href="/interpret/{{ analysis_type }}?dataset={{ dataset }}&n={{ n_points }}" 
                        class="btn btn-primary btn-lg">
                         <i class="bi bi-search me-2"></i>
                         R-Output interpretieren lassen
                     </a>
                     <button class="btn btn-outline-secondary"
-                            hx-post="/api/interpret"
+                            hx-post="/api/ai/interpret-html"
                             hx-target="#ai-quick-response"
                             hx-swap="innerHTML"
                             hx-vals='{"stats": {{ stats | tojson }}}'
@@ -244,6 +228,15 @@
                         <i class="bi bi-lightning-charge me-2"></i>
                         Schnelle Interpretation
                     </button>
+                    {% if ai_configured %}
+                    <span class="badge bg-success align-self-center">
+                        <i class="bi bi-check-circle me-1"></i> AI verbunden
+                    </span>
+                    {% else %}
+                    <span class="badge bg-warning text-dark align-self-center">
+                        <i class="bi bi-exclamation-triangle me-1"></i> Fallback-Modus
+                    </span>
+                    {% endif %}
                 </div>
                 
                 <div id="ai-quick-loading" class="htmx-indicator text-center py-4">

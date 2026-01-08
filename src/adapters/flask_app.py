@@ -1,19 +1,22 @@
 """
-Flask Application - Universal Frontend.
+Flask Application - 100% Platform Agnostic.
 
-Uses ContentBuilder + HTMLContentRenderer for truly frontend-agnostic
-educational content rendering.
+Uses the same API layer as external frontends (Next.js, Vite, etc.)
+This ensures consistency across all frontends.
 
-The same content structure is used by Streamlit - only the renderer differs.
+Architecture:
+    Flask App → API Layer → Core Pipeline
+    
+    Same as:
+    Next.js App → HTTP → API Layer → Core Pipeline
 """
 
-import numpy as np
+import json
 from flask import Flask, render_template, request, jsonify
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 
 from ..config import get_logger
-from ..pipeline import RegressionPipeline
-from ..content import SimpleRegressionContent, MultipleRegressionContent
+from ..api import RegressionAPI, ContentAPI, AIInterpretationAPI
 from .renderers import HTMLContentRenderer
 
 logger = get_logger(__name__)
@@ -23,284 +26,285 @@ def create_flask_app() -> Flask:
     """Create and configure Flask application."""
     app = Flask(__name__, template_folder='templates')
     
-    # Initialize pipeline
-    pipeline = RegressionPipeline()
+    # Initialize APIs (same as external frontends would use)
+    regression_api = RegressionAPI()
+    content_api = ContentAPI()
+    ai_api = AIInterpretationAPI()
     
     @app.route('/')
     def index():
         """Landing page."""
-        return render_template('index.html')
+        # Get available datasets from API
+        datasets = regression_api.get_datasets()
+        return render_template(
+            'index.html',
+            datasets=datasets['data'],
+            api_status=ai_api.get_status()['status']
+        )
     
     @app.route('/simple')
     def simple_regression():
         """Simple regression analysis page."""
-        # Get parameters
-        dataset = request.args.get('dataset', 'Bildung & Einkommen')
+        # Get parameters from query string
+        dataset = request.args.get('dataset', 'electronics')
         n_points = int(request.args.get('n', 50))
+        noise = float(request.args.get('noise', 0.4))
+        seed = int(request.args.get('seed', 42))
         
-        # Get data config
-        config = _get_simple_data_config(dataset, n_points)
-        
-        # Map dataset name to pipeline dataset name
-        dataset_map = {
-            "Bildung & Einkommen": "electronics",
-            "Grösse & Gewicht": "temperature",
-            "Temperatur & Eisverkauf": "temperature",
-        }
-        
-        # Run pipeline
-        pipeline_result = pipeline.run_simple(
-            dataset=dataset_map.get(dataset, "electronics"),
+        # Call Content API (same as external frontend would)
+        response = content_api.get_simple_content(
+            dataset=dataset,
             n=n_points,
-            seed=42
+            noise=noise,
+            seed=seed
         )
         
-        data = pipeline_result.data
-        # Override labels from our config
-        data.x_label = config["x_label"]
-        data.y_label = config["y_label"]
-        data.context_title = config["title"]
-        data.context_description = config["description"]
+        if not response['success']:
+            return render_template('error.html', error=response.get('error', 'Unknown error'))
         
-        stats_result = pipeline_result.stats
+        # Extract data from API response
+        content = response['content']
+        plots = response['plots']
+        stats = response['stats']
+        data = response['data']
         
-        # Prepare stats dictionary
-        stats_dict = _prepare_simple_stats(data, stats_result)
+        # Build flat stats dict for template
+        stats_dict = _flatten_stats_for_template(stats, data)
         
-        # Build content using framework-agnostic ContentBuilder
+        # Render content to HTML using HTMLContentRenderer
+        from ..content import SimpleRegressionContent
         content_builder = SimpleRegressionContent(stats_dict, {})
-        content = content_builder.build()
+        content_obj = content_builder.build()
         
-        # Render using HTML renderer
         renderer = HTMLContentRenderer(
-            plots={},
-            data={
-                "x": data.x.tolist(),
-                "y": data.y.tolist(),
-                "x_label": data.x_label,
-                "y_label": data.y_label,
-            },
+            plots=plots,  # Pass serialized plots
+            data=data,
             stats=stats_dict
         )
+        content_dict = renderer.render_to_dict(content_obj)
         
-        # Get rendered content
-        content_dict = renderer.render_to_dict(content)
+        # Get available datasets for dropdown
+        datasets = regression_api.get_datasets()
         
         return render_template(
             'educational_content.html',
-            title=content.title,
-            subtitle=content.subtitle,
+            title=content['title'],
+            subtitle=content['subtitle'],
             content_html=content_dict['full_html'],
             chapters=content_dict['chapters'],
             analysis_type='simple',
             dataset=dataset,
+            datasets=datasets['data']['simple'],
             n_points=n_points,
-            stats=stats_dict
+            noise=noise,
+            seed=seed,
+            stats=stats_dict,
+            plots_json=json.dumps(plots),
+            ai_configured=ai_api.get_status()['status']['configured']
         )
     
     @app.route('/multiple')
     def multiple_regression():
         """Multiple regression analysis page."""
         # Get parameters
-        dataset = request.args.get('dataset', 'Immobilienpreise')
+        dataset = request.args.get('dataset', 'cities')
         n_points = int(request.args.get('n', 75))
+        noise = float(request.args.get('noise', 3.5))
+        seed = int(request.args.get('seed', 42))
         
-        # Get data config
-        config = _get_multiple_data_config(dataset, n_points)
-        
-        # Map dataset name to pipeline dataset name
-        dataset_map = {
-            "Immobilienpreise": "houses",
-            "Autoverbrauch": "cities",
-            "Marketing-Mix": "cities",
-        }
-        
-        # Run pipeline
-        pipeline_result = pipeline.run_multiple(
-            dataset=dataset_map.get(dataset, "cities"),
+        # Call Content API
+        response = content_api.get_multiple_content(
+            dataset=dataset,
             n=n_points,
-            seed=42
+            noise=noise,
+            seed=seed
         )
         
-        data = pipeline_result.data
-        stats_result = pipeline_result.stats
+        if not response['success']:
+            return render_template('error.html', error=response.get('error', 'Unknown error'))
         
-        x1 = data.x1
-        x2 = data.x2
-        y = data.y
+        # Extract data
+        content = response['content']
+        plots = response['plots']
+        stats = response['stats']
+        data = response['data']
         
-        # Prepare stats dictionary
-        stats_dict = _prepare_multiple_stats(config, stats_result, x1, x2, y, n_points)
+        # Build flat stats dict
+        stats_dict = _flatten_multiple_stats_for_template(stats, data)
         
-        # Build content
+        # Render content
+        from ..content import MultipleRegressionContent
         content_builder = MultipleRegressionContent(stats_dict, {})
-        content = content_builder.build()
+        content_obj = content_builder.build()
         
-        # Render
         renderer = HTMLContentRenderer(
-            plots={},
-            data={
-                "x1": x1.tolist(),
-                "x2": x2.tolist(),
-                "y": y.tolist(),
-                "x1_label": config["x1_label"],
-                "x2_label": config["x2_label"],
-                "y_label": config["y_label"],
-            },
+            plots=plots,
+            data=data,
             stats=stats_dict
         )
+        content_dict = renderer.render_to_dict(content_obj)
         
-        content_dict = renderer.render_to_dict(content)
+        # Get available datasets
+        datasets = regression_api.get_datasets()
         
         return render_template(
             'educational_content.html',
-            title=content.title,
-            subtitle=content.subtitle,
+            title=content['title'],
+            subtitle=content['subtitle'],
             content_html=content_dict['full_html'],
             chapters=content_dict['chapters'],
             analysis_type='multiple',
             dataset=dataset,
+            datasets=datasets['data']['multiple'],
             n_points=n_points,
-            stats=stats_dict
+            noise=noise,
+            seed=seed,
+            stats=stats_dict,
+            plots_json=json.dumps(plots),
+            ai_configured=ai_api.get_status()['status']['configured']
         )
     
-    @app.route('/api/analyze', methods=['POST'])
-    def api_analyze():
-        """API endpoint for analysis."""
-        data = request.get_json()
-        
-        analysis_type = data.get('type', 'simple')
-        x = np.array(data.get('x', []))
-        y = np.array(data.get('y', []))
-        
-        if analysis_type == 'simple':
-            result = pipeline.calculate_simple(x, y)
-            return jsonify({
-                'intercept': result.intercept,
-                'slope': result.slope,
-                'r_squared': result.r_squared,
-                'p_slope': result.p_slope,
-            })
-        else:
-            x1 = x
-            x2 = np.array(data.get('x2', []))
-            result = pipeline.calculate_multiple(x1, x2, y)
-            return jsonify({
-                'intercept': result.intercept,
-                'betas': list(result.betas) if hasattr(result, 'betas') else [],
-                'r_squared': result.r_squared,
-            })
+    # =========================================================================
+    # API ENDPOINTS - Proxy to API Layer
+    # =========================================================================
     
-    @app.route('/api/interpret', methods=['POST'])
-    def api_interpret():
+    @app.route('/api/datasets', methods=['GET'])
+    def api_datasets():
+        """Get available datasets via API."""
+        return jsonify(regression_api.get_datasets())
+    
+    @app.route('/api/regression/simple', methods=['POST'])
+    def api_simple_regression():
+        """Run simple regression via API."""
+        data = request.get_json() or {}
+        return jsonify(regression_api.run_simple(**data))
+    
+    @app.route('/api/regression/multiple', methods=['POST'])
+    def api_multiple_regression():
+        """Run multiple regression via API."""
+        data = request.get_json() or {}
+        return jsonify(regression_api.run_multiple(**data))
+    
+    @app.route('/api/content/simple', methods=['POST'])
+    def api_content_simple():
+        """Get simple regression content via API."""
+        data = request.get_json() or {}
+        return jsonify(content_api.get_simple_content(**data))
+    
+    @app.route('/api/content/multiple', methods=['POST'])
+    def api_content_multiple():
+        """Get multiple regression content via API."""
+        data = request.get_json() or {}
+        return jsonify(content_api.get_multiple_content(**data))
+    
+    @app.route('/api/content/schema', methods=['GET'])
+    def api_content_schema():
+        """Get content schema via API."""
+        return jsonify(content_api.get_content_schema())
+    
+    @app.route('/api/ai/interpret', methods=['POST'])
+    def api_ai_interpret():
         """
-        API endpoint for AI interpretation of R-output.
+        AI interpretation via API.
         
-        Expects JSON with stats dictionary.
-        Returns HTML with AI interpretation.
+        Accepts JSON with 'stats' field.
+        Returns JSON with interpretation.
         """
-        from ..ai import PerplexityClient
+        data = request.get_json() or {}
+        stats = data.get('stats', {})
+        use_cache = data.get('use_cache', True)
+        
+        result = ai_api.interpret(stats=stats, use_cache=use_cache)
+        return jsonify(result)
+    
+    @app.route('/api/ai/interpret-html', methods=['POST'])
+    def api_ai_interpret_html():
+        """
+        AI interpretation via API - returns HTML.
+        
+        For HTMX integration - returns rendered HTML.
+        """
         from ..ai.ui_components import AIInterpretationHTML
+        from ..ai import PerplexityClient
         
         data = request.get_json() or {}
-        
-        # Get stats from request or use cached
         stats = data.get('stats', {})
         
-        # If no stats provided, try to get from session/cache
-        if not stats:
-            # Default demo stats
-            stats = {
-                'context_title': 'Demo-Analyse',
-                'x_label': 'X',
-                'y_label': 'Y',
-                'n': 50,
-                'intercept': 10.0,
-                'slope': 2.5,
-                'r_squared': 0.75,
-                'r_squared_adj': 0.74,
-                'se_intercept': 1.5,
-                'se_slope': 0.3,
-                't_intercept': 6.67,
-                't_slope': 8.33,
-                'p_intercept': 0.0001,
-                'p_slope': 0.00001,
-                'mse': 25.0,
-                'sse': 1200.0,
-                'ssr': 3600.0,
-                'df': 48,
-                'residuals': [0] * 50,
-            }
-        
-        # Create client and get interpretation
-        client = PerplexityClient()
-        response = client.interpret_r_output(stats)
+        # Get interpretation via API
+        result = ai_api.interpret(stats=stats, use_cache=True)
         
         # Render as HTML
+        client = PerplexityClient()
         ui = AIInterpretationHTML(stats, client)
-        html = ui.render_response(response)
+        
+        # Build response object
+        class ResponseObj:
+            def __init__(self, result):
+                interp = result.get('interpretation', {})
+                self.content = interp.get('content', '')
+                self.model = interp.get('model', 'unknown')
+                self.cached = interp.get('cached', False)
+                self.latency_ms = interp.get('latency_ms', 0)
+                self.error = not result.get('success', False)
+                self.usage = result.get('usage', {})
+                self.citations = result.get('citations', [])
+        
+        response_obj = ResponseObj(result)
+        html = ui.render_response(response_obj)
         
         return html
+    
+    @app.route('/api/ai/r-output', methods=['POST'])
+    def api_ai_r_output():
+        """Generate R-style output via API."""
+        data = request.get_json() or {}
+        stats = data.get('stats', {})
+        return jsonify(ai_api.get_r_output(stats))
+    
+    @app.route('/api/ai/status', methods=['GET'])
+    def api_ai_status():
+        """Get AI service status via API."""
+        return jsonify(ai_api.get_status())
+    
+    @app.route('/api/openapi.json', methods=['GET'])
+    def api_openapi():
+        """Get OpenAPI specification."""
+        from ..api.endpoints import UnifiedAPI
+        unified = UnifiedAPI()
+        return jsonify(unified.get_openapi_spec())
+    
+    @app.route('/api/health', methods=['GET'])
+    def api_health():
+        """Health check endpoint."""
+        return jsonify({
+            'status': 'ok',
+            'framework': 'flask',
+            'api_powered': True
+        })
+    
+    # =========================================================================
+    # AI INTERPRETATION PAGES
+    # =========================================================================
     
     @app.route('/interpret/<analysis_type>')
     def interpret_page(analysis_type: str):
         """
         Dedicated page for AI interpretation.
-        
-        Runs the analysis and shows AI interpretation.
         """
-        from ..ai import PerplexityClient
-        from ..ai.ui_components import AIInterpretationHTML
+        dataset = request.args.get('dataset', 'electronics' if analysis_type == 'simple' else 'cities')
+        n_points = int(request.args.get('n', 50 if analysis_type == 'simple' else 75))
         
-        dataset = request.args.get('dataset', 'Bildung & Einkommen')
-        n_points = int(request.args.get('n', 50))
-        
+        # Get content via API
         if analysis_type == 'simple':
-            dataset_map = {
-                "Bildung & Einkommen": "electronics",
-                "Grösse & Gewicht": "temperature",
-                "Temperatur & Eisverkauf": "temperature",
-            }
-            config = _get_simple_data_config(dataset, n_points)
-            
-            pipeline_result = pipeline.run_simple(
-                dataset=dataset_map.get(dataset, "electronics"),
-                n=n_points,
-                seed=42
-            )
-            
-            data = pipeline_result.data
-            data.x_label = config["x_label"]
-            data.y_label = config["y_label"]
-            data.context_title = config["title"]
-            data.context_description = config["description"]
-            
-            stats_dict = _prepare_simple_stats(data, pipeline_result.stats)
+            response = content_api.get_simple_content(dataset=dataset, n=n_points)
+            stats_dict = _flatten_stats_for_template(response['stats'], response['data'])
         else:
-            dataset_map = {
-                "Immobilienpreise": "houses",
-                "Autoverbrauch": "cities",
-                "Marketing-Mix": "cities",
-            }
-            config = _get_multiple_data_config(dataset, n_points)
-            
-            pipeline_result = pipeline.run_multiple(
-                dataset=dataset_map.get(dataset, "cities"),
-                n=n_points,
-                seed=42
-            )
-            
-            stats_dict = _prepare_multiple_stats(
-                config, pipeline_result.stats,
-                pipeline_result.data.x1, pipeline_result.data.x2, 
-                pipeline_result.data.y, n_points
-            )
+            response = content_api.get_multiple_content(dataset=dataset, n=n_points)
+            stats_dict = _flatten_multiple_stats_for_template(response['stats'], response['data'])
         
-        # Get AI interpretation
-        client = PerplexityClient()
-        response = client.interpret_r_output(stats_dict)
-        
-        ui = AIInterpretationHTML(stats_dict, client)
+        # Get AI interpretation via API
+        interp_result = ai_api.interpret(stats=stats_dict)
+        r_output_result = ai_api.get_r_output(stats_dict)
         
         return render_template(
             'interpret.html',
@@ -308,216 +312,155 @@ def create_flask_app() -> Flask:
             dataset=dataset,
             n_points=n_points,
             stats=stats_dict,
-            interpretation_html=ui.render_response(response),
-            ai_configured=client.is_configured
+            interpretation=interp_result.get('interpretation', {}),
+            r_output=r_output_result.get('r_output', ''),
+            ai_configured=ai_api.get_status()['status']['configured'],
+            usage=interp_result.get('usage', {}),
+            citations=interp_result.get('citations', [])
         )
     
     return app
 
 
-def _get_simple_data_config(dataset: str, n: int) -> Dict[str, Any]:
-    """Get data configuration for simple regression."""
-    configs = {
-        "Bildung & Einkommen": {
-            "x_label": "Bildungsjahre",
-            "y_label": "Jahreseinkommen (CHF)",
-            "title": "Bildung und Einkommen",
-            "description": "Untersucht den Zusammenhang zwischen Bildungsjahren und Einkommen.",
-            "y_unit": "CHF"
-        },
-        "Grösse & Gewicht": {
-            "x_label": "Körpergrösse (cm)",
-            "y_label": "Körpergewicht (kg)",
-            "title": "Körpergrösse und Gewicht",
-            "description": "Analysiert den Zusammenhang zwischen Körpergrösse und Gewicht.",
-            "y_unit": "kg"
-        },
-        "Temperatur & Eisverkauf": {
-            "x_label": "Temperatur (°C)",
-            "y_label": "Eisverkauf (Einheiten)",
-            "title": "Temperatur und Eisverkauf",
-            "description": "Untersucht wie die Temperatur den Eisverkauf beeinflusst.",
-            "y_unit": "Einheiten"
-        },
-    }
-    return configs.get(dataset, {
-        "x_label": "X",
-        "y_label": "Y",
-        "title": "Benutzerdefinierte Daten",
-        "description": "Analyse mit benutzerdefinierten Daten.",
-        "y_unit": "Einheiten"
-    })
-
-
-def _get_multiple_data_config(dataset: str, n: int) -> Dict[str, Any]:
-    """Get data configuration for multiple regression."""
-    configs = {
-        "Immobilienpreise": {
-            "x1_label": "Wohnfläche (m²)",
-            "x2_label": "Zimmer",
-            "y_label": "Preis (CHF)",
-            "title": "Immobilienpreise",
-            "description": "Preis basierend auf Fläche und Zimmeranzahl.",
-            "x1_range": (50, 200),
-            "x2_range": (2, 6),
-            "true_intercept": 100000,
-            "true_beta1": 3000,
-            "true_beta2": 50000,
-            "noise": 50000
-        },
-        "Autoverbrauch": {
-            "x1_label": "Gewicht (kg)",
-            "x2_label": "PS",
-            "y_label": "Verbrauch (L/100km)",
-            "title": "Autoverbrauch",
-            "description": "Kraftstoffverbrauch basierend auf Gewicht und Leistung.",
-            "x1_range": (1000, 2500),
-            "x2_range": (80, 300),
-            "true_intercept": 2,
-            "true_beta1": 0.003,
-            "true_beta2": 0.02,
-            "noise": 1
-        },
-        "Marketing-Mix": {
-            "x1_label": "TV-Budget (TCHF)",
-            "x2_label": "Online-Budget (TCHF)",
-            "y_label": "Umsatz (TCHF)",
-            "title": "Marketing-Mix Analyse",
-            "description": "Umsatz basierend auf Werbeausgaben.",
-            "x1_range": (10, 100),
-            "x2_range": (5, 50),
-            "true_intercept": 50,
-            "true_beta1": 1.5,
-            "true_beta2": 2.0,
-            "noise": 20
-        },
-    }
-    return configs.get(dataset, {
-        "x1_label": "X₁",
-        "x2_label": "X₂",
-        "y_label": "Y",
-        "title": "Benutzerdefinierte Daten",
-        "description": "Multiple Regression mit benutzerdefinierten Daten.",
-        "x1_range": (0, 100),
-        "x2_range": (0, 100),
-        "true_intercept": 10,
-        "true_beta1": 2,
-        "true_beta2": 3,
-        "noise": 10
-    })
-
-
-def _prepare_simple_stats(data, stats_result) -> Dict[str, Any]:
-    """Prepare statistics dictionary for simple regression content."""
-    from scipy import stats as scipy_stats
-    
-    x, y = data.x, data.y
-    n = len(x)
-    
-    corr = np.corrcoef(x, y)[0, 1]
-    t_corr = corr * np.sqrt((n - 2) / (1 - corr**2)) if abs(corr) < 1 else 0
-    p_corr = 2 * (1 - scipy_stats.t.cdf(abs(t_corr), df=n-2)) if abs(corr) < 1 else 0
-    
-    spearman_r, spearman_p = scipy_stats.spearmanr(x, y)
-    
-    msr = stats_result.ssr / 1 if stats_result.ssr else 0
-    mse = stats_result.sse / stats_result.df if stats_result.sse and stats_result.df else 1
-    f_stat = msr / mse if mse else 0
-    p_f = 1 - scipy_stats.f.cdf(f_stat, dfn=1, dfd=stats_result.df) if f_stat else 1
+def _flatten_stats_for_template(stats: Dict[str, Any], data: Dict[str, Any]) -> Dict[str, Any]:
+    """Flatten API stats response for Jinja2 templates."""
+    coefficients = stats.get('coefficients', {})
+    model_fit = stats.get('model_fit', {})
+    t_tests = stats.get('t_tests', {})
+    sum_of_squares = stats.get('sum_of_squares', {})
+    sample = stats.get('sample', {})
+    standard_errors = stats.get('standard_errors', {})
+    extra = stats.get('extra', {})
     
     return {
-        "context_title": data.context_title,
-        "context_description": data.context_description,
-        "x_label": data.x_label,
-        "y_label": data.y_label,
-        "y_unit": getattr(data, 'y_unit', ''),
-        "n": n,
-        "x_mean": float(np.mean(x)),
-        "x_std": float(np.std(x, ddof=1)),
-        "x_min": float(np.min(x)),
-        "x_max": float(np.max(x)),
-        "y_mean": float(np.mean(y)),
-        "y_std": float(np.std(y, ddof=1)),
-        "y_min": float(np.min(y)),
-        "y_max": float(np.max(y)),
-        "correlation": float(corr),
-        "covariance": float(np.cov(x, y, ddof=1)[0, 1]),
-        "t_correlation": float(t_corr),
-        "p_correlation": float(p_corr),
-        "spearman_r": float(spearman_r),
-        "spearman_p": float(spearman_p),
-        "intercept": float(stats_result.intercept),
-        "slope": float(stats_result.slope),
-        "se_intercept": float(stats_result.se_intercept),
-        "se_slope": float(stats_result.se_slope),
-        "t_intercept": float(stats_result.t_intercept),
-        "t_slope": float(stats_result.t_slope),
-        "p_intercept": float(stats_result.p_intercept),
-        "p_slope": float(stats_result.p_slope),
-        "r_squared": float(stats_result.r_squared),
-        "r_squared_adj": float(stats_result.r_squared_adj),
-        "mse": float(stats_result.mse),
-        "sse": float(stats_result.sse),
-        "ssr": float(stats_result.ssr),
-        "sst": float(stats_result.sst),
-        "df": int(stats_result.df),
-        "f_statistic": float(f_stat),
-        "p_f": float(p_f),
-        "residuals": stats_result.residuals.tolist(),
-        "y_pred": stats_result.y_pred.tolist(),
+        # Context
+        'context_title': data.get('context', {}).get('title', 'Regressionsanalyse'),
+        'context_description': data.get('context', {}).get('description', ''),
+        'x_label': data.get('x_label', 'X'),
+        'y_label': data.get('y_label', 'Y'),
+        'y_unit': data.get('y_unit', ''),
+        
+        # Sample
+        'n': sample.get('n', 0),
+        'df': sample.get('df', 0),
+        
+        # Coefficients
+        'intercept': coefficients.get('intercept', 0),
+        'slope': coefficients.get('slope', 0),
+        
+        # Standard errors
+        'se_intercept': standard_errors.get('intercept', 0),
+        'se_slope': standard_errors.get('slope', 0),
+        
+        # t-tests
+        't_intercept': t_tests.get('intercept', {}).get('t_value', 0),
+        't_slope': t_tests.get('slope', {}).get('t_value', 0),
+        'p_intercept': t_tests.get('intercept', {}).get('p_value', 1),
+        'p_slope': t_tests.get('slope', {}).get('p_value', 1),
+        
+        # Model fit
+        'r_squared': model_fit.get('r_squared', 0),
+        'r_squared_adj': model_fit.get('r_squared_adj', 0),
+        
+        # Sum of squares
+        'sse': sum_of_squares.get('sse', 0),
+        'sst': sum_of_squares.get('sst', 0),
+        'ssr': sum_of_squares.get('ssr', 0),
+        'mse': sum_of_squares.get('mse', 0),
+        
+        # Extra
+        'correlation': extra.get('correlation', 0),
+        'x_mean': extra.get('x_mean', 0),
+        'y_mean': extra.get('y_mean', 0),
+        
+        # Computed
+        'f_statistic': (sum_of_squares.get('ssr', 0) / 1) / sum_of_squares.get('mse', 1) if sum_of_squares.get('mse', 0) > 0 else 0,
+        'p_f': t_tests.get('slope', {}).get('p_value', 1),
     }
 
 
-def _prepare_multiple_stats(
-    config: Dict[str, Any],
-    stats_result,
-    x1: np.ndarray,
-    x2: np.ndarray,
-    y: np.ndarray,
-    n: int
-) -> Dict[str, Any]:
-    """Prepare statistics dictionary for multiple regression content."""
-    corr_x1_x2 = float(np.corrcoef(x1, x2)[0, 1])
-    r2_x1 = corr_x1_x2**2
-    vif = 1 / (1 - r2_x1) if r2_x1 < 1 else float('inf')
+def _flatten_multiple_stats_for_template(stats: Dict[str, Any], data: Dict[str, Any]) -> Dict[str, Any]:
+    """Flatten API stats response for multiple regression templates."""
+    coefficients = stats.get('coefficients', {})
+    model_fit = stats.get('model_fit', {})
+    t_tests = stats.get('t_tests', {})
+    sample = stats.get('sample', {})
+    standard_errors = stats.get('standard_errors', [0, 0, 0])
+    
+    slopes = coefficients.get('slopes', [0, 0])
+    t_values = t_tests.get('t_values', [0, 0, 0])
+    p_values = t_tests.get('p_values', [1, 1, 1])
     
     return {
-        "context_title": config["title"],
-        "context_description": config["description"],
-        "x1_label": config["x1_label"],
-        "x2_label": config["x2_label"],
-        "y_label": config["y_label"],
-        "n": n,
-        "k": 2,
-        "intercept": float(stats_result.intercept),
-        "beta1": float(stats_result.betas[0]) if hasattr(stats_result, 'betas') else 0,
-        "beta2": float(stats_result.betas[1]) if hasattr(stats_result, 'betas') else 0,
-        "se_intercept": float(stats_result.se_intercept) if hasattr(stats_result, 'se_intercept') else 0,
-        "se_beta1": float(stats_result.se_betas[0]) if hasattr(stats_result, 'se_betas') else 0,
-        "se_beta2": float(stats_result.se_betas[1]) if hasattr(stats_result, 'se_betas') else 0,
-        "t_intercept": float(stats_result.t_intercept) if hasattr(stats_result, 't_intercept') else 0,
-        "t_beta1": float(stats_result.t_betas[0]) if hasattr(stats_result, 't_betas') else 0,
-        "t_beta2": float(stats_result.t_betas[1]) if hasattr(stats_result, 't_betas') else 0,
-        "p_intercept": float(stats_result.p_intercept) if hasattr(stats_result, 'p_intercept') else 1,
-        "p_beta1": float(stats_result.p_betas[0]) if hasattr(stats_result, 'p_betas') else 1,
-        "p_beta2": float(stats_result.p_betas[1]) if hasattr(stats_result, 'p_betas') else 1,
-        "r_squared": float(stats_result.r_squared),
-        "r_squared_adj": float(stats_result.r_squared_adj),
-        "f_statistic": float(stats_result.f_statistic) if hasattr(stats_result, 'f_statistic') else 0,
-        "p_f": float(stats_result.p_f) if hasattr(stats_result, 'p_f') else 1,
-        "df": n - 3,
-        "corr_x1_x2": corr_x1_x2,
-        "vif_x1": float(vif),
-        "vif_x2": float(vif),
-        "durbin_watson": 2.0,
-        "residuals": stats_result.residuals.tolist() if hasattr(stats_result, 'residuals') else [],
+        # Context
+        'context_title': 'Multiple Regression',
+        'context_description': f"Analyse von {data.get('y_label', 'Y')}",
+        'x1_label': data.get('x1_label', 'X₁'),
+        'x2_label': data.get('x2_label', 'X₂'),
+        'y_label': data.get('y_label', 'Y'),
+        
+        # Sample
+        'n': sample.get('n', 0),
+        'k': sample.get('k', 2),
+        'df': sample.get('n', 0) - 3,
+        
+        # Coefficients
+        'intercept': coefficients.get('intercept', 0),
+        'beta1': slopes[0] if len(slopes) > 0 else 0,
+        'beta2': slopes[1] if len(slopes) > 1 else 0,
+        
+        # Standard errors
+        'se_intercept': standard_errors[0] if len(standard_errors) > 0 else 0,
+        'se_beta1': standard_errors[1] if len(standard_errors) > 1 else 0,
+        'se_beta2': standard_errors[2] if len(standard_errors) > 2 else 0,
+        
+        # t-tests
+        't_intercept': t_values[0] if len(t_values) > 0 else 0,
+        't_beta1': t_values[1] if len(t_values) > 1 else 0,
+        't_beta2': t_values[2] if len(t_values) > 2 else 0,
+        'p_intercept': p_values[0] if len(p_values) > 0 else 1,
+        'p_beta1': p_values[1] if len(p_values) > 1 else 1,
+        'p_beta2': p_values[2] if len(p_values) > 2 else 1,
+        
+        # Model fit
+        'r_squared': model_fit.get('r_squared', 0),
+        'r_squared_adj': model_fit.get('r_squared_adj', 0),
+        'f_statistic': model_fit.get('f_statistic', 0),
+        'p_f': model_fit.get('f_p_value', 1),
     }
 
 
-def run_flask():
+def run_flask(host: str = '0.0.0.0', port: int = 5000, debug: bool = True):
     """Run Flask application."""
     app = create_flask_app()
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    
+    print("""
+╔══════════════════════════════════════════════════════════════════════════╗
+║                    🌐 Flask Web Application                               ║
+║                    100% API-Powered Architecture                          ║
+╠══════════════════════════════════════════════════════════════════════════╣
+║  Uses the same API layer as external frontends (Next.js, Vite, etc.)     ║
+║                                                                           ║
+║  Pages:                                                                   ║
+║    /              - Landing Page                                          ║
+║    /simple        - Simple Regression Analysis                            ║
+║    /multiple      - Multiple Regression Analysis                          ║
+║    /interpret/*   - AI Interpretation                                     ║
+║                                                                           ║
+║  API Endpoints (same as REST API server):                                 ║
+║    /api/datasets                  - List datasets                         ║
+║    /api/regression/simple         - Run simple regression                 ║
+║    /api/content/simple            - Get educational content               ║
+║    /api/ai/interpret              - AI interpretation                     ║
+║    /api/openapi.json              - OpenAPI specification                 ║
+╚══════════════════════════════════════════════════════════════════════════╝
+    """)
+    
+    print(f"🌐 Server: http://{host}:{port}")
+    print(f"📚 API: http://{host}:{port}/api/openapi.json")
+    print()
+    
+    app.run(debug=debug, host=host, port=port)
 
 
 if __name__ == "__main__":
