@@ -42,14 +42,17 @@ class PlotBuilder:
         plots = plotter.simple_regression_plots(data, regression_result)
     """
     
-    # Color scheme
+    # Modern, professional color scheme for teaching
     COLORS = {
-        "data": "#3498db",      # Blue for data points
-        "regression": "#e74c3c", # Red for regression line
-        "residual": "#2ecc71",   # Green for residuals
-        "surface": "Blues",      # Colorscale for 3D
-        "positive": "#27ae60",
-        "negative": "#c0392b",
+        "data": "#1f77b4",       # Distinct Blue
+        "data_marker": "#155a8a", # Darker outline
+        "model": "#ff7f0e",      # Safety Orange (High visibility)
+        "true_model": "#2ca02c", # Green for "Truth"
+        "residual_pos": "#d62728", # Red for error
+        "residual_neg": "#d62728",
+        "plane": "Blues",        # Surface colorscale
+        "shadow": "rgba(0, 0, 0, 0.15)", # For floor projections
+        "grid": "#E5E5E5",
     }
     
     def __init__(self):
@@ -65,16 +68,6 @@ class PlotBuilder:
     ) -> PlotCollection:
         """
         Create all plots for simple regression.
-        
-        Args:
-            data: Original data
-            result: Regression calculation result
-            show_true_line: Whether to show true regression line
-            true_intercept: True β₀ (if known)
-            true_slope: True β₁ (if known)
-        
-        Returns:
-            PlotCollection with scatter, residuals, and diagnostic plots
         """
         logger.info("Creating simple regression plots")
         
@@ -100,13 +93,6 @@ class PlotBuilder:
     ) -> PlotCollection:
         """
         Create all plots for multiple regression.
-        
-        Args:
-            data: Original data
-            result: Multiple regression result
-        
-        Returns:
-            PlotCollection with 3D scatter, residuals, etc.
         """
         logger.info("Creating multiple regression plots")
         
@@ -132,129 +118,181 @@ class PlotBuilder:
         true_intercept: float,
         true_slope: float,
     ) -> go.Figure:
-        """Create 3D scatter plot with regression line (z=0)."""
+        """Create 3D scatter plot with explicit residuals to visualize Error."""
         fig = go.Figure()
         
-        z_zeros = np.zeros(len(data.x))
+        # We use X axis for Feature, Z axis for Target (Height), Y axis fixed at 0
+        # This creates a "Billboard" effect in 3D space which is readable but allows 3D interactions
+        y_pos = np.zeros(len(data.x))
         
-        # Data points
+        # 1. Residual Lines (The "Sticks") - linking Data to Model
+        # This gives immediate intuition about "Distance from Line"
+        for i in range(len(data.x)):
+            fig.add_trace(go.Scatter3d(
+                x=[data.x[i], data.x[i]],
+                y=[0, 0],
+                z=[data.y[i], result.y_pred[i]],
+                mode="lines",
+                line=dict(color="rgba(200, 50, 50, 0.4)", width=2),
+                showlegend=False,
+                hoverinfo="skip"
+            ))
+
+        # 2. Data points (Spheres)
         fig.add_trace(go.Scatter3d(
             x=data.x,
-            y=data.y,
-            z=z_zeros,
+            y=y_pos,
+            z=data.y,
             mode="markers",
-            name="Datenpunkte",
+            name="Beobachtete Daten",
             marker=dict(
-                size=5,
+                size=6,
                 color=self.COLORS["data"],
-                opacity=0.8,
-                line=dict(width=1, color="white")
+                opacity=0.9,
+                line=dict(width=1, color="white"),
+                symbol="circle"
             ),
+            hovertemplate=f"{data.x_label}: %{{x:.1f}}<br>{data.y_label}: %{{z:.1f}}<extra></extra>"
         ))
         
-        # Regression line
+        # 3. Regression Line (Thick Tube)
         x_line = np.linspace(min(data.x), max(data.x), 100)
         y_line = result.intercept + result.slope * x_line
         z_line = np.zeros(len(x_line))
         
         fig.add_trace(go.Scatter3d(
             x=x_line,
-            y=y_line,
-            z=z_line,
+            y=z_line,
+            z=y_line,
             mode="lines",
-            name=f"OLS: ŷ = {result.intercept:.3f} + {result.slope:.3f}x",
-            line=dict(color=self.COLORS["regression"], width=5),
+            name=f"Modell (OLS): ŷ = {result.intercept:.2f} + {result.slope:.2f}x",
+            line=dict(color=self.COLORS["model"], width=6),
+            hovertemplate="Modellvorhersage<extra></extra>"
         ))
         
-        # True line (if known)
+        # 4. True line (if known)
         if show_true_line and (true_intercept != 0 or true_slope != 0):
             y_true = true_intercept + true_slope * x_line
             fig.add_trace(go.Scatter3d(
                 x=x_line,
-                y=y_true,
-                z=z_line,
+                y=z_line,
+                z=y_true,
                 mode="lines",
-                name=f"Wahr: y = {true_intercept:.2f} + {true_slope:.2f}x",
-                line=dict(color="green", width=4, dash="dash"),
+                name=f"Wahre Population: y = {true_intercept:.2f} + {true_slope:.2f}x",
+                line=dict(color=self.COLORS["true_model"], width=4, dash="dashdot"),
                 opacity=0.7,
             ))
-        
-        # Mean lines (plane/line at y=mean)
-        y_mean = result.extra.get("y_mean", np.mean(data.y))
+            
+        # 5. Floor Projections (Shadows) to ground the data
+        # Project points to Z=min to show X distribution
+        z_min = min(min(data.y), min(y_line)) * 0.95
         fig.add_trace(go.Scatter3d(
-            x=[min(data.x), max(data.x)],
-            y=[y_mean, y_mean],
-            z=[0, 0],
-            mode="lines",
-            name=f"ȳ = {y_mean:.2f}",
-            line=dict(color="gray", width=2, dash="dot"),
+            x=data.x,
+            y=y_pos,
+            z=[z_min] * len(data.x),
+            mode="markers",
+            marker=dict(size=4, color="gray", opacity=0.3),
+            name="X-Verteilung",
+            showlegend=False,
+            hoverinfo="skip"
         ))
-        
+
         fig.update_layout(
-            title=f"Regression (3D View): {data.y_label} vs {data.x_label}<br><sub>R² = {result.r_squared:.4f}</sub>",
+            title=f"<b>Lineare Regression 3D</b><br><sup>Datenpunkte (Blau) vs. Modell (Orange) | Rote Linien = Fehler (Residuen)</sup>",
             scene=dict(
-                xaxis_title=data.x_label,
-                yaxis_title=data.y_label,
-                zaxis_title="Z (Null)",
-                camera=dict(eye=dict(x=1.5, y=-1.5, z=0.5)),
+                xaxis=dict(title=data.x_label, backgroundcolor=self.COLORS["grid"], gridcolor="white"),
+                yaxis=dict(title="", showticklabels=False, showgrid=False, zeroline=False), # Hide Y axis as it's depth 0
+                zaxis=dict(title=data.y_label, backgroundcolor=self.COLORS["grid"], gridcolor="white"),
+                camera=dict(
+                    eye=dict(x=0.0, y=-2.0, z=0.5), # Front view initially
+                    up=dict(x=0, y=0, z=1)
+                ),
+                aspectmode='manual',
+                aspectratio=dict(x=1, y=0.2, z=0.8) # Flatten the Y depth
             ),
             template="plotly_white",
-            margin=dict(l=0, r=0, b=0, t=40),
+            margin=dict(l=0, r=0, b=0, t=60),
+            legend=dict(yanchor="top", y=0.95, xanchor="left", x=0.05, bgcolor="rgba(255,255,255,0.8)"),
         )
         
         return fig
     
     def _create_residual_plot(self, result: RegressionResult) -> go.Figure:
-        """Create residual vs fitted plot in 3D."""
+        """Create residual plot in 3D space."""
         fig = go.Figure()
         
         z_zeros = np.zeros(len(result.residuals))
+        y_zeros = np.zeros(len(result.residuals))
         
-        # Residuals as scatter
+        # Residual "Lollipops" (Stems from 0 to Residual)
+        for i in range(len(result.residuals)):
+            color = self.COLORS["residual_pos"] if result.residuals[i] >= 0 else self.COLORS["residual_neg"]
+            fig.add_trace(go.Scatter3d(
+                x=[result.y_pred[i], result.y_pred[i]],
+                y=[0, 0],
+                z=[0, result.residuals[i]],
+                mode="lines",
+                line=dict(color=color, width=3),
+                showlegend=False
+            ))
+        
+        # Residual Heads
         fig.add_trace(go.Scatter3d(
             x=result.y_pred,
-            y=result.residuals,
-            z=z_zeros,
+            y=y_zeros,
+            z=result.residuals,
             mode="markers",
             name="Residuen",
             marker=dict(
                 size=5,
                 color=result.residuals,
-                colorscale="RdYlGn",
-                cmin=-max(abs(result.residuals)),
-                cmax=max(abs(result.residuals)),
-                showscale=True,
-                colorbar=dict(title="Residuum"),
+                colorscale="RdBu",
+                cmid=0,
+                line=dict(width=1, color="white")
             ),
+            hovertemplate="Fitted: %{x:.2f}<br>Residuum: %{z:.2f}<extra></extra>"
         ))
         
-        # Zero line
+        # Zero Plane/Line
         x_range = np.linspace(min(result.y_pred), max(result.y_pred), 100)
         fig.add_trace(go.Scatter3d(
             x=x_range,
             y=np.zeros(len(x_range)),
             z=np.zeros(len(x_range)),
             mode="lines",
-            name="Null-Linie",
-            line=dict(color="red", width=4, dash="dash"),
+            name="Null-Linie (Perfekter Fit)",
+            line=dict(color="black", width=2, dash="dash"),
+        ))
+        
+        # Add visual bands for standard deviation
+        std_resid = np.std(result.residuals)
+        fig.add_trace(go.Scatter3d(
+            x=x_range, y=np.zeros(len(x_range)), z=[2*std_resid]*len(x_range),
+            mode="lines", line=dict(color="gray", width=1, dash="dot"), name="+2 SD"
+        ))
+        fig.add_trace(go.Scatter3d(
+            x=x_range, y=np.zeros(len(x_range)), z=[-2*std_resid]*len(x_range),
+            mode="lines", line=dict(color="gray", width=1, dash="dot"), name="-2 SD"
         ))
         
         fig.update_layout(
-            title="Residuen vs. Fitted Values (3D)<br><sub>Sollte zufällig um 0 streuen</sub>",
+            title="<b>Residuen-Analyse</b><br><sup>Struktur der Fehler (Sollte zufälliges Rauschen um 0 sein)</sup>",
             scene=dict(
-                xaxis_title="Fitted Values (ŷ)",
-                yaxis_title="Residuen (y - ŷ)",
-                zaxis_title="Z",
-                camera=dict(eye=dict(x=1.5, y=-1.5, z=0.5)),
+                xaxis_title="Vorhergesagte Werte (ŷ)",
+                yaxis_title="",
+                zaxis_title="Residuen (y - ŷ)",
+                camera=dict(eye=dict(x=0, y=-2.0, z=0.5)),
+                aspectmode='manual',
+                aspectratio=dict(x=1, y=0.2, z=0.6)
             ),
             template="plotly_white",
-            margin=dict(l=0, r=0, b=0, t=40),
+            showlegend=True
         )
         
         return fig
     
     def _create_diagnostic_plots(self, result: RegressionResult) -> go.Figure:
-        """Create 2x2 diagnostic plot grid in 3D."""
+        """Create diagnostic plots as 3D scenes."""
         from scipy import stats
         
         fig = make_subplots(
@@ -264,139 +302,126 @@ class PlotBuilder:
                 [{"type": "scene"}, {"type": "scene"}]
             ],
             subplot_titles=(
-                "Residuen vs Fitted (3D)",
-                "Normal Q-Q (3D)",
-                "Scale-Location (3D)",
-                "Residuen Verteilung (3D)"
+                "Linearität (Residuen vs Fitted)",
+                "Normalität (Q-Q Plot)",
+                "Homoskedastizität (Scale-Location)",
+                "Verteilung (Histogramm)"
             )
         )
         
-        z_zeros = np.zeros(len(result.residuals))
+        zeros = np.zeros(len(result.residuals))
         
         # 1. Residuals vs Fitted
+        # Use simple scatter in 3D plane
         fig.add_trace(
-            go.Scatter3d(x=result.y_pred, y=result.residuals, z=z_zeros, mode="markers", 
-                      marker=dict(size=4, opacity=0.6), showlegend=False),
+            go.Scatter3d(x=result.y_pred, y=zeros, z=result.residuals, mode="markers", 
+                      marker=dict(size=4, color=self.COLORS["data"], opacity=0.7), showlegend=False),
             row=1, col=1
         )
-        # Zero line for plot 1
-        x_range_1 = np.linspace(min(result.y_pred), max(result.y_pred), 50)
-        fig.add_trace(
-            go.Scatter3d(x=x_range_1, y=np.zeros(50), z=np.zeros(50), mode="lines",
-                        line=dict(color="red", dash="dash"), showlegend=False),
-            row=1, col=1
+        fig.add_trace(go.Scatter3d(
+            x=[min(result.y_pred), max(result.y_pred)], y=[0,0], z=[0,0], 
+            mode="lines", line=dict(color="red", dash="dash"), showlegend=False), row=1, col=1
         )
         
         # 2. Q-Q Plot
         sorted_resid = np.sort(result.residuals)
         theoretical = stats.norm.ppf(np.linspace(0.01, 0.99, len(result.residuals)))
-        z_qq = np.zeros(len(theoretical))
+        
         fig.add_trace(
-            go.Scatter3d(x=theoretical, y=sorted_resid, z=z_qq, mode="markers",
-                      marker=dict(size=4, opacity=0.6), showlegend=False),
+            go.Scatter3d(x=theoretical, y=zeros, z=sorted_resid, mode="markers",
+                      marker=dict(size=4, color=self.COLORS["data"], opacity=0.7), showlegend=False),
             row=1, col=2
         )
-        # Q-Q reference line
+        # Reference line
+        slope_qq = np.std(result.residuals)
         fig.add_trace(
-            go.Scatter3d(x=theoretical, y=theoretical * np.std(result.residuals), z=z_qq,
+            go.Scatter3d(x=theoretical, y=zeros, z=theoretical * slope_qq,
                       mode="lines", line=dict(color="red", dash="dash"), showlegend=False),
             row=1, col=2
         )
         
         # 3. Scale-Location
         std_resid = result.residuals / np.std(result.residuals)
+        sqrt_std_resid = np.sqrt(np.abs(std_resid))
+        
         fig.add_trace(
-            go.Scatter3d(x=result.y_pred, y=np.sqrt(np.abs(std_resid)), z=z_zeros, mode="markers",
-                      marker=dict(size=4, opacity=0.6), showlegend=False),
+            go.Scatter3d(x=result.y_pred, y=zeros, z=sqrt_std_resid, mode="markers",
+                      marker=dict(size=4, color=self.COLORS["data"], opacity=0.7), showlegend=False),
             row=2, col=1
         )
         
-        # 4. Histogram (simulated in 3D with scatter lines)
-        # Using numpy to calculate histogram bins
+        # 4. Histogram (3D Bars)
         hist, bin_edges = np.histogram(result.residuals, bins=15)
         bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
-        z_hist = np.zeros(len(bin_centers))
         
-        # Bar representation in 3D is hard with Scatter3d, let's use lines
-        for i in range(len(bin_centers)):
+        for i, (x, h) in enumerate(zip(bin_centers, hist)):
             fig.add_trace(
                 go.Scatter3d(
-                    x=[bin_centers[i], bin_centers[i]],
-                    y=[0, hist[i]],
-                    z=[0, 0],
+                    x=[x, x], y=[0, 0], z=[0, h],
                     mode="lines",
-                    line=dict(color=self.COLORS["data"], width=5),
+                    line=dict(color=self.COLORS["data"], width=8),
                     showlegend=False
                 ),
                 row=2, col=2
             )
         
+        # Update layout for all scenes to look "flat" (billboard style)
+        flat_scene = dict(
+            yaxis=dict(showticklabels=False, showgrid=False, title=""),
+            camera=dict(eye=dict(x=0, y=-2.5, z=0.2)),
+            aspectmode='manual', aspectratio=dict(x=1, y=0.1, z=0.8)
+        )
+        
         fig.update_layout(
             height=700,
             template="plotly_white",
-            title_text="Diagnose-Plots (3D)",
-            showlegend=False,
-            margin=dict(l=0, r=0, b=0, t=40),
+            title_text="<b>Diagnose-Dashboard</b>",
+            scene1=flat_scene, scene2=flat_scene,
+            scene3=flat_scene, scene4=flat_scene
         )
         
         return fig
     
     def _create_residual_histogram(self, result: RegressionResult) -> go.Figure:
-        """Create residual histogram with normal curve in 3D."""
+        """Create 3D residual histogram."""
         fig = go.Figure()
         
-        # Calculate histogram data
         hist, bin_edges = np.histogram(result.residuals, bins=20)
         bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
         
-        # Draw bars as vertical lines in 3D
-        for i in range(len(bin_centers)):
+        # Draw "Bars"
+        for i, (x, h) in enumerate(zip(bin_centers, hist)):
             fig.add_trace(go.Scatter3d(
-                x=[bin_centers[i], bin_centers[i]],
-                y=[0, hist[i]],
-                z=[0, 0],
+                x=[x, x], y=[0, 0], z=[0, h],
                 mode="lines",
-                line=dict(color=self.COLORS["data"], width=10),
+                line=dict(color=self.COLORS["data"], width=15),
                 showlegend=False,
-                name="Residuen"
+                name="Bin"
             ))
-            # Add top marker
-            fig.add_trace(go.Scatter3d(
-                x=[bin_centers[i]],
-                y=[hist[i]],
-                z=[0],
-                mode="markers",
-                marker=dict(size=4, color=self.COLORS["data"]),
-                showlegend=False
-            ))
-        
-        # Normal curve overlay
+            
+        # Normal Curve
         x_norm = np.linspace(min(result.residuals), max(result.residuals), 100)
         from scipy import stats
         y_norm = stats.norm.pdf(x_norm, 0, np.std(result.residuals)) * len(result.residuals) * (max(result.residuals) - min(result.residuals)) / 20
-        z_norm = np.zeros(len(x_norm))
         
         fig.add_trace(go.Scatter3d(
-            x=x_norm,
-            y=y_norm,
-            z=z_norm,
+            x=x_norm, y=np.zeros(len(x_norm)), z=y_norm,
             mode="lines",
-            name="Normalverteilung",
-            line=dict(color=self.COLORS["regression"], width=4),
+            line=dict(color=self.COLORS["model"], width=4),
+            name="Normalverteilung"
         ))
         
         fig.update_layout(
-            title="Residuen-Verteilung (3D)",
+            title="<b>Residuen-Verteilung</b>",
             scene=dict(
                 xaxis_title="Residuum",
-                yaxis_title="Häufigkeit",
-                zaxis_title="",
-                camera=dict(eye=dict(x=1.5, y=-1.5, z=0.5)),
+                yaxis_title="",
+                zaxis_title="Häufigkeit",
+                camera=dict(eye=dict(x=0, y=-2.5, z=0.3)),
+                aspectmode='manual', aspectratio=dict(x=1, y=0.1, z=0.8)
             ),
-            template="plotly_white",
-            margin=dict(l=0, r=0, b=0, t=40),
+            template="plotly_white"
         )
-        
         return fig
     
     def _create_3d_surface(
@@ -404,27 +429,14 @@ class PlotBuilder:
         data: MultipleRegressionDataResult,
         result: MultipleRegressionResult,
     ) -> go.Figure:
-        """Create 3D scatter with regression plane."""
+        """Create rich 3D multiple regression visualization."""
         fig = go.Figure()
         
-        # Data points
-        fig.add_trace(go.Scatter3d(
-            x=data.x1,
-            y=data.x2,
-            z=data.y,
-            mode="markers",
-            name="Datenpunkte",
-            marker=dict(
-                size=5,
-                color=data.y,
-                colorscale="Viridis",
-                opacity=0.8,
-            ),
-        ))
-        
-        # Regression plane
-        x1_range = np.linspace(min(data.x1), max(data.x1), 20)
-        x2_range = np.linspace(min(data.x2), max(data.x2), 20)
+        # 1. The Regression Plane (Surface)
+        # Create a grid
+        padding = 0.1
+        x1_range = np.linspace(min(data.x1)-padding, max(data.x1)+padding, 30)
+        x2_range = np.linspace(min(data.x2)-padding, max(data.x2)+padding, 30)
         X1_mesh, X2_mesh = np.meshgrid(x1_range, x2_range)
         Y_mesh = result.intercept + result.coefficients[0] * X1_mesh + result.coefficients[1] * X2_mesh
         
@@ -433,21 +445,69 @@ class PlotBuilder:
             y=X2_mesh,
             z=Y_mesh,
             name="Regressionsebene",
-            colorscale=self.COLORS["surface"],
+            colorscale=self.COLORS["plane"],
             opacity=0.6,
             showscale=False,
+            contours=dict(
+                x=dict(show=True, color="white", width=1),
+                y=dict(show=True, color="white", width=1),
+            ),
+            hoverinfo="skip"
+        ))
+        
+        # 2. Residual Lines (Vertical drops to plane)
+        for i in range(len(data.y)):
+            fig.add_trace(go.Scatter3d(
+                x=[data.x1[i], data.x1[i]],
+                y=[data.x2[i], data.x2[i]],
+                z=[data.y[i], result.y_pred[i]],
+                mode="lines",
+                line=dict(color=self.COLORS["residual_pos"], width=2),
+                showlegend=False,
+                hoverinfo="skip"
+            ))
+            
+        # 3. Data Points
+        fig.add_trace(go.Scatter3d(
+            x=data.x1,
+            y=data.x2,
+            z=data.y,
+            mode="markers",
+            name="Datenpunkte",
+            marker=dict(
+                size=5,
+                color=self.COLORS["data"],
+                line=dict(width=1, color="white"),
+                opacity=0.9
+            ),
+            hovertemplate=f"{data.x1_label}: %{{x:.1f}}<br>{data.x2_label}: %{{y:.1f}}<br>{data.y_label}: %{{z:.1f}}<extra></extra>"
+        ))
+        
+        # 4. Floor Projections (Shadows)
+        # Project points to the bottom of the plot to show predictor distribution
+        z_floor = min(min(data.y), np.min(Y_mesh)) - (max(data.y) - min(data.y)) * 0.1
+        
+        fig.add_trace(go.Scatter3d(
+            x=data.x1,
+            y=data.x2,
+            z=[z_floor] * len(data.y),
+            mode="markers",
+            marker=dict(color="gray", size=3, opacity=0.3),
+            showlegend=False,
+            hoverinfo="skip"
         ))
         
         fig.update_layout(
-            title=f"Multiple Regression: R² = {result.r_squared:.4f}",
+            title=f"<b>Multiple Regression</b><br><sup>z = {result.intercept:.1f} + {result.coefficients[0]:.2f}x₁ + {result.coefficients[1]:.2f}x₂ (R² = {result.r_squared:.3f})</sup>",
             scene=dict(
-                xaxis_title=data.x1_label,
-                yaxis_title=data.x2_label,
-                zaxis_title=data.y_label,
-                camera=dict(eye=dict(x=1.5, y=-1.5, z=1.2)),
+                xaxis=dict(title=data.x1_label, backgroundcolor=self.COLORS["grid"]),
+                yaxis=dict(title=data.x2_label, backgroundcolor=self.COLORS["grid"]),
+                zaxis=dict(title=data.y_label, backgroundcolor=self.COLORS["grid"]),
+                camera=dict(eye=dict(x=1.6, y=-1.6, z=0.8)),
             ),
             template="plotly_white",
-            margin=dict(l=0, r=0, b=0, t=40),
+            legend=dict(yanchor="top", y=0.9, xanchor="left", x=0.05),
+            margin=dict(l=0, r=0, b=0, t=50),
         )
         
         return fig
@@ -455,112 +515,14 @@ class PlotBuilder:
     def _create_residual_plot_multiple(
         self, result: MultipleRegressionResult
     ) -> go.Figure:
-        """Create residual plot for multiple regression in 3D."""
-        fig = go.Figure()
-        
-        z_zeros = np.zeros(len(result.residuals))
-        
-        fig.add_trace(go.Scatter3d(
-            x=result.y_pred,
-            y=result.residuals,
-            z=z_zeros,
-            mode="markers",
-            marker=dict(size=5, color=self.COLORS["data"], opacity=0.7),
-        ))
-        
-        # Zero line
-        x_range = np.linspace(min(result.y_pred), max(result.y_pred), 100)
-        fig.add_trace(go.Scatter3d(
-            x=x_range,
-            y=np.zeros(len(x_range)),
-            z=np.zeros(len(x_range)),
-            mode="lines",
-            line=dict(color="red", dash="dash", width=4),
-        ))
-        
-        fig.update_layout(
-            title="Residuen vs Fitted (Multiple Regression - 3D)",
-            scene=dict(
-                xaxis_title="Fitted Values",
-                yaxis_title="Residuen",
-                zaxis_title="",
-                camera=dict(eye=dict(x=1.5, y=-1.5, z=0.5)),
-            ),
-            template="plotly_white",
-            margin=dict(l=0, r=0, b=0, t=40),
-        )
-        
+        """Create 3D residual plot for multiple regression."""
+        # Re-use simple regression style but with specific title
+        fig = self._create_residual_plot(result) # Compatible duck-typing on result object parts
+        fig.update_layout(title="<b>Residuen (Multiple Regression)</b>")
         return fig
     
     def _create_diagnostic_plots_multiple(
         self, result: MultipleRegressionResult
     ) -> go.Figure:
-        """Create diagnostic plots for multiple regression in 3D."""
-        from scipy import stats
-        
-        fig = make_subplots(
-            rows=2, cols=2,
-            specs=[
-                [{"type": "scene"}, {"type": "scene"}],
-                [{"type": "scene"}, {"type": "scene"}]
-            ],
-            subplot_titles=("Residuen vs Fitted (3D)", "Q-Q Plot (3D)", "Scale-Location (3D)", "Histogramm (3D)")
-        )
-        
-        z_zeros = np.zeros(len(result.residuals))
-        
-        # 1. Residuals vs Fitted
-        fig.add_trace(
-            go.Scatter3d(x=result.y_pred, y=result.residuals, z=z_zeros, mode="markers",
-                      marker=dict(size=4, opacity=0.6), showlegend=False),
-            row=1, col=1
-        )
-        x_range_1 = np.linspace(min(result.y_pred), max(result.y_pred), 50)
-        fig.add_trace(
-            go.Scatter3d(x=x_range_1, y=np.zeros(50), z=np.zeros(50), mode="lines",
-                        line=dict(color="red", dash="dash"), showlegend=False),
-            row=1, col=1
-        )
-        
-        # 2. Q-Q Plot
-        sorted_resid = np.sort(result.residuals)
-        theoretical = stats.norm.ppf(np.linspace(0.01, 0.99, len(result.residuals)))
-        z_qq = np.zeros(len(theoretical))
-        fig.add_trace(
-            go.Scatter3d(x=theoretical, y=sorted_resid, z=z_qq, mode="markers",
-                      marker=dict(size=4, opacity=0.6), showlegend=False),
-            row=1, col=2
-        )
-        
-        # 3. Scale-Location
-        std_resid = result.residuals / np.std(result.residuals)
-        fig.add_trace(
-            go.Scatter3d(x=result.y_pred, y=np.sqrt(np.abs(std_resid)), z=z_zeros, mode="markers",
-                      marker=dict(size=4, opacity=0.6), showlegend=False),
-            row=2, col=1
-        )
-        
-        # 4. Histogram
-        hist, bin_edges = np.histogram(result.residuals, bins=15)
-        bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
-        
-        for i in range(len(bin_centers)):
-            fig.add_trace(
-                go.Scatter3d(
-                    x=[bin_centers[i], bin_centers[i]],
-                    y=[0, hist[i]],
-                    z=[0, 0],
-                    mode="lines",
-                    line=dict(color=self.COLORS["data"], width=5),
-                    showlegend=False
-                ),
-                row=2, col=2
-            )
-        
-        fig.update_layout(
-            height=700,
-            template="plotly_white",
-            margin=dict(l=0, r=0, b=0, t=40),
-        )
-        
-        return fig
+        """Create diagnostic plots for multiple regression."""
+        return self._create_diagnostic_plots(result)
