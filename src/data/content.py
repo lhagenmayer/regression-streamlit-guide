@@ -17,7 +17,7 @@ def get_multiple_regression_formulas(dataset_choice_mult: str) -> Dict[str, str]
     Get LaTeX formulas for multiple regression based on dataset.
 
     Args:
-        dataset_choice_mult: The selected dataset
+        dataset_choice_mult: The selected dataset (can be emoji-style or simple id)
 
     Returns:
         Dictionary with 'general' and 'specific' LaTeX formulas
@@ -26,19 +26,28 @@ def get_multiple_regression_formulas(dataset_choice_mult: str) -> Dict[str, str]
         "general": r"y_i = \beta_0 + \beta_1 \cdot x_{1i} + \beta_2 \cdot x_{2i} + \cdots + \beta_K \cdot x_{Ki} + \varepsilon_i"
     }
 
-    if dataset_choice_mult == "🏙️ Städte-Umsatzstudie (75 Städte)":
+    # Normalize dataset name to handle both formats
+    dataset_lower = dataset_choice_mult.lower() if dataset_choice_mult else ""
+
+    if "städte" in dataset_lower or dataset_choice_mult == "cities":
         formulas["specific"] = r"\text{Umsatz}_i = \beta_0 + \beta_1 \cdot \text{Preis}_i + \beta_2 \cdot \text{Werbung}_i + \varepsilon_i"
         formulas["context"] = "Handelskette in 75 Städten"
-    elif dataset_choice_mult == "🏠 Häuserpreise mit Pool (1000 Häuser)":
+    elif "häuser" in dataset_lower or "haus" in dataset_lower or dataset_choice_mult == "houses":
         formulas["specific"] = r"\text{Preis}_i = \beta_0 + \beta_1 \cdot \text{Wohnfläche}_i + \beta_2 \cdot \text{Pool}_i + \varepsilon_i"
         formulas["context"] = "Hausverkäufe in Universitätsstadt"
-    elif dataset_choice_mult == "🇨🇭 Schweizer Kantone (sozioökonomisch)":
+    elif "kantone" in dataset_lower or "schweizer" in dataset_lower:
         formulas["specific"] = r"\text{GDP}_i = \beta_0 + \beta_1 \cdot \text{Population Density}_i + \beta_2 \cdot \text{Foreign \%}_i + \beta_3 \cdot \text{Unemployment}_i + \varepsilon_i"
         formulas["context"] = "Schweizer Kantone Sozioökonomie"
-    elif dataset_choice_mult == "🌤️ Schweizer Wetterstationen":
+    elif "wetter" in dataset_lower:
         formulas["specific"] = r"\text{Temperature}_i = \beta_0 + \beta_1 \cdot \text{Altitude}_i + \beta_2 \cdot \text{Sunshine}_i + \beta_3 \cdot \text{Humidity}_i + \varepsilon_i"
         formulas["context"] = "Schweizer Klimastationen"
-    else:  # Elektronikmarkt
+    elif "werbe" in dataset_lower or dataset_choice_mult == "advertising":
+        formulas["specific"] = r"\text{Umsatz}_i = \beta_0 + \beta_1 \cdot \text{Werbung}_i + \beta_2 \cdot \text{Qualität}_i + \varepsilon_i"
+        formulas["context"] = "Werbestudie mit Qualitätsfaktor"
+    elif "eis" in dataset_lower or "temperature" in dataset_lower or dataset_choice_mult == "temperature":
+        formulas["specific"] = r"\text{Verkauf}_i = \beta_0 + \beta_1 \cdot \text{Temperatur}_i + \beta_2 \cdot \text{Wochenende}_i + \varepsilon_i"
+        formulas["context"] = "Eisverkauf mit Wochenend-Effekt"
+    else:  # Elektronikmarkt (default)
         formulas["specific"] = r"\text{Umsatz}_i = \beta_0 + \beta_1 \cdot \text{Fläche}_i + \beta_2 \cdot \text{Marketing}_i + \varepsilon_i"
         formulas["context"] = "Elektronikmarkt-Kette"
 
@@ -48,24 +57,32 @@ def get_multiple_regression_formulas(dataset_choice_mult: str) -> Dict[str, str]
 def get_multiple_regression_descriptions(dataset_choice_mult: str) -> Dict[str, str]:
     """
     Get descriptions and context for multiple regression based on dataset.
+    
+    All datasets are available for multiple regression to allow comparison
+    with simple regression (educational: omitted variable bias).
     """
     descriptions = {}
+    
+    # Normalize dataset name to handle both formats
+    dataset_lower = dataset_choice_mult.lower() if dataset_choice_mult else ""
 
-    if dataset_choice_mult == "🏙️ Städte-Umsatzstudie (75 Städte)":
+    if "städte" in dataset_lower or dataset_choice_mult == "cities":
         descriptions["main"] = "Eine Handelskette untersucht in **75 Städten** den Zusammenhang zwischen Produktpreis, Werbeausgaben und Umsatz."
         descriptions["variables"] = {
             "x1": "Produktpreis (in CHF)",
             "x2": "Werbeausgaben (in 1'000 CHF)",
             "y": "Umsatz (in 1'000 CHF)"
         }
-    elif dataset_choice_mult == "🏠 Häuserpreise mit Pool (1000 Häuser)":
+        descriptions["educational"] = "💡 **Vergleiche mit Einfacher Regression:** Dort fehlt eine Variable → größerer Fehlerterm!"
+    elif "häuser" in dataset_lower or "haus" in dataset_lower or dataset_choice_mult == "houses":
         descriptions["main"] = "Eine Studie von **1000 Hausverkäufen** in einer Universitätsstadt untersucht den Einfluss von Wohnfläche und Pool auf den Hauspreis."
         descriptions["variables"] = {
             "x1": "Wohnfläche (sqft/10)",
             "x2": "Pool vorhanden (0/1)",
             "y": "Hauspreis (USD)"
         }
-    elif dataset_choice_mult == "🇨🇭 Schweizer Kantone (sozioökonomisch)":
+        descriptions["educational"] = "💡 **Vergleiche mit Einfacher Regression:** Nur Fläche → Pool-Effekt fehlt → größerer Fehler!"
+    elif "kantone" in dataset_lower or "schweizer" in dataset_lower:
         descriptions["main"] = "**26 Schweizer Kantone** - Analyse des Zusammenhangs zwischen Bevölkerungsdichte, Ausländeranteil, Arbeitslosigkeit und Wirtschaftskraft."
         descriptions["variables"] = {
             "x1": "Bevölkerungsdichte (pro km²)",
@@ -73,7 +90,7 @@ def get_multiple_regression_descriptions(dataset_choice_mult: str) -> Dict[str, 
             "x3": "Arbeitslosenquote (%)",
             "y": "BIP pro Kopf (CHF)"
         }
-    elif dataset_choice_mult == "🌤️ Schweizer Wetterstationen":
+    elif "wetter" in dataset_lower:
         descriptions["main"] = "**7 Schweizer Wetterstationen** von 273m bis 3576m Höhe - Untersuchung der Zusammenhänge zwischen geografischen Faktoren und Temperatur."
         descriptions["variables"] = {
             "x1": "Höhe über Meer (m)",
@@ -81,13 +98,30 @@ def get_multiple_regression_descriptions(dataset_choice_mult: str) -> Dict[str, 
             "x3": "Luftfeuchtigkeit (%)",
             "y": "Durchschnittstemperatur (°C)"
         }
-    else:  # Elektronikmarkt
+    elif "werbe" in dataset_lower or dataset_choice_mult == "advertising":
+        descriptions["main"] = "Eine Werbestudie analysiert den Zusammenhang zwischen **Werbeausgaben**, **Produktqualität** und **Umsatz**."
+        descriptions["variables"] = {
+            "x1": "Werbeausgaben ($)",
+            "x2": "Produktqualität (1-10)",
+            "y": "Umsatz ($)"
+        }
+        descriptions["educational"] = "💡 **Vergleiche mit Einfacher Regression:** Dort fehlt Qualität → größerer Fehlerterm!"
+    elif "eis" in dataset_lower or "temperature" in dataset_lower or dataset_choice_mult == "temperature":
+        descriptions["main"] = "Eine Eisdiele analysiert den **Eisverkauf** in Abhängigkeit von **Temperatur** und ob es ein **Wochenende** ist."
+        descriptions["variables"] = {
+            "x1": "Temperatur (°C)",
+            "x2": "Wochenende (0=Nein, 1=Ja)",
+            "y": "Eisverkauf (Einheiten)"
+        }
+        descriptions["educational"] = "💡 **Vergleiche mit Einfacher Regression:** Dort fehlt Wochenend-Effekt → größerer Fehler!"
+    else:  # Elektronikmarkt (default)
         descriptions["main"] = "Eine Elektronikmarkt-Kette analysiert **50 Filialen** - Zusammenhang zwischen Verkaufsfläche, Marketingbudget und Umsatz."
         descriptions["variables"] = {
             "x1": "Verkaufsfläche (100 qm)",
             "x2": "Marketingbudget (1'000 €)",
             "y": "Umsatz (Mio. €)"
         }
+        descriptions["educational"] = "💡 **Vergleiche mit Einfacher Regression:** Dort fehlt Marketing → größerer Fehlerterm!"
 
     return descriptions
 
@@ -100,6 +134,9 @@ def get_simple_regression_content(dataset_choice: str, x_variable: str) -> Dict[
     """
     Get all content for simple regression based on dataset and x_variable.
 
+    All datasets are available for simple regression to allow comparison
+    with multiple regression (educational: omitted variable bias).
+
     Args:
         dataset_choice: The selected dataset
         x_variable: The selected x variable
@@ -110,11 +147,19 @@ def get_simple_regression_content(dataset_choice: str, x_variable: str) -> Dict[
     Raises:
         ValueError: If dataset_choice or x_variable is invalid
     """
-    # Validate dataset_choice
+    # Validate dataset_choice - all datasets now available for educational purposes
     valid_datasets = [
         "🏪 Elektronikmarkt (simuliert)",
         "🏙️ Städte-Umsatzstudie (75 Städte)",
-        "🇨🇭 Schweizer Kantone (sozioökonomisch)"
+        "🏠 Häuserpreise mit Pool (1000 Häuser)",
+        "🇨🇭 Schweizer Kantone (sozioökonomisch)",
+        "🌤️ Schweizer Wetterstationen",
+        # Also accept simple IDs
+        "electronics",
+        "cities",
+        "houses",
+        "advertising",
+        "temperature"
     ]
 
     if dataset_choice not in valid_datasets:
@@ -314,16 +359,24 @@ def get_simple_regression_content(dataset_choice: str, x_variable: str) -> Dict[
             })
 
     # Validate x_variable for each dataset
-    if dataset_choice == "🏪 Elektronikmarkt (simuliert)":
-        valid_variables = ["Verkaufsfläche (m²)"]
-    elif dataset_choice == "🏙️ Städte-Umsatzstudie (75 Städte)":
-        valid_variables = ["Preis (CHF)", "Werbeausgaben (CHF)"]
+    # Note: "x1" and "x2" are always valid for API-style dataset names
+    if dataset_choice == "🏪 Elektronikmarkt (simuliert)" or dataset_choice == "electronics":
+        valid_variables = ["Verkaufsfläche (m²)", "x1"]
+    elif dataset_choice == "🏙️ Städte-Umsatzstudie (75 Städte)" or dataset_choice == "cities":
+        valid_variables = ["Preis (CHF)", "Werbeausgaben (CHF)", "x1", "x2"]
+    elif dataset_choice == "🏠 Häuserpreise mit Pool (1000 Häuser)" or dataset_choice == "houses":
+        valid_variables = ["Wohnfläche (sqft/10)", "Pool (0/1)", "x1", "x2"]
     elif dataset_choice == "🇨🇭 Schweizer Kantone (sozioökonomisch)":
-        valid_variables = ["Population Density", "Foreign Population %", "Unemployment"]
+        valid_variables = ["Population Density", "Foreign Population %", "Unemployment", "x1", "x2", "x3"]
     elif dataset_choice == "🌤️ Schweizer Wetterstationen":
-        valid_variables = ["Altitude", "Sunshine Hours", "Humidity"]
+        valid_variables = ["Altitude", "Sunshine Hours", "Humidity", "x1", "x2", "x3"]
+    elif dataset_choice == "advertising":
+        valid_variables = ["Werbeausgaben ($)", "x1"]
+    elif dataset_choice == "temperature":
+        valid_variables = ["Temperatur (°C)", "x1"]
     else:
-        valid_variables = []
+        # Accept any x_variable for unknown datasets (flexible for new datasets)
+        valid_variables = [x_variable]
 
     if x_variable not in valid_variables:
         raise ValueError(f"Invalid x_variable '{x_variable}' for dataset '{dataset_choice}'. Valid options: {valid_variables}")
