@@ -1,9 +1,24 @@
-"""Core Application Package."""
-from .dtos import RegressionRequestDTO, RegressionResponseDTO
-from .use_cases import RunRegressionUseCase
+"""
+Application Package - Use Cases and DTOs.
+Orchestrates domain objects, handles application-level logic.
+"""
+from .dtos import (
+    RegressionRequestDTO,
+    RegressionResponseDTO,
+    ErrorDTO,
+    ResponseResult,
+)
+
+from .use_cases import (
+    RunRegressionUseCase,
+)
 
 __all__ = [
+    # DTOs
     "RegressionRequestDTO",
-    "RegressionResponseDTO", 
+    "RegressionResponseDTO",
+    "ErrorDTO",
+    "ResponseResult",
+    # Use Cases
     "RunRegressionUseCase",
 ]

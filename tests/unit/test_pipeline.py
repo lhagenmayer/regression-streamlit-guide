@@ -36,6 +36,7 @@ except ImportError:
 try:
     from src.container import get_container
     from src.core.application import RegressionRequestDTO
+    from src.core.domain import RegressionType
     HAS_USE_CASE = True
 except ImportError:
     HAS_USE_CASE = False
@@ -281,7 +282,7 @@ class TestCleanArchitectureUseCase:
             n_observations=50,
             noise_level=0.4,
             seed=42,
-            regression_type="simple"
+            regression_type=RegressionType.SIMPLE
         )
         
         response = use_case.execute(request)
@@ -301,7 +302,7 @@ class TestCleanArchitectureUseCase:
             n_observations=50,
             noise_level=0.4,
             seed=42,
-            regression_type="simple"
+            regression_type=RegressionType.SIMPLE
         )
         
         response1 = use_case.execute(request)

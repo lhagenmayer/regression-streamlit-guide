@@ -275,6 +275,88 @@ from datetime import datetime
 # ✅ ERLAUBT in core/domain:
 from dataclasses import dataclass
 from typing import Dict, List, Optional
+from enum import Enum, auto
+```
+
+---
+
+## 🏆 State-of-the-Art Patterns (Implementiert)
+
+### Enums für Type-Safety
+
+```python
+# src/core/domain/value_objects.py
+class RegressionType(Enum):
+    SIMPLE = auto()
+    MULTIPLE = auto()
+
+class ModelQuality(Enum):
+    POOR = auto()      # R² < 0.3
+    FAIR = auto()      # 0.3 <= R² < 0.5
+    GOOD = auto()      # 0.5 <= R² < 0.7
+    EXCELLENT = auto() # R² >= 0.7
+```
+
+### Validation in Value Objects
+
+```python
+@dataclass(frozen=True)
+class RegressionMetrics:
+    r_squared: float
+    mse: float
+    
+    def __post_init__(self):
+        if not (0 <= self.r_squared <= 1):
+            raise ValueError(f"r_squared must be between 0 and 1")
+        if self.mse < 0:
+            raise ValueError(f"mse must be non-negative")
+```
+
+### Result Types für Error Handling
+
+```python
+@dataclass(frozen=True)
+class Success:
+    value: Any
+
+@dataclass(frozen=True)  
+class Failure:
+    error: str
+    code: str = "UNKNOWN"
+
+Result = Success | Failure
+```
+
+### SRP-Split Interfaces
+
+```python
+# Granulare Interfaces (Single Responsibility)
+class IDatasetFetcher(Protocol):
+    def fetch(self, dataset_id: str, n: int, **kwargs) -> Result: ...
+
+class IDatasetLister(Protocol):
+    def list_all(self) -> List[DatasetMetadata]: ...
+
+class IModelRepository(Protocol):
+    def save(self, model: RegressionModel) -> str: ...
+    def get(self, model_id: str) -> Optional[RegressionModel]: ...
+
+# Kombiniertes Interface (Backward Compatible)
+class IDataProvider(IDatasetFetcher, IDatasetLister, Protocol): ...
+```
+
+### Immutable DTOs
+
+```python
+@dataclass(frozen=True)  # frozen für Immutability
+class RegressionRequestDTO:
+    dataset_id: str
+    n_observations: int
+    regression_type: RegressionType  # Enum statt String
+    
+    def __post_init__(self):
+        if self.n_observations < 2:
+            raise ValueError("n_observations must be >= 2")
 ```
 
 ---

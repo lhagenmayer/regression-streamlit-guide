@@ -1,14 +1,58 @@
-"""Core Domain Package."""
-from .entities import RegressionModel
-from .value_objects import RegressionParameters, RegressionMetrics, DatasetMetadata, DataPoint
-from .interfaces import IDataProvider, IRegressionService
+"""
+Domain Package - Pure Python, No External Dependencies.
+Core business logic, entities, value objects, and interfaces.
+"""
+from .value_objects import (
+    RegressionType,
+    ModelQuality,
+    RegressionParameters,
+    RegressionMetrics,
+    DataPoint,
+    DatasetMetadata,
+    Success,
+    Failure,
+    Result,
+)
+
+from .entities import (
+    RegressionModel,
+)
+
+from .interfaces import (
+    # Granular interfaces (SRP)
+    IDatasetFetcher,
+    IDatasetLister,
+    ISimpleRegressionTrainer,
+    IMultipleRegressionTrainer,
+    IModelRepository,
+    IPredictor,
+    # Combined interfaces (backward compatible)
+    IDataProvider,
+    IRegressionService,
+)
 
 __all__ = [
-    "RegressionModel",
-    "RegressionParameters", 
+    # Enums
+    "RegressionType",
+    "ModelQuality",
+    # Value Objects
+    "RegressionParameters",
     "RegressionMetrics",
-    "DatasetMetadata",
     "DataPoint",
+    "DatasetMetadata",
+    # Result Types
+    "Success",
+    "Failure",
+    "Result",
+    # Entities
+    "RegressionModel",
+    # Interfaces
+    "IDatasetFetcher",
+    "IDatasetLister",
+    "ISimpleRegressionTrainer",
+    "IMultipleRegressionTrainer",
+    "IModelRepository",
+    "IPredictor",
     "IDataProvider",
     "IRegressionService",
 ]

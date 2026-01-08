@@ -1,34 +1,113 @@
 """
 Domain Interfaces (Ports).
 Using Protocols for structural subtyping.
-Infrastructure implementations will satisfy these protocols.
+Single Responsibility Principle - each interface has ONE job.
 """
 from typing import Protocol, List, Dict, Any, Optional
-from .entities import RegressionModel, DatasetMetadata
-from .value_objects import RegressionParameters, RegressionMetrics
+from .entities import RegressionModel
+from .value_objects import DatasetMetadata, RegressionType, Result
 
-class IDataProvider(Protocol):
-    """Interface for fetching data."""
+
+# =============================================================================
+# Data Provider Interfaces (Single Responsibility Split)
+# =============================================================================
+
+class IDatasetFetcher(Protocol):
+    """Interface for fetching a single dataset."""
+    
+    def fetch(self, dataset_id: str, n: int, **kwargs) -> Result:
+        """
+        Fetch raw data.
+        Returns Success(Dict) or Failure(error_message).
+        """
+        ...
+
+
+class IDatasetLister(Protocol):
+    """Interface for listing available datasets."""
+    
+    def list_all(self) -> List[DatasetMetadata]:
+        """List all available datasets."""
+        ...
+
+
+class IDataProvider(IDatasetFetcher, IDatasetLister, Protocol):
+    """Combined interface for data operations (backward compatible)."""
     
     def get_dataset(self, dataset_id: str, n: int, **kwargs) -> Dict[str, Any]:
-        """
-        Fetch raw data. 
-        Returns dictionary (e.g. {'x': [...], 'y': [...]})
-        We use Dict for flexibility in raw layer, but Application layer converts to DTOs.
-        """
-        ...
-        
-    def list_datasets(self) -> List[DatasetMetadata]:
-        """List available datasets."""
+        """Legacy method - use fetch() for Result-based error handling."""
         ...
 
+
+# =============================================================================
+# Regression Service Interfaces (Single Responsibility Split)
+# =============================================================================
+
+class ISimpleRegressionTrainer(Protocol):
+    """Interface for training simple regression models."""
+    
+    def train(self, x: List[float], y: List[float]) -> RegressionModel:
+        """Train simple regression: y = β₀ + β₁x."""
+        ...
+
+
+class IMultipleRegressionTrainer(Protocol):
+    """Interface for training multiple regression models."""
+    
+    def train(
+        self, 
+        x: List[List[float]], 
+        y: List[float], 
+        variable_names: List[str]
+    ) -> RegressionModel:
+        """Train multiple regression: y = β₀ + β₁x₁ + β₂x₂ + ..."""
+        ...
+
+
 class IRegressionService(Protocol):
-    """Interface for performing regression calculations."""
+    """Combined interface for regression operations (backward compatible)."""
     
     def train_simple(self, x: List[float], y: List[float]) -> RegressionModel:
         """Train simple regression model."""
         ...
         
-    def train_multiple(self, x: List[List[float]], y: List[float], variable_names: List[str]) -> RegressionModel:
+    def train_multiple(
+        self, 
+        x: List[List[float]], 
+        y: List[float], 
+        variable_names: List[str]
+    ) -> RegressionModel:
         """Train multiple regression model."""
+        ...
+
+
+# =============================================================================
+# Model Repository Interface
+# =============================================================================
+
+class IModelRepository(Protocol):
+    """Interface for persisting and retrieving models."""
+    
+    def save(self, model: RegressionModel) -> str:
+        """Save model, return model_id."""
+        ...
+    
+    def get(self, model_id: str) -> Optional[RegressionModel]:
+        """Retrieve model by ID."""
+        ...
+    
+    def delete(self, model_id: str) -> bool:
+        """Delete model, return success status."""
+        ...
+
+
+# =============================================================================
+# Prediction Interface
+# =============================================================================
+
+class IPredictor(Protocol):
+    """Interface for making predictions with trained models."""
+    
+    def predict(self, model: RegressionModel, x: List[float]) -> List[float]:
+        """Generate predictions for new x values."""
         ...
