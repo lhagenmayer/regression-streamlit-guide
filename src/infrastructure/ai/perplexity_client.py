@@ -282,70 +282,17 @@ Regeln:
         Returns:
             Formatted R-output string
         """
-        import numpy as np
-        
-        # Handle residuals
-        residuals = stats.get('residuals', [0, 0, 0, 0, 0])
-        if hasattr(residuals, 'tolist'):
-            residuals = residuals.tolist()
-        if len(residuals) < 5:
-            residuals = [0, 0, 0, 0, 0]
-        
-        res_min = float(np.min(residuals))
-        res_q1 = float(np.percentile(residuals, 25))
-        res_med = float(np.median(residuals))
-        res_q3 = float(np.percentile(residuals, 75))
-        res_max = float(np.max(residuals))
-        
-        def get_stars(p):
-            if p < 0.001: return "***"
-            if p < 0.01: return "**"
-            if p < 0.05: return "*"
-            if p < 0.1: return "."
-            return ""
-        
-        x_label = str(stats.get('x_label', 'X'))[:12]
-        y_label = str(stats.get('y_label', 'Y'))
-        
-        intercept = float(stats.get('intercept', 0))
-        slope = float(stats.get('slope', 0))
-        se_intercept = float(stats.get('se_intercept', 0))
-        se_slope = float(stats.get('se_slope', 0))
-        t_intercept = float(stats.get('t_intercept', 0))
-        t_slope = float(stats.get('t_slope', 0))
-        p_intercept = float(stats.get('p_intercept', 1))
-        p_slope = float(stats.get('p_slope', 1))
-        
-        r_squared = float(stats.get('r_squared', 0))
-        r_squared_adj = float(stats.get('r_squared_adj', 0))
-        mse = float(stats.get('mse', 0))
-        df = int(stats.get('df', 0))
-        
-        # F-statistic
-        ssr = float(stats.get('ssr', 0))
-        sse = float(stats.get('sse', 1))
-        f_stat = (ssr / 1) / (sse / df) if df > 0 and sse > 0 else 0
-        
-        import math
-        rmse = math.sqrt(mse) if mse > 0 else 0
-        
-        return f"""Call:
-lm(formula = {y_label} ~ {x_label})
-
-Residuals:
-     Min       1Q   Median       3Q      Max 
-{res_min:8.4f} {res_q1:8.4f} {res_med:8.4f} {res_q3:8.4f} {res_max:8.4f}
-
-Coefficients:
-              Estimate Std. Error t value Pr(>|t|)    
-(Intercept)  {intercept:9.4f}   {se_intercept:9.4f}  {t_intercept:7.3f}   {p_intercept:.2e} {get_stars(p_intercept)}
-{x_label:12s} {slope:9.4f}   {se_slope:9.4f}  {t_slope:7.3f}   {p_slope:.2e} {get_stars(p_slope)}
----
-Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-
-Residual standard error: {rmse:.4f} on {df} degrees of freedom
-Multiple R-squared:  {r_squared:.4f},    Adjusted R-squared:  {r_squared_adj:.4f}
-F-statistic: {f_stat:.2f} on 1 and {df} DF,  p-value: {p_slope:.2e}"""
+        try:
+            from .formatters import ROutputFormatter
+            return ROutputFormatter.format(stats)
+        except ImportError:
+            # Fallback if formatter not found (e.g., partial deploy)
+            # Or log error and return empty
+            logger.error("ROutputFormatter not found")
+            return "Error generating R-output: Formatter missing."
+        except Exception as e:
+            logger.error(f"Error generating R-output: {e}")
+            return f"Error generating R-output: {e}"
 
     def stream_interpretation(
         self, 

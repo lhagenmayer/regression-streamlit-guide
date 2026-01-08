@@ -109,6 +109,8 @@ Die Anwendung folgt strikt der **Clean Architecture** mit vier Schichten:
 | `services/calculate.py` | `StatisticsCalculator` - OLS, R², t-Tests |
 | `services/plot.py` | `PlotBuilder` - Plotly Visualisierungen |
 | `services/regression.py` | `RegressionServiceImpl` implementiert `IRegressionService` |
+| `services/classification.py` | `ClassificationServiceImpl` (Logistic, KNN) |
+| `ai/formatters.py` | `ROutputFormatter` (R-style output simulation) |
 | `content/` | Edukativer Content Builder |
 | `ai/` | Perplexity AI Client |
 | `regression_pipeline.py` | 4-Step Pipeline Orchestrierung |
@@ -189,6 +191,22 @@ class RegressionMetrics:
     r_squared_adj: float
     mse: float
     rmse: float
+
+@dataclass(frozen=True)
+class ClassificationMetrics:
+    accuracy: float
+    precision: float
+    recall: float
+    f1_score: float
+    confusion_matrix: np.ndarray
+    auc: Optional[float]
+
+@dataclass(frozen=True)
+class ClassificationResult(Result):
+    classes: List[Any]
+    predictions: np.ndarray
+    probabilities: np.ndarray
+    metrics: ClassificationMetrics
 ```
 
 ### Domain Entity
@@ -216,7 +234,12 @@ class RunRegressionUseCase:
         self.regression_service = regression_service
     
     def execute(self, request: RegressionRequestDTO) -> RegressionResponseDTO:
+    def execute(self, request: RegressionRequestDTO) -> RegressionResponseDTO:
         # Orchestrate only - no calculations here
+
+class RunClassificationUseCase:
+    def execute(self, request: ClassificationRequestDTO) -> ClassificationResponseDTO:
+        # Orchestrate ClassificationService and DataProvider
 ```
 
 ### DI Container

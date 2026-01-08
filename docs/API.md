@@ -165,6 +165,28 @@ GET /api/datasets
 }
 ```
 
+### Datensatz Rohdaten (Data Explorer)
+Hole Rohdaten für einen spezifischen Datensatz.
+
+```
+GET /api/datasets/{dataset_id}/raw
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "columns": ["Feature 1", "Feature 2", "Target"],
+    "data": [
+      [1.2, 3.4, 0],
+      [2.3, 4.5, 1]
+    ],
+    "metadata": { ... }
+  }
+}
+```
+
 ---
 
 ## 📈 Regression Endpunkte
@@ -336,6 +358,76 @@ curl -X POST http://localhost:8000/api/regression/multiple \
       "residuals": { /* Plotly JSON */ },
       "diagnostics": { /* Plotly JSON */ }
     }
+  }
+}
+```
+
+---
+
+---
+
+## 🤖 Classification Endpunkte (ML Bridge)
+
+### Classification Analysis
+Führt eine Klassifikationsanalyse (Logistic Regression oder KNN) durch.
+
+```
+POST /api/classification
+```
+
+**Request Body:**
+| Parameter | Typ | Default | Beschreibung |
+|-----------|-----|---------|--------------|
+| `dataset` | string | `"fruits"` | Dataset ID (`fruits`, `digits`, `binary_electronics`) |
+| `n` | integer | `100` | Anzahl Samples (max 500) |
+| `noise` | float | `0.2` | Rausch-Level |
+| `seed` | integer | `42` | Random Seed |
+| `method` | string | `"logistic"` | Methode: `"logistic"` oder `"knn"` |
+| `k` | integer | `3` | Anzahl Nachbarn (nur für KNN) |
+
+**Beispiel:**
+```bash
+curl -X POST http://localhost:8000/api/classification \
+  -H "Content-Type: application/json" \
+  -d '{
+    "dataset": "fruits",
+    "method": "knn",
+    "k": 5
+  }'
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "X": [[7.5, 7.3, 175.0, 0.75], ...],
+    "y": [0, 0, 1, 2, ...],
+    "feature_names": ["height", "width", "mass", "color"],
+    "target_names": ["apple", "mandarin", "orange", "lemon"]
+  },
+  "results": {
+    "metrics": {
+      "accuracy": 0.92,
+      "precision": 0.91,
+      "recall": 0.93,
+      "f1": 0.92,
+      "confusion_matrix": [[10, 1, 0, 0], ...],
+      "auc": null
+    },
+    "params": {
+      "k": 5,
+      "method": "knn"
+    }
+  },
+  "plots": {
+    "scatter": { /* 3D Classification Surface & Points */ },
+    "residuals": { /* 3D Confusion Matrix */ },
+    "diagnostics": { /* 3D ROC Curve */ }
+  },
+  "metadata": {
+    "dataset": "🍎 Fruit Classification",
+    "description": "KNN Case Study..."
   }
 }
 ```

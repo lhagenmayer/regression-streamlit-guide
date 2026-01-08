@@ -24,7 +24,8 @@ src/
 │   ├── services/
 │   │   ├── calculate.py    # StatisticsCalculator (scipy)
 │   │   ├── plot.py         # PlotBuilder (plotly)
-│   │   └── regression.py   # RegressionServiceImpl implements IRegressionService
+│   │   ├── regression.py   # RegressionServiceImpl implements IRegressionService
+│   │   └── classification.py # ClassificationServiceImpl (Pure NumPy)
 │   ├── content/            # Educational content builder
 │   └── ai/                 # Perplexity client
 │
@@ -115,6 +116,9 @@ class IDataProvider(Protocol):
 
 class IRegressionService(Protocol):
     def train_simple(self, x: List[float], y: List[float]) -> RegressionModel: ...
+
+class IClassificationService(Protocol):
+    def train_logistic(self, X: np.ndarray, y: np.ndarray) -> ClassificationResult: ...
 ```
 
 ### Use Case (Implemented)

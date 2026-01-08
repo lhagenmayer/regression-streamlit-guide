@@ -38,6 +38,30 @@ class ContentElement:
         """Convert to dictionary for serialization."""
         return {"type": self.element_type.value}
 
+    @staticmethod
+    def from_dict(data: Dict[str, Any]) -> "ContentElement":
+        """Factory method to create element from dictionary."""
+        etype = data.get("type", "").lower()
+        content = data.get("content")
+        
+        if etype == "markdown": return Markdown(data.get("text", ""))
+        if etype == "metric": return Metric(data.get("label"), data.get("value"), data.get("help_text"), data.get("delta"))
+        if etype == "metric_row": return MetricRow([ContentElement.from_dict(m) for m in data.get("metrics", [])])
+        if etype == "formula": return Formula(data.get("latex"), data.get("inline", False))
+        if etype == "plot": return Plot(data.get("plot_key"), data.get("title", ""), data.get("description", ""), data.get("height", 400))
+        if etype == "table": return Table(data.get("headers"), data.get("rows"), data.get("caption", ""))
+        if etype == "columns": return Columns([ [ContentElement.from_dict(e) for e in col] for col in data.get("columns", []) ], data.get("widths"))
+        if etype == "expander": return Expander(data.get("title"), [ContentElement.from_dict(e) for e in content], data.get("expanded", False))
+        if etype == "info_box": return InfoBox(content)
+        if etype == "warning_box": return WarningBox(content)
+        if etype == "success_box": return SuccessBox(content)
+        if etype == "code_block": return CodeBlock(data.get("code"), data.get("language", "python"))
+        if etype == "divider": return Divider()
+        if etype == "section": return Section.from_dict(data)
+        
+        # Fallback or unknown
+        return Markdown(f"**Unknown Element:** {etype}")
+
 
 @dataclass
 class Markdown(ContentElement):
@@ -282,6 +306,14 @@ class Section(ContentElement):
             "content": [e.to_dict() for e in self.content],
         }
 
+    @staticmethod
+    def from_dict(data: Dict[str, Any]) -> "Section":
+        return Section(
+            title=data.get("title", ""),
+            icon=data.get("icon", ""),
+            content=[ContentElement.from_dict(e) for e in data.get("content", [])]
+        )
+
 
 @dataclass
 class Chapter(ContentElement):
@@ -307,6 +339,23 @@ class Chapter(ContentElement):
             "sections": [s.to_dict() for s in self.sections],
         }
 
+    @staticmethod
+    def from_dict(data: Dict[str, Any]) -> "Chapter":
+        # Sections can be Section or other elements (rarely)
+        sections = []
+        for sec_data in data.get("sections", []):
+            if sec_data.get("type") == "section":
+                sections.append(Section.from_dict(sec_data))
+            else:
+                sections.append(ContentElement.from_dict(sec_data))
+        
+        return Chapter(
+            number=data.get("number", ""),
+            title=data.get("title", ""),
+            icon=data.get("icon", ""),
+            sections=sections
+        )
+
 
 @dataclass
 class EducationalContent:
@@ -321,3 +370,11 @@ class EducationalContent:
             "subtitle": self.subtitle,
             "chapters": [c.to_dict() for c in self.chapters],
         }
+
+    @staticmethod
+    def from_dict(data: Dict[str, Any]) -> "EducationalContent":
+        return EducationalContent(
+            title=data.get("title", ""),
+            subtitle=data.get("subtitle", ""),
+            chapters=[Chapter.from_dict(c) for c in data.get("chapters", [])]
+        )

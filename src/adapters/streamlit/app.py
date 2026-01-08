@@ -17,6 +17,7 @@ from typing import Dict, Any, Optional
 
 from ...config import get_logger
 from ...api import RegressionAPI, ContentAPI, AIInterpretationAPI
+from ...core.domain.value_objects import SplitConfig # Added import for SplitConfig
 
 logger = get_logger(__name__)
 
@@ -25,8 +26,8 @@ def run_streamlit_app():
     """Main Streamlit application entry point."""
     # Page configuration
     st.set_page_config(
-        page_title="Regression Analysis",
-        page_icon="�",
+        page_title="Regression & Classification",
+        page_icon="🧠",
         layout="wide",
         initial_sidebar_state="expanded"
     )
@@ -52,46 +53,144 @@ def run_streamlit_app():
         
         analysis_type = st.radio(
             "Analysis Type",
-            ["Simple Regression", "Multiple Regression"],
+            ["Simple Regression", "Multiple Regression", "Binary Classification"],
             key="analysis_type",
             label_visibility="collapsed"
         )
         
+        # Data Split Config moved below dataset selection
+
         st.markdown("---")
         
         # Dataset selection
         datasets_response = regression_api.get_datasets()
         st.markdown("### 📊 Dataset")
         
-        # Map German names to API response (if needed) or direct use
-        # Adapting to English/International structure
+        # Default params
+        method = "logistic"
+        k_neighbors = 3
         
         if analysis_type == "Simple Regression":
             dataset_options = {d["name"]: d["id"] for d in datasets_response["data"]["simple"]}
-            dataset_name = st.selectbox(
-                "Select Simple Dataset:",
-                list(dataset_options.keys()),
-                key="dataset_simple"
-            )
+            dataset_name = st.selectbox("Select Dataset:", list(dataset_options.keys()), key="dataset_simple")
             dataset_id = dataset_options[dataset_name]
             n_points = st.slider("Samples", 20, 200, 50, key="n_simple")
-        else:
+            
+        elif analysis_type == "Multiple Regression":
             dataset_options = {d["name"]: d["id"] for d in datasets_response["data"]["multiple"]}
-            dataset_name = st.selectbox(
-                "Select Multiple Dataset:",
-                list(dataset_options.keys()),
-                key="dataset_multiple"
-            )
+            dataset_name = st.selectbox("Select Dataset:", list(dataset_options.keys()), key="dataset_multiple")
             dataset_id = dataset_options[dataset_name]
             n_points = st.slider("Samples", 30, 200, 75, key="n_multiple")
+            
+        else: # Binary Classification
+            # Hardcoded options for now or fetch via API if endpoint exists?
+            # We reuse simple/multiple datasets + special ones
+            # For "native" classification support we should probably have an endpoint get_classification_datasets
+            # But generators.py handles conversion.
+            
+            # Mix of dedicated classification + convertibles
+            cls_options = {
+                "🍎 Fruits (2D)": "fruits",
+                "🔢 Digits (64D)": "digits",
+                "📱 Electronics (Simple->Binary)": "binary_electronics",
+                "🏠 Housing (Simple->Binary)": "binary_housing",
+                "🏥 WHO Health (External)": "who_health",
+                "🏦 World Bank (External)": "world_bank",
+            }
+            dataset_name = st.selectbox("Select Dataset:", list(cls_options.keys()), key="dataset_cls")
+            dataset_id = cls_options[dataset_name]
+            n_points = st.slider("Samples", 50, 500, 100, step=10, key="n_cls")
+            
+            st.markdown("### 🧠 Model")
+            method_display = st.selectbox("Method", ["Logistic Regression", "K-Nearest Neighbors"], key="method_select")
+            method = "logistic" if "Logistic" in method_display else "knn"
+            
+            if method == "knn":
+                k_neighbors = st.slider("Neighbors (k)", 1, 25, 3, key="k_knn")
+                
+            # Data Split Configuration (Only for Classification)
+            with st.expander("Data Split & Stratification", expanded=True):
+                st.markdown("Configure Training/Test split.")
+                
+                col1, col2 = st.columns(2)
+                with col1:
+                    train_size = st.slider(
+                        "Training Size", 
+                        min_value=0.1, 
+                        max_value=0.9, 
+                        value=0.8, 
+                        step=0.05,
+                        key="train_size_slider",
+                        help="Proportion of data used for training."
+                    )
+                with col2:
+                    stratify = st.checkbox(
+                        "Stratify Split", 
+                        value=False,
+                        key="stratify_checkbox",
+                        help="Maintain class proportions."
+                    )
+                    
+                # Live Preview
+                try:
+                    # Look up dataset_id from current selection
+                    # n_points is defined above
+                    # noise/seed defined below, need defaults or move
+                    # To avoid circular dep, we assume defaults for preview if vars not ready?
+                    # But n_points is ready. dataset_id is ready.
+                    # noise/seed are below. Let's assume defaults for PREVIEW or move them up.
+                    # Moving noise/seed up is better UI practice anyway (Global params).
+                    # But let's just use defaults for preview 
+                    
+                    preview_noise_val = 0.2
+                    preview_seed_val = 42
+                    
+                    api = ContentAPI()
+                    preview = api.get_split_preview(
+                        dataset=dataset_id, 
+                        train_size=train_size,
+                        stratify=stratify, 
+                        seed=preview_seed_val,
+                        n=n_points,
+                        noise=preview_noise_val
+                    )
+                    
+                    if preview["success"]:
+                        stats = preview["stats"]
+                        # Compact display
+                        # st.caption(f"Train: {stats['train_count']} | Test: {stats['test_count']}")
+                        
+                        import pandas as pd
+                        import plotly.express as px
+                        
+                        dist_data = []
+                        for k, v in stats["train_distribution"].items():
+                            dist_data.append({"Class": str(k), "Count": v, "Set": "Train"})
+                        for k, v in stats["test_distribution"].items():
+                            dist_data.append({"Class": str(k), "Count": v, "Set": "Test"})
+                            
+                        df_dist = pd.DataFrame(dist_data)
+                        fig_dist = px.bar(
+                            df_dist, 
+                            x="Set", 
+                            y="Count", 
+                            color="Class", 
+                            barmode="group",
+                            height=150,
+                            title=None
+                        )
+                        fig_dist.update_layout(margin=dict(l=0, r=0, t=0, b=0), showlegend=False)
+                        st.plotly_chart(fig_dist, use_container_width=True)
+                except Exception as e:
+                    pass
         
         st.markdown("### ⚙️ Parameters")
-        noise = st.slider("Noise Level", 0.1, 2.0, 0.4, 0.1, key="noise")
+        noise = st.slider("Noise Level", 0.0, 2.0, 0.2 if analysis_type == "Binary Classification" else 0.4, 0.1, key="noise")
         seed = st.number_input("Random Seed", 1, 9999, 42, key="seed")
         
         st.markdown("---")
         
-        # API Status in Sidebar
+        # API Status
         status = ai_api.get_status()
         if status["status"]["configured"]:
             st.success("✅ AI Connected")
@@ -99,21 +198,54 @@ def run_streamlit_app():
             st.warning("⚠️ AI Fallback")
             
     # Main Content
-    
-    # Hero / Title
     if "hero_shown" not in st.session_state:
         st.session_state.hero_shown = True
         
-    title_suffix = "Simple" if analysis_type == "Simple Regression" else "Multiple"
-    render_hero(
-        f"{title_suffix} Regression", 
-        "Explore relationships, analyze residuals, and master statistical modeling."
-    )
+    # Tabs for Content vs Data
+    tab_analysis, tab_data = st.tabs(["📊 Analysis", "🗃️ Data Explorer"])
     
-    if analysis_type == "Simple Regression":
-        render_simple_regression(content_api, ai_api, dataset_id, n_points, noise, seed)
-    else:
-        render_multiple_regression(content_api, ai_api, dataset_id, n_points, noise, seed)
+    with tab_analysis:
+        if analysis_type == "Simple Regression":
+            render_hero("Simple Regression", "Explore relationships, analyze residuals, and master statistical modeling.")
+            render_simple_regression(content_api, ai_api, dataset_id, n_points, noise, seed)
+        elif analysis_type == "Multiple Regression":
+            render_hero("Multiple Regression", "Multivariate analysis with 3D visualizations.")
+            render_multiple_regression(content_api, ai_api, dataset_id, n_points, noise, seed)
+        else:
+            render_hero("Machine Learning", "From Logistic Regression to KNN classification.")
+            render_classification(content_api, ai_api, dataset_id, n_points, noise, seed, method, k_neighbors, train_size, stratify)
+
+    with tab_data:
+        st.markdown(f"### 🗃️ Raw Data: {dataset_name}")
+        st.markdown(f"**ID:** `{dataset_id}` | **Samples:** {n_points}")
+        
+        try:
+             raw_resp = content_api.get_dataset_raw(dataset_id)
+             if raw_resp.get("success"):
+                 data = raw_resp["data"]["data"]
+                 columns = raw_resp["data"]["columns"]
+                 
+                 import pandas as pd
+                 df = pd.DataFrame(data)
+                 # Reorder columns to put Target last if generic dict didn't preserve
+                 if "Target" in columns and "Target" in df.columns:
+                      cols = [c for c in df.columns if c != "Target"] + ["Target"]
+                      df = df[cols]
+                 
+                 st.dataframe(df, use_container_width=True)
+                 
+                 csv = df.to_csv(index=False).encode('utf-8')
+                 st.download_button(
+                     "📥 Download CSV",
+                     csv,
+                     f"{dataset_id}.csv",
+                     "text/csv",
+                     key='download-csv'
+                 )
+             else:
+                 st.error(f"Could not load data: {raw_resp.get('error')}")
+        except Exception as e:
+            st.error(f"Data Explorer Error: {e}")
 
 
 def render_simple_regression(
@@ -319,145 +451,126 @@ def _render_ai_interpretation(ai_api: AIInterpretationAPI, stats_dict: Dict[str,
                     st.markdown(f"{i}. [{citation}]({citation})")
 
 
-def _flatten_stats(stats: Dict[str, Any], data: Dict[str, Any]) -> Dict[str, Any]:
-    """Flatten API stats response for content builder."""
-    coefficients = stats.get("coefficients", {})
-    model_fit = stats.get("model_fit", {})
-    t_tests = stats.get("t_tests", {})
-    sum_of_squares = stats.get("sum_of_squares", {})
-    sample = stats.get("sample", {})
-    extra = stats.get("extra", {})
+    renderer.render(content_obj)
     
-    x_arr = np.array(data.get("x", []))
-    y_arr = np.array(data.get("y", []))
-    
-    return {
-        # Context
-        "context_title": data.get("context", {}).get("title", "Regressionsanalyse"),
-        "context_description": data.get("context", {}).get("description", ""),
-        "x_label": data.get("x_label", "X"),
-        "y_label": data.get("y_label", "Y"),
-        "y_unit": data.get("y_unit", ""),
-        
-        # Sample
-        "n": sample.get("n", len(x_arr)),
-        
-        # Descriptive (computed from data)
-        "x_mean": float(np.mean(x_arr)) if len(x_arr) > 0 else 0,
-        "x_std": float(np.std(x_arr, ddof=1)) if len(x_arr) > 1 else 0,
-        "x_min": float(np.min(x_arr)) if len(x_arr) > 0 else 0,
-        "x_max": float(np.max(x_arr)) if len(x_arr) > 0 else 0,
-        "y_mean": float(np.mean(y_arr)) if len(y_arr) > 0 else 0,
-        "y_std": float(np.std(y_arr, ddof=1)) if len(y_arr) > 1 else 0,
-        "y_min": float(np.min(y_arr)) if len(y_arr) > 0 else 0,
-        "y_max": float(np.max(y_arr)) if len(y_arr) > 0 else 0,
-        
-        # Correlation
-        "correlation": extra.get("correlation", 0),
-        "covariance": float(np.cov(x_arr, y_arr, ddof=1)[0, 1]) if len(x_arr) > 1 else 0,
-        
-        # Coefficients
-        "intercept": coefficients.get("intercept", 0),
-        "slope": coefficients.get("slope", 0),
-        "se_intercept": stats.get("standard_errors", {}).get("intercept", 0),
-        "se_slope": stats.get("standard_errors", {}).get("slope", 0),
-        
-        # t-tests
-        "t_intercept": t_tests.get("intercept", {}).get("t_value", 0),
-        "t_slope": t_tests.get("slope", {}).get("t_value", 0),
-        "p_intercept": t_tests.get("intercept", {}).get("p_value", 1),
-        "p_slope": t_tests.get("slope", {}).get("p_value", 1),
-        
-        # Model fit
-        "r_squared": model_fit.get("r_squared", 0),
-        "r_squared_adj": model_fit.get("r_squared_adj", 0),
-        
-        # Sum of squares
-        "sse": sum_of_squares.get("sse", 0),
-        "sst": sum_of_squares.get("sst", 0),
-        "ssr": sum_of_squares.get("ssr", 0),
-        "mse": sum_of_squares.get("mse", 0),
-        "df": sample.get("df", 0),
-        
-        # F-test (computed)
-        "f_statistic": (sum_of_squares.get("ssr", 0) / 1) / sum_of_squares.get("mse", 1) if sum_of_squares.get("mse", 0) > 0 else 0,
-        "p_f": t_tests.get("slope", {}).get("p_value", 1),  # Same as p_slope for simple regression
-        
-        # Residuals
-        "residuals": stats.get("residuals", []),
-        "y_pred": stats.get("predictions", []),
-    }
+    # AI Interpretation
+    _render_ai_interpretation(ai_api, stats_dict)
 
 
-def _flatten_multiple_stats(stats: Dict[str, Any], data: Dict[str, Any]) -> Dict[str, Any]:
-    """Flatten API stats response for multiple regression content builder."""
-    coefficients = stats.get("coefficients", {})
-    model_fit = stats.get("model_fit", {})
-    t_tests = stats.get("t_tests", {})
-    sample = stats.get("sample", {})
+def render_classification(
+    content_api: ContentAPI,
+    ai_api: AIInterpretationAPI,
+    dataset: str,
+    n_points: int,
+    noise: float,
+    seed: int,
+    method: str,
+    k_neighbors: int,
+    train_size: float,
+    stratify: bool
+):
+    """Render classification analysis (Machine Learning)."""
     
-    x1_arr = np.array(data.get("x1", []))
-    x2_arr = np.array(data.get("x2", []))
-    y_arr = np.array(data.get("y", []))
+    with st.spinner(f"🧠 Trainiere {method.upper()} Modell..."):
+        response = content_api.get_classification_content(
+            dataset=dataset,
+            n=n_points,
+            noise=noise,
+            seed=seed,
+            method=method,
+            k=k_neighbors,
+            train_size=train_size,
+            stratify=stratify
+        )
+        
+    if not response["success"]:
+        st.error(f"ML Fehler: {response.get('error')}")
+        return
+        
+    # Extract
+    content_dict = response["content"]
+    plots_dict = response["plots"]
+    stats_dict = response["stats"]
+    data_dict = response["data"]
+    results_dict = response.get("results", {})
+    test_metrics = results_dict.get("test_metrics")
     
-    # VIF calculation
-    if len(x1_arr) > 1 and len(x2_arr) > 1:
-        corr_x1_x2 = float(np.corrcoef(x1_arr, x2_arr)[0, 1])
-        r2_x = corr_x1_x2 ** 2
-        vif = 1 / (1 - r2_x) if r2_x < 1 else float('inf')
-    else:
-        corr_x1_x2 = 0
-        vif = 1
+    # Display Metrics (Train vs Test)
+    st.markdown("### 📉 Model Performance")
+    m_col1, m_col2, m_col3, m_col4 = st.columns(4)
     
-    slopes = coefficients.get("slopes", [0, 0])
-    se_coeffs = stats.get("standard_errors", [0, 0, 0])
-    t_values = t_tests.get("t_values", [0, 0, 0])
-    p_values = t_tests.get("p_values", [1, 1, 1])
+    metrics = stats_dict # Train metrics
     
-    return {
-        # Context
-        "context_title": "Multiple Regression",
-        "context_description": "Analyse mit mehreren Prädiktoren",
-        "x1_label": data.get("x1_label", "X₁"),
-        "x2_label": data.get("x2_label", "X₂"),
-        "y_label": data.get("y_label", "Y"),
+    with m_col1:
+        st.metric("Accuracy (Train)", f"{metrics.get('accuracy',0):.2%}")
+        if test_metrics:
+            st.metric("Accuracy (Test)", f"{test_metrics.get('accuracy',0):.2%}", 
+                     delta=f"{test_metrics.get('accuracy',0) - metrics.get('accuracy',0):.2%}")
+            
+    with m_col2:
+        st.metric("Precision (Train)", f"{metrics.get('precision',0):.2f}")
+        if test_metrics:
+            st.metric("Precision (Test)", f"{test_metrics.get('precision',0):.2f}")
+
+    with m_col3:
+        st.metric("Recall (Train)", f"{metrics.get('recall',0):.2f}")
+        if test_metrics:
+            st.metric("Recall (Test)", f"{test_metrics.get('recall',0):.2f}")
+            
+    with m_col4:
+        st.metric("F1 Score (Train)", f"{metrics.get('f1',0):.2f}") # Note: 'f1' key from API check
+        if test_metrics:
+            st.metric("F1 Score (Test)", f"{test_metrics.get('f1',0):.2f}")
+            
+    st.markdown("---")
+    
+    # Reconstruct Content Object
+    from ...infrastructure.content.structure import EducationalContent
+    try:
+        content_obj = EducationalContent.from_dict(content_dict)
+    except Exception as e:
+        st.error(f"Fehler beim Laden des Inhalts: {e}")
+        return
+    
+    # Reconstruct Plots (Flatten for renderer: scatter, residuals, diagnostics, + extras)
+    import plotly.graph_objects as go
+    renderer_plots = {}
+    
+    if plots_dict:
+        # Standard keys from PlotCollection
+        for key in ["scatter", "residuals", "diagnostics"]:
+           if plots_dict.get(key):
+               renderer_plots[key] = go.Figure(plots_dict[key])
         
-        # Sample
-        "n": sample.get("n", len(y_arr)),
-        "k": sample.get("k", 2),
-        
-        # Coefficients
-        "intercept": coefficients.get("intercept", 0),
-        "beta1": slopes[0] if len(slopes) > 0 else 0,
-        "beta2": slopes[1] if len(slopes) > 1 else 0,
-        "se_intercept": se_coeffs[0] if len(se_coeffs) > 0 else 0,
-        "se_beta1": se_coeffs[1] if len(se_coeffs) > 1 else 0,
-        "se_beta2": se_coeffs[2] if len(se_coeffs) > 2 else 0,
-        "t_intercept": t_values[0] if len(t_values) > 0 else 0,
-        "t_beta1": t_values[1] if len(t_values) > 1 else 0,
-        "t_beta2": t_values[2] if len(t_values) > 2 else 0,
-        "p_intercept": p_values[0] if len(p_values) > 0 else 1,
-        "p_beta1": p_values[1] if len(p_values) > 1 else 1,
-        "p_beta2": p_values[2] if len(p_values) > 2 else 1,
-        
-        # Model fit
-        "r_squared": model_fit.get("r_squared", 0),
-        "r_squared_adj": model_fit.get("r_squared_adj", 0),
-        "f_statistic": model_fit.get("f_statistic", 0),
-        "p_f": model_fit.get("f_p_value", 1),
-        "df": sample.get("n", 0) - 3,
-        
-        # Multicollinearity
-        "corr_x1_x2": corr_x1_x2,
-        "vif_x1": vif,
-        "vif_x2": vif,
-        
-        # Durbin-Watson
-        "durbin_watson": 2.0,
-        
-        # Residuals
-        "residuals": stats.get("residuals", []),
+        # Extra keys
+        if plots_dict.get("extra"):
+            for k, v in plots_dict["extra"].items():
+                if v:
+                    renderer_plots[k] = go.Figure(v)
+                
+    # Initialize Renderer
+    from ..renderers import StreamlitContentRenderer
+    
+    # Prepare data dict for interactive plots
+    renderer_data = {
+        "x": np.array(data_dict.get("X", [])),
+        "y": np.array(data_dict.get("y", [])),
+        "target_names": data_dict.get("target_names", []),
+        "feature_names": stats_dict.get("feature_names", [])
     }
+    
+    renderer = StreamlitContentRenderer(
+        plots=renderer_plots,
+        data=renderer_data,
+        stats=stats_dict
+    )
+    
+    renderer.render(content_obj)
+    
+    renderer.render(content_obj)
+    
+    # AI Interpretation
+    _render_ai_interpretation(ai_api, stats_dict)
 
 
 if __name__ == "__main__":

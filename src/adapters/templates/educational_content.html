@@ -24,6 +24,11 @@
                 <i class="bi bi-diagram-3 me-2"></i>
                 Multiple Regression
             </a>
+            <a href="/classification"
+                class="btn btn-sm {{ 'btn-primary' if analysis_type == 'classification' else 'btn-outline-primary' }}">
+                <i class="bi bi-diagram-2 me-2"></i>
+                Binary Classification
+            </a>
         </div>
     </div>
 
@@ -123,6 +128,20 @@
 
     <!-- Metrics Grid -->
     <div class="row g-3 mb-5 animate-fade-in delay-100">
+
+        {% if analysis_type == 'classification' %}
+        <div class="col-md-3">
+            <div class="metric-card">
+                <div class="metric-value">{{ "%.2f"|format(stats.accuracy * 100) }}%</div>
+                <div class="metric-label text-secondary small">Accuracy</div>
+                <div class="metric-delta small mt-1">
+                    {% if stats.test_accuracy is defined %}
+                    Test: {{ "%.1f"|format(stats.test_accuracy * 100) }}%
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% else %}
         <div class="col-md-3">
             <div class="metric-card">
                 <div class="metric-value">{{ "%.4f"|format(stats.r_squared) }}</div>
@@ -138,6 +157,7 @@
                 </div>
             </div>
         </div>
+        {% endif %}
 
         {% if analysis_type == 'simple' %}
         <div class="col-md-3">
@@ -152,7 +172,7 @@
                 <div class="metric-label text-secondary small">β₁ (Slope)</div>
             </div>
         </div>
-        {% else %}
+        {% elif analysis_type == 'multiple' %}
         <div class="col-md-3">
             <div class="metric-card">
                 <div class="metric-value">{{ "%.4f"|format(stats.beta1) }}</div>
@@ -165,8 +185,29 @@
                 <div class="metric-label text-secondary small">β₂</div>
             </div>
         </div>
+        {% elif analysis_type == 'classification' %}
+        <div class="col-md-3">
+            <div class="metric-card">
+                <div class="metric-value">{{ "%.2f"|format(stats.precision) }}</div>
+                <div class="metric-label text-secondary small">Precision</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="metric-card">
+                <div class="metric-value">{{ "%.2f"|format(stats.recall) }}</div>
+                <div class="metric-label text-secondary small">Recall</div>
+            </div>
+        </div>
         {% endif %}
 
+        {% if analysis_type == 'classification' %}
+        <div class="col-md-3">
+            <div class="metric-card">
+                <div class="metric-value">{{ "%.2f"|format(stats.f1) }}</div>
+                <div class="metric-label text-secondary small">F1 Score</div>
+            </div>
+        </div>
+        {% else %}
         {% set p_value = stats.p_slope if stats.p_slope is defined else stats.p_f %}
         <div class="col-md-3">
             <div class="metric-card">
@@ -180,6 +221,7 @@
                 </div>
             </div>
         </div>
+        {% endif %}
 
         <!-- Educational Content -->
         <div class="educational-content animate-fade-in delay-200">

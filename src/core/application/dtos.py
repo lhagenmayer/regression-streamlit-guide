@@ -90,3 +90,48 @@ class ErrorDTO:
 
 # Type alias for responses that can fail
 ResponseResult = Union[RegressionResponseDTO, ErrorDTO]
+
+
+@dataclass(frozen=True)
+class ClassificationRequestDTO:
+    """DTO for classification analysis request."""
+    dataset_id: str
+    n_observations: int
+    noise_level: float
+    seed: int
+    method: str  # "logistic" or "knn"
+    k_neighbors: int = 3
+    stratify: bool = False
+    train_size: float = 0.8
+    
+    # Optional parameters
+    # test_size removed in favor of train_size for consistency
+
+
+@dataclass(frozen=True)
+class ClassificationResponseDTO:
+    """Response DTO for classification results."""
+    success: bool
+    method: str
+    classes: tuple
+    
+    # Metrics (Train & Test)
+    metrics: Dict[str, Any]      # Train metrics
+    test_metrics: Dict[str, Any] # Test metrics
+    
+    # Model parameters
+    parameters: Dict[str, Any]
+    
+    # Data for Plotting
+    X_data: tuple # Tuple of tuples? or flattened?
+    y_data: tuple
+    predictions: tuple
+    probabilities: tuple
+    
+    # Metadata
+    feature_names: tuple
+    target_names: tuple
+    dataset_name: str
+    dataset_description: str
+    
+    extra: Dict[str, Any] = field(default_factory=dict)

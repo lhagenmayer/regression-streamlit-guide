@@ -652,8 +652,27 @@ class DataFetcher:
             return self._generate_binary_from_simple("electronics", n, seed)
         elif dataset == "binary_housing":
             return self._generate_binary_from_simple("houses", n, seed)
-        else:
-            return self._generate_fruits(n)
+        
+        # External / Other Regression Datasets -> Convert to Binary Classification
+        # Try to fetch as multiple regression first
+        try:
+            reg_data = self.get_multiple(dataset, n=n, seed=seed)
+            if reg_data:
+                 # Create binary target (High vs Low)
+                 threshold = np.median(reg_data.y)
+                 y_binary = (reg_data.y > threshold).astype(int)
+                 return ClassificationDataResult(
+                    X=np.column_stack([reg_data.x1, reg_data.x2]), 
+                    y=y_binary,
+                    feature_names=[reg_data.x1_label, reg_data.x2_label],
+                    target_names=["Low " + reg_data.y_label.split('(')[0].strip(), "High " + reg_data.y_label.split('(')[0].strip()],
+                    context_title=reg_data.extra.get("context", dataset) + " (Binary)",
+                    context_description=f"Predict High/Low {reg_data.y_label} based on {reg_data.x1_label} & {reg_data.x2_label}"
+                 )
+        except Exception:
+            pass
+            
+        return self._generate_fruits(n)
     
     def _generate_fruits(self, n: int) -> ClassificationDataResult:
         """

@@ -563,3 +563,66 @@ class PipelineSerializer:
         Useful for list views or summaries.
         """
         return PipelineSerializer.serialize(pipeline_result, include_predictions=False)
+
+
+class ClassificationSerializer:
+    """
+    Serialize classification results.
+    """
+    
+    @staticmethod
+    def serialize(dto) -> Dict[str, Any]:
+        """
+        Serialize ClassificationResponseDTO.
+        """
+        return {
+            "success": dto.success,
+            "method": dto.method,
+            "data": {
+                "X": _to_list(dto.X_data),
+                "y": _to_list(dto.y_data),
+                "feature_names": _to_list(dto.feature_names),
+                "target_names": _to_list(dto.target_names),
+            },
+            "results": {
+                "classes": _to_list(dto.classes),
+                "predictions": _to_list(dto.predictions),
+                "probabilities": _to_list(dto.probabilities) if dto.probabilities else None,
+                "metrics": dto.metrics,
+                "params": dto.parameters,
+            },
+            "metadata": {
+                "dataset": dto.dataset_name,
+                "description": dto.dataset_description,
+            }
+        }
+
+    @staticmethod
+    def to_flat_dict(dto) -> Dict[str, Any]:
+        """
+        Convert DTO to flat dictionary for ContentBuilders.
+        """
+        stats = {
+            # Metadata
+            "dataset_name": dto.dataset_name,
+            "dataset_description": dto.dataset_description,
+            "x_label": dto.feature_names[0] if dto.feature_names else "X",
+            "y_label": "Class",
+            "target_names": dto.target_names,
+            "feature_names": dto.feature_names,
+            
+            # Metrics (Flattened)
+            "accuracy": dto.metrics.get("accuracy"),
+            "precision": dto.metrics.get("precision"),
+            "recall": dto.metrics.get("recall"),
+            "f1": dto.metrics.get("f1") or dto.metrics.get("f1_score"),
+            "auc": dto.metrics.get("auc"),
+            "confusion_matrix": dto.metrics.get("confusion_matrix"),
+            
+            # Model Params
+            "method": dto.method,
+            "k": dto.parameters.get("k"),
+            "intercept": dto.parameters.get("intercept"),
+            "coefficients": dto.parameters.get("coefficients"),
+        }
+        return stats

@@ -40,6 +40,27 @@ class Container:
         """Get ML Bridge Service."""
         return self._ml_bridge_service
 
+    @property
+    def run_classification_use_case(self):
+        """Get configured RunClassificationUseCase."""
+        from src.core.application.use_cases import RunClassificationUseCase
+        return RunClassificationUseCase(
+            data_provider=self._data_provider,
+            classification_service=self._classification_service
+        )
+    
+    @property
+    def preview_split_use_case(self):
+        """Get configured PreviewSplitUseCase."""
+        from src.infrastructure.services.data_splitting import DataSplitterService
+        from src.core.application.use_cases import PreviewSplitUseCase
+        
+        # We instantiate DataSplitterService lazily or here. Does it have dependencies? No.
+        splitter = DataSplitterService() 
+        return PreviewSplitUseCase(
+            data_provider=self._data_provider,
+            splitter_service=splitter
+        )
 
 # Singleton instance
 _container = None

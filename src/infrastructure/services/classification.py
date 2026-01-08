@@ -257,3 +257,96 @@ class ClassificationServiceImpl(IClassificationService):
             confusion_matrix=cm,
             auc=auc
         )
+
+    # =========================================================================
+    # PREDICTION & EVALUATION
+    # =========================================================================
+
+    def predict_logistic(
+        self,
+        X: np.ndarray,
+        params: Dict[str, Any]
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        """Predict using Logistic Regression params."""
+        weights = np.array(params["coefficients"])
+        bias = params["intercept"]
+        
+        if X.shape[1] != len(weights):
+             raise ValueError(f"Feature mismatch: X has {X.shape[1]}, model has {len(weights)}")
+             
+        # Standardize X using assumption of similar scale 
+        # (Limitations of stateless service without stored scaler)
+        # Ideally parameters should include scaler stats.
+        # In current train_logistic, we unscaled weights, so they work on RAW X 
+        # IF X has same scale. But we used Z-score.
+        # Wait, if we use real_weights = weights / X_std, then:
+        # y = w_scaled * x_scaled + b_scaled
+        #   = w_scaled * (x - mean)/std + b_scaled
+        #   = (w_scaled/std) * x - (w_scaled*mean/std) + b_scaled
+        #   = real_weights * x + real_bias
+        # So yes, real_weights and real_bias work on RAW X.
+        
+        # However, for stability, we might want to scale again? 
+        # But we computed real_weights precisely to avoid storing scaler.
+        # So we can just dot product.
+        
+        z = np.dot(X, weights) + bias
+        probs = 1 / (1 + np.exp(-z))
+        preds = (probs >= 0.5).astype(int)
+        
+        return preds, probs
+
+    def predict_knn(
+        self,
+        X: np.ndarray,
+        params: Dict[str, Any]
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        """Predict using KNN params."""
+        k = params["k"]
+        X_train = np.array(params["X_train"])
+        y_train = np.array(params["y_train"])
+        X_train_mean = np.array(params["X_mean"])
+        X_train_std = np.array(params["X_std"])
+        
+        # Scale input using training stats
+        X_scaled = (X - X_train_mean) / X_train_std
+        # Note: X_train in params is ORIGINAL. We need to scale it too for distance calc.
+        X_train_scaled = (X_train - X_train_mean) / X_train_std
+        
+        n_samples = len(X)
+        n_classes = len(np.unique(y_train))
+        
+        preds = np.zeros(n_samples, dtype=int)
+        probs = np.zeros((n_samples, n_classes))
+        
+        # Optimization: matrix operations for distances? vectorization
+        # dists = sqrt(|x|^2 + |y|^2 - 2xy)
+        # For education we stick to simple loop or semi-vectorized.
+        
+        for i in range(n_samples):
+            diff = X_train_scaled - X_scaled[i]
+            dists = np.sqrt(np.sum(diff**2, axis=1))
+            
+            nearest_indices = np.argsort(dists)[:k]
+            nearest_labels = y_train[nearest_indices]
+            
+            counts = np.bincount(nearest_labels, minlength=n_classes)
+            preds[i] = np.argmax(counts)
+            probs[i] = counts / k
+            
+        return preds, probs[:, 1] if n_classes==2 else probs
+
+    def evaluate(
+        self,
+        X: np.ndarray,
+        y: np.ndarray,
+        params: Dict[str, Any],
+        method: str
+    ) -> ClassificationMetrics:
+        """Evaluate model on new data."""
+        if method == "knn":
+            preds, probs = self.predict_knn(X, params)
+        else:
+            preds, probs = self.predict_logistic(X, params)
+            
+        return self.calculate_metrics(y, preds, probs)

@@ -164,6 +164,88 @@ def create_flask_app() -> Flask:
             ai_configured=ai_api.get_status()['status']['configured']
         )
     
+    @app.route('/classification')
+    def classification():
+        """Classification analysis page."""
+        # Get parameters
+        dataset = request.args.get('dataset', 'fruits')
+        method = request.args.get('method', 'logistic')
+        n_points = int(request.args.get('n', 100))
+        noise = float(request.args.get('noise', 0.2))
+        seed = int(request.args.get('seed', 42))
+        k = int(request.args.get('k', 3))
+        train_size = float(request.args.get('train_size', 0.8))
+        stratify = request.args.get('stratify', 'true').lower() == 'true'
+        
+        # Call Content API
+        response = content_api.get_classification_content(
+            dataset=dataset,
+            method=method,
+            n=n_points,
+            noise=noise,
+            seed=seed,
+            k=k,
+            train_size=train_size,
+            stratify=stratify
+        )
+        
+        if not response['success']:
+             return render_template('error.html', error=response.get('error', 'Unknown error'))
+             
+        # Extract data
+        content = response['content']
+        plots = response['plots']
+        stats = response['stats']
+        data = response['data']
+        results = response.get('results', {})
+        test_metrics = results.get('test_metrics', {})
+        
+        # Build flat stats dict
+        stats_dict = _flatten_classification_stats_for_template(stats, data, results)
+        
+        # Render content
+        from ..content import ClassificationContent
+        # Note: ClassificationContent might need generic dict structure
+        # Implementation depends on how it behaves. Assuming it works like others.
+        try:
+             from ..infrastructure.content.structure import EducationalContent
+             content_obj = EducationalContent.from_dict(content)
+        except:
+             # Fallback if specific builder needed
+             content_builder = ClassificationContent(stats_dict, {})
+             content_obj = content_builder.build()
+
+        renderer = HTMLContentRenderer(
+            plots=plots,
+            data=data,
+            stats=stats_dict
+        )
+        content_dict = renderer.render_to_dict(content_obj)
+        
+        datasets = regression_api.get_datasets()
+        
+        return render_template(
+            'educational_content.html',
+            title=content.get('title', 'Classification'),
+            subtitle=content.get('subtitle', 'Logistic Regression & KNN'),
+            content_html=content_dict['full_html'],
+            chapters=content_dict['chapters'],
+            analysis_type='classification',
+            dataset=dataset,
+            datasets=datasets['data']['classification'],
+            n_points=n_points,
+            noise=noise,
+            seed=seed,
+            stats=stats_dict,
+            plots_json=json.dumps(plots),
+            ai_configured=ai_api.get_status()['status']['configured'],
+            # Extra params for classification UI
+            method=method,
+            k=k,
+            train_size=train_size,
+            stratify=str(stratify).lower()
+        )
+    
     # =========================================================================
     # API ENDPOINTS - Proxy to API Layer
     # =========================================================================
@@ -429,6 +511,46 @@ def _flatten_multiple_stats_for_template(stats: Dict[str, Any], data: Dict[str, 
         'p_f': model_fit.get('f_p_value', 1),
     }
 
+
+def _flatten_classification_stats_for_template(stats: Dict[str, Any], data: Dict[str, Any], results: Dict[str, Any]) -> Dict[str, Any]:
+    """Flatten classification stats for templates."""
+    metrics = stats # In classification, stats is essentially metrics
+    test_metrics = results.get('test_metrics', {})
+    
+    return {
+        'context_title': 'Classification',
+        'context_description': f"Predicting {data.get('target_names', ['Class'])[0] if isinstance(data.get('target_names'), list) and len(data.get('target_names'))>0 else 'Target'}",
+        
+        # Method info
+        'method': stats.get('method', 'unknown'),
+        'k': stats.get('k'),
+        
+        # Metrics
+        'accuracy': metrics.get('accuracy', 0),
+        'precision': metrics.get('precision', 0),
+        'recall': metrics.get('recall', 0),
+        'f1': metrics.get('f1', 0),
+        
+        # Test Metrics (if available)
+        'test_accuracy': test_metrics.get('accuracy'),
+        'test_precision': test_metrics.get('precision'),
+        'test_recall': test_metrics.get('recall'),
+        'test_f1': test_metrics.get('f1'),
+        
+        # Confusion Matrix
+        'confusion_matrix': metrics.get('confusion_matrix'),
+        
+        # Logistic Params
+        'coefficients': metrics.get('coefficients'),
+        'intercept': metrics.get('intercept'),
+        
+        # Use existing regression keys as placeholders to prevent template errors if mixed
+        # (Though we should control this via analysis_type check in template)
+        'r_squared': 0, 
+        'p_slope': 1,
+        'slope': 0,
+        'n': len(data.get('y', []))
+    }
 
 def run_flask(host: str = '0.0.0.0', port: int = 5000, debug: bool = True):
     """Run Flask application."""

@@ -12,8 +12,10 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
 from ...config import get_logger
-from ..data.generators import DataResult, MultipleRegressionDataResult
+from ..data.generators import DataResult, MultipleRegressionDataResult, ClassificationDataResult
 from .calculate import RegressionResult, MultipleRegressionResult
+from ...core.domain.value_objects import ClassificationResult
+from .ml_bridge import LossSurfaceResult, OverfittingDemoResult
 
 logger = get_logger(__name__)
 
@@ -104,6 +106,56 @@ class PlotBuilder:
             scatter=scatter_3d,
             residuals=residuals,
             diagnostics=diagnostics,
+        )
+
+    def ml_bridge_plots(
+        self,
+        loss_data: Optional[LossSurfaceResult] = None,
+        overfit_data: Optional[OverfittingDemoResult] = None,
+    ) -> Dict[str, go.Figure]:
+        """
+        Create specialized plots for ML bridge chapters.
+        Returns a dict of named figures.
+        """
+        plots = {}
+        
+        if loss_data:
+            plots["loss_surface"] = self._create_loss_surface(loss_data)
+        
+        if overfit_data:
+            plots["overfitting_demo"] = self._create_overfitting_plot(overfit_data)
+            
+        return plots
+        
+    def classification_plots(
+        self,
+        data: ClassificationDataResult,
+        result: ClassificationResult,
+    ) -> PlotCollection:
+        """
+        Create plots for classification (Logistic/KNN).
+        """
+        logger.info("Creating classification plots")
+        
+        # Main visualization depends on dimensions
+        if data.X.shape[1] == 2:
+            main_plot = self._create_classification_3d(data, result)
+        else:
+            # Fallback for > 2 dimensions (e.g. PCA or just 2D projection)
+            # For now, we reuse the 3d creator but it might just pick first 2 features
+            main_plot = self._create_classification_3d(data, result)
+            
+        # Confusion Matrix
+        conf_matrix = self._create_confusion_matrix_plot(result)
+        
+        # ROC Curve (if probabilities available)
+        roc_curve = self._create_roc_curve_plot(data, result)
+        
+        return PlotCollection(
+            scatter=main_plot,  # We abuse 'scatter' for the main viz
+            residuals=conf_matrix,  # Abuse 'residuals' for Confusion Matrix
+            diagnostics=roc_curve,   # Abuse 'diagnostics' for ROC
+            extra={}
         )
     
     # =========================================================
@@ -526,3 +578,345 @@ class PlotBuilder:
     ) -> go.Figure:
         """Create diagnostic plots for multiple regression."""
         return self._create_diagnostic_plots(result)
+
+    def _create_loss_surface(self, data: LossSurfaceResult) -> go.Figure:
+        """Create 3D Loss Surface with Gradient Descent Path."""
+        fig = go.Figure()
+
+        # 1. Surface
+        fig.add_trace(go.Surface(
+            z=data.loss_grid,
+            x=data.w_grid,
+            y=data.b_grid,
+            colorscale='Viridis',
+            opacity=0.8,
+            name='Loss Surface (MSE)'
+        ))
+
+        # 2. Path
+        # Lift path slightly above surface to avoid clipping
+        path_z = [z + 0.01 for z in data.path_loss]
+        
+        fig.add_trace(go.Scatter3d(
+            x=data.path_w,
+            y=data.path_b,
+            z=path_z,
+            mode='lines+markers',
+            line=dict(color='red', width=5),
+            marker=dict(size=4, color='yellow'),
+            name='Gradient Descent Path'
+        ))
+
+        # 3. Optimum
+        fig.add_trace(go.Scatter3d(
+            x=[data.optimal_w],
+            y=[data.optimal_b],
+            z=[np.min(data.loss_grid)], # Approximate
+            mode='markers',
+            marker=dict(size=8, color='green', symbol='diamond'),
+            name='Global Optimum (OLS)'
+        ))
+
+        fig.update_layout(
+            title="<b>Loss Landschaft & Gradient Descent</b><br><sup>Suche nach dem Minimum des Fehlers (MSE)</sup>",
+            scene=dict(
+                xaxis_title='Gewicht (Slope)',
+                yaxis_title='Intercept',
+                zaxis_title='Loss (MSE)',
+                camera=dict(eye=dict(x=1.5, y=1.5, z=1.2))
+            ),
+            template="plotly_white"
+        )
+        return fig
+
+    def _create_overfitting_plot(self, data: OverfittingDemoResult) -> go.Figure:
+        """Create 3D plot showing Underfitting vs Optimal vs Overfitting (Stacked)."""
+        fig = go.Figure()
+
+        # We stack models along Y axis (Complexity)
+        # Degree 1 -> y=1, Degree 3 -> y=3, Degree 12 -> y=12
+        
+        # 0. Ground Truth / Data (at Y=0)
+        fig.add_trace(go.Scatter3d(
+            x=data.x_train, y=[0]*len(data.x_train), z=data.y_train,
+            mode='markers', marker=dict(color='blue', size=5),
+            name='Training Data (y=0)'
+        ))
+        
+        # 1. Models
+        colors = {1: 'orange', 3: 'black', 12: 'red'}
+        names = {1: 'Underfitting (d=1)', 3: 'Optimal (d=3)', 12: 'Overfitting (d=12)'}
+        
+        for degree in [1, 3, 12]:
+            if degree in data.predictions:
+                # Prediction Line
+                y_pos = [degree] * len(data.x_plot)
+                fig.add_trace(go.Scatter3d(
+                    x=data.x_plot,
+                    y=y_pos,
+                    z=data.predictions[degree],
+                    mode='lines',
+                    line=dict(color=colors[degree], width=4),
+                    name=names[degree]
+                ))
+                
+                # Projection of data to this degree's plane for comparison
+                fig.add_trace(go.Scatter3d(
+                    x=data.x_train, y=[degree]*len(data.x_train), z=data.y_train,
+                    mode='markers', marker=dict(color='lightgray', size=3, opacity=0.5),
+                    showlegend=False
+                ))
+
+        fig.update_layout(
+            title="<b>Modell-Komplexität 3D</b><br><sup>Separation nach Komplexität (Tiefe)</sup>",
+            scene=dict(
+                xaxis_title="Feature x",
+                yaxis_title="Polynom Grad (d)",
+                zaxis_title="Target y",
+                camera=dict(eye=dict(x=1.8, y=-1.8, z=0.8)),
+                xaxis=dict(backgroundcolor="white"),
+                yaxis=dict(backgroundcolor="#f0f0f0"), # Highlight depth
+                zaxis=dict(backgroundcolor="white"),
+            ),
+            template="plotly_white"
+        )
+        return fig
+
+    def _create_classification_3d(
+        self, 
+        data: ClassificationDataResult, 
+        result: ClassificationResult
+    ) -> go.Figure:
+        """Create 3D visualization for Classification."""
+        fig = go.Figure()
+        
+        # 1. Data Points
+        unique_classes = np.unique(data.y)
+        colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728'] 
+        
+        for i, c in enumerate(unique_classes):
+            mask = (data.y == c)
+            x1 = data.X[mask, 0]
+            x2 = data.X[mask, 1] if data.X.shape[1] > 1 else np.zeros_like(x1)
+            
+            # 3D: Lift Class 1 up in Z axis? 
+            # Or just keep points flat and show surface?
+            # Let's separate them slightly in Z based on class for "3D" effect if requested,
+            # but user said "no 2d". 
+            # Better: Z = 0 for all, but Surface is 3D.
+            
+            fig.add_trace(go.Scatter3d(
+                x=x1,
+                y=x2,
+                z=np.zeros_like(x1), 
+                mode='markers',
+                marker=dict(size=6, color=colors[i % len(colors)], line=dict(width=1, color='white')),
+                name=f"Klasse {c}"
+            ))
+
+        # 2. Decision Surface (Probabilities)
+        if result.model_params.get("coefficients") is not None and data.X.shape[1] == 2:
+            x1_min, x1_max = data.X[:, 0].min(), data.X[:, 0].max()
+            x2_min, x2_max = data.X[:, 1].min(), data.X[:, 1].max()
+            
+            grid_x1, grid_x2 = np.meshgrid(
+                np.linspace(x1_min, x1_max, 30),
+                np.linspace(x2_min, x2_max, 30)
+            )
+            
+            coeffs = result.model_params["coefficients"]
+            intercept = result.model_params.get("intercept", 0)
+            
+            c_vals = list(coeffs.values()) if isinstance(coeffs, dict) else coeffs
+                
+            if len(c_vals) >= 2:
+                # Z = Probability
+                logit = intercept + c_vals[0] * grid_x1 + c_vals[1] * grid_x2
+                prob = 1 / (1 + np.exp(-logit))
+                
+                fig.add_trace(go.Surface(
+                    x=grid_x1, y=grid_x2, z=prob,
+                    colorscale='RdBu', showscale=False, opacity=0.4,
+                    name='Probability Surface'
+                ))
+                
+                # Add decision boundary at Proba=0.5 (Contour)
+                # Hard in 3D surface trace directly, can add line trace
+                
+        fig.update_layout(
+            title="<b>Klassifikations-Wahrscheinlichkeit</b>",
+            scene=dict(
+                xaxis_title="Feature 1",
+                yaxis_title="Feature 2",
+                zaxis_title="P(Class=1)",
+                camera=dict(eye=dict(x=1.5, y=-1.5, z=0.6))
+            ),
+            template="plotly_white"
+        )
+        return fig
+
+    def _create_confusion_matrix_plot(self, result: ClassificationResult) -> go.Figure:
+        """Create 3D Lego Plot for Confusion Matrix."""
+        cm = result.metrics.confusion_matrix
+        classes = result.classes
+        
+        x_pos = []
+        y_pos = []
+        z_pos = []
+        c_vals = []
+        
+        # Grid coordinates
+        for i, true_cls in enumerate(classes):
+            for j, pred_cls in enumerate(classes):
+                # Center bars
+                x_pos.append(j) # Pred on X
+                y_pos.append(i) # True on Y
+                z_pos.append(cm[i, j])
+                
+                # Color based on diagonal (Correct) vs Off-diagonal (Error)
+                if i == j:
+                    c_vals.append('green')
+                else:
+                    c_vals.append('red')
+
+        fig = go.Figure()
+        
+        # 3D Bars
+        for x, y, z, c in zip(x_pos, y_pos, z_pos, c_vals):
+            if z > 0: # Only plot non-zero bars
+                fig.add_trace(go.Scatter3d(
+                    x=[x, x], y=[y, y], z=[0, z],
+                    mode='lines',
+                    line=dict(color=c, width=30), # Very thick lines look like bars
+                    hovertemplate=f"True: {classes[y]}<br>Pred: {classes[x]}<br>Count: {z}<extra></extra>"
+                ))
+        
+        # Ground plane for reference
+        fig.add_trace(go.Scatter3d(
+            x=[-0.5, len(classes)-0.5, len(classes)-0.5, -0.5, -0.5],
+            y=[-0.5, -0.5, len(classes)-0.5, len(classes)-0.5, -0.5],
+            z=[0,0,0,0,0],
+            mode='lines',
+            line=dict(color='black', width=2),
+            showlegend=False
+        ))
+
+        fig.update_layout(
+            title="<b>3D Confusion Matrix</b>",
+            scene=dict(
+                xaxis=dict(title="Vorhergesagt", tickvals=list(range(len(classes))), ticktext=[str(c) for c in classes]),
+                yaxis=dict(title="Wahr", tickvals=list(range(len(classes))), ticktext=[str(c) for c in classes]),
+                zaxis_title="Anzahl",
+                camera=dict(eye=dict(x=1.5, y=1.5, z=0.8))
+            ),
+            template="plotly_white"
+        )
+        return fig
+
+    def _create_roc_curve_plot(
+        self, 
+        data: ClassificationDataResult,
+        result: ClassificationResult
+    ) -> go.Figure:
+        """
+        Create Educational 3D ROC Curve.
+        
+        Dimensions:
+        X: False Positive Rate
+        Y: True Positive Rate
+        Z: Threshold (The decision boundary)
+        """
+        if result.probabilities is None or len(result.probabilities) == 0:
+             return self._create_placeholder_3d("Keine Wahrscheinlichkeiten für ROC verfügbar")
+             
+        # from sklearn.metrics import roc_curve (REMOVED)
+        
+        # Needs binary 0/1 for ROC
+        pos_label = data.y.max()
+        y_true = (data.y == pos_label).astype(int)
+        
+        # We need probabilities for the Positive Class
+        y_score = result.probabilities
+        if y_score.ndim > 1:
+            y_score = y_score[:, -1]
+            
+        # Manually compute ROC
+        # 1. Sort by score descending
+        desc_score_indices = np.argsort(y_score)[::-1]
+        y_score_sorted = y_score[desc_score_indices]
+        y_true_sorted = y_true[desc_score_indices]
+        
+        # 2. Compute TPR/FPR
+        fps = np.cumsum(1 - y_true_sorted)
+        tps = np.cumsum(y_true_sorted)
+        
+        # Add 0,0 point
+        fps = np.r_[0, fps]
+        tps = np.r_[0, tps]
+        thresholds = np.r_[y_score_sorted[0] + 1e-3, y_score_sorted]
+        
+        # Normalize
+        fpr = fps / fps[-1] if fps[-1] > 0 else fps
+        tpr = tps / tps[-1] if tps[-1] > 0 else tps
+        
+        # Thresholds can go > 1, clip them
+        thresholds = np.clip(thresholds, 0, 1)
+        
+        fig = go.Figure()
+        
+        # 3D ROC Curve
+        fig.add_trace(go.Scatter3d(
+            x=fpr,
+            y=tpr,
+            z=thresholds,
+            mode='lines+markers',
+            line=dict(color='purple', width=6),
+            marker=dict(size=4, color='purple'),
+            name='ROC Trajectory'
+        ))
+        
+        # Floor Projection (Standard 2D ROC)
+        fig.add_trace(go.Scatter3d(
+            x=fpr,
+            y=tpr,
+            z=[0]*len(fpr),
+            mode='lines',
+            line=dict(color='gray', width=3, dash='dot'),
+            name='Klassische 2D ROC'
+        ))
+        
+        # Diagonal Reference
+        fig.add_trace(go.Scatter3d(
+            x=[0, 1], y=[0, 1], z=[0, 0],
+            mode='lines',
+            line=dict(color='lightgray', dash='dash'),
+            showlegend=False
+        ))
+
+        fig.update_layout(
+            title="<b>3D ROC Kurve</b><br><sup>Z-Achse = Threshold: Wie der Schwellenwert die Performance steuert</sup>",
+            scene=dict(
+                xaxis_title="False Positive Rate (Fehlalarm)",
+                yaxis_title="True Positive Rate (Recall)",
+                zaxis_title="Threshold (Schwellenwert)",
+                camera=dict(eye=dict(x=1.8, y=0.5, z=0.5))
+            ),
+            template="plotly_white"
+        )
+        return fig
+
+    def _create_placeholder_3d(self, text: str) -> go.Figure:
+        fig = go.Figure()
+        fig.add_trace(go.Scatter3d(
+            x=[0], y=[0], z=[0], mode='text', text=[text]
+        ))
+        fig.update_layout(
+             title="<b>Information</b>",
+             scene=dict(
+                 xaxis=dict(visible=False),
+                 yaxis=dict(visible=False),
+                 zaxis=dict(visible=False)
+             )
+        )
+        return fig
+

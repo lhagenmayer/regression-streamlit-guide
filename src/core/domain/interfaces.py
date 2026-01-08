@@ -37,6 +37,14 @@ class IDataProvider(IDatasetFetcher, IDatasetLister, Protocol):
     def get_dataset(self, dataset_id: str, n: int, **kwargs) -> Dict[str, Any]:
         """Legacy method - use fetch() for Result-based error handling."""
         ...
+        
+    def get_all_datasets(self) -> Dict[str, List[Dict[str, str]]]:
+        """List all datasets grouped by type."""
+        ...
+        
+    def get_raw_data(self, dataset_id: str) -> Dict[str, Any]:
+        """Get raw tabular data for a dataset."""
+        ...
 
 
 # =============================================================================

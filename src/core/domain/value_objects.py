@@ -105,8 +105,10 @@ class ClassificationResult(Result):
     classes: List[Any]
     predictions: np.ndarray
     probabilities: np.ndarray
-    metrics: ClassificationMetrics
+    metrics: ClassificationMetrics      # Training metrics
     model_params: Dict[str, Any]  # e.g., coefficients, k-neighbors
+    test_metrics: Optional[ClassificationMetrics] = None # Test metrics
+    is_success: bool = True
 
 
 @dataclass(frozen=True)
@@ -178,3 +180,26 @@ class DatasetMetadata:
             raise ValueError(f"n_observations must be non-negative, got {self.n_observations}")
 
 
+@dataclass(frozen=True)
+class SplitConfig:
+    """Configuration for data splitting."""
+    train_size: float
+    stratify: bool
+    seed: int
+    
+    def __post_init__(self):
+        if not (0 < self.train_size < 1):
+            raise ValueError(f"train_size must be between 0 and 1, got {self.train_size}")
+
+
+@dataclass(frozen=True)
+class SplitStats:
+    """Statistics about a data split."""
+    train_count: int
+    test_count: int
+    train_distribution: Dict[Any, int]
+    test_distribution: Dict[Any, int]
+    
+    @property
+    def total_count(self) -> int:
+        return self.train_count + self.test_count
