@@ -239,11 +239,18 @@ class StreamlitContentRenderer:
         st.plotly_chart(fig, use_container_width=True, key="cov_3d")
     
     def _render_correlation_examples(self) -> None:
-        """Render 6-panel correlation examples."""
-        fig = make_subplots(rows=2, cols=3, subplot_titles=[
-            'r = -0.95', 'r = -0.50', 'r = 0.00',
-            'r = 0.50', 'r = 0.95', 'r = 0.00 (nonlinear)'
-        ])
+        """Render 6-panel correlation examples (converted to 3D)."""
+        fig = make_subplots(
+            rows=2, cols=3,
+            specs=[
+                [{'type': 'scene'}, {'type': 'scene'}, {'type': 'scene'}],
+                [{'type': 'scene'}, {'type': 'scene'}, {'type': 'scene'}]
+            ],
+            subplot_titles=[
+                'r = -0.95', 'r = -0.50', 'r = 0.00',
+                'r = 0.50', 'r = 0.95', 'r = 0.00 (nonlinear)'
+            ]
+        )
         
         np.random.seed(42)
         n = 50
@@ -256,25 +263,25 @@ class StreamlitContentRenderer:
             cov = [[1, rho], [rho, 1]]
             data_gen = np.random.multivariate_normal(mean, cov, n)
             
-            fig.add_trace(go.Scatter(
-                x=data_gen[:, 0], y=data_gen[:, 1],
-                mode='markers', marker=dict(size=5),
+            fig.add_trace(go.Scatter3d(
+                x=data_gen[:, 0], y=data_gen[:, 1], z=np.zeros(n),
+                mode='markers', marker=dict(size=3),
                 showlegend=False
             ), row=row, col=col)
         
         # Nonlinear example
         x_nl = np.linspace(-2, 2, n)
         y_nl = x_nl**2 + np.random.normal(0, 0.3, n)
-        fig.add_trace(go.Scatter(
-            x=x_nl, y=y_nl, mode='markers', marker=dict(size=5),
+        fig.add_trace(go.Scatter3d(
+            x=x_nl, y=y_nl, z=np.zeros(n), mode='markers', marker=dict(size=3),
             showlegend=False
         ), row=2, col=3)
         
-        fig.update_layout(height=400, title_text="Korrelations-Beispiele")
+        fig.update_layout(height=600, title_text="Korrelations-Beispiele (3D View)")
         st.plotly_chart(fig, use_container_width=True, key="corr_examples")
     
     def _render_raw_scatter(self) -> None:
-        """Render raw data scatter plot."""
+        """Render raw data scatter plot in 3D."""
         x = self.data.get('x', np.array([]))
         y = self.data.get('y', np.array([]))
         
@@ -282,36 +289,51 @@ class StreamlitContentRenderer:
             st.warning("Keine Daten für Scatter-Plot")
             return
         
+        z_zeros = np.zeros(len(x))
+        
         fig = go.Figure()
-        fig.add_trace(go.Scatter(
-            x=x, y=y, mode='markers',
-            marker=dict(size=10, color='#3498db', opacity=0.7),
+        fig.add_trace(go.Scatter3d(
+            x=x, y=y, z=z_zeros, mode='markers',
+            marker=dict(size=5, color='#3498db', opacity=0.7),
             name='Datenpunkte'
         ))
         
         x_mean = np.mean(x)
         y_mean = np.mean(y)
-        fig.add_hline(y=y_mean, line_dash="dash", line_color="orange", 
-                      annotation_text=f"ȳ = {y_mean:.2f}")
-        fig.add_vline(x=x_mean, line_dash="dash", line_color="green",
-                      annotation_text=f"x̄ = {x_mean:.2f}")
         
-        fig.add_trace(go.Scatter(
-            x=[x_mean], y=[y_mean], mode='markers',
-            marker=dict(size=15, color='red', symbol='x'),
+        # Mean lines in 3D
+        fig.add_trace(go.Scatter3d(
+            x=[min(x), max(x)], y=[y_mean, y_mean], z=[0, 0],
+            mode='lines', line=dict(color='orange', dash='dash'),
+            name=f"ȳ = {y_mean:.2f}"
+        ))
+        
+        fig.add_trace(go.Scatter3d(
+            x=[x_mean, x_mean], y=[min(y), max(y)], z=[0, 0],
+            mode='lines', line=dict(color='green', dash='dash'),
+            name=f"x̄ = {x_mean:.2f}"
+        ))
+        
+        fig.add_trace(go.Scatter3d(
+            x=[x_mean], y=[y_mean], z=[0], mode='markers',
+            marker=dict(size=8, color='red', symbol='cross'),
             name=f'Schwerpunkt ({x_mean:.2f}, {y_mean:.2f})'
         ))
         
         fig.update_layout(
-            title="Schritt 1: Visualisierung der Rohdaten",
-            xaxis_title=self.data.get('x_label', 'X'),
-            yaxis_title=self.data.get('y_label', 'Y'),
+            title="Schritt 1: Visualisierung der Rohdaten (3D)",
+            scene=dict(
+                xaxis_title=self.data.get('x_label', 'X'),
+                yaxis_title=self.data.get('y_label', 'Y'),
+                zaxis_title="Z",
+            ),
             template="plotly_white",
+            height=500
         )
         st.plotly_chart(fig, use_container_width=True, key="raw_scatter")
     
     def _render_ols_regression(self) -> None:
-        """Render OLS regression with residuals."""
+        """Render OLS regression with residuals in 3D."""
         x = self.data.get('x', np.array([]))
         y = self.data.get('y', np.array([]))
         
@@ -322,44 +344,51 @@ class StreamlitContentRenderer:
         slope = self.stats.get('slope', 0)
         intercept = self.stats.get('intercept', 0)
         y_pred = intercept + slope * x
+        z_zeros = np.zeros(len(x))
         
         fig = go.Figure()
         
         # Data points
-        fig.add_trace(go.Scatter(
-            x=x, y=y, mode='markers',
-            marker=dict(size=10, color='#3498db'),
+        fig.add_trace(go.Scatter3d(
+            x=x, y=y, z=z_zeros, mode='markers',
+            marker=dict(size=5, color='#3498db'),
             name='Datenpunkte'
         ))
         
         # Regression line
         x_line = np.linspace(min(x), max(x), 100)
         y_line = intercept + slope * x_line
-        fig.add_trace(go.Scatter(
-            x=x_line, y=y_line, mode='lines',
-            line=dict(color='red', width=2),
+        z_line = np.zeros(len(x_line))
+        
+        fig.add_trace(go.Scatter3d(
+            x=x_line, y=y_line, z=z_line, mode='lines',
+            line=dict(color='red', width=5),
             name='Regressionsgerade'
         ))
         
-        # Residuals
+        # Residuals (vertical lines in 3D, though they lie on z=0 plane)
         for i in range(len(x)):
-            fig.add_trace(go.Scatter(
-                x=[x[i], x[i]], y=[y[i], y_pred[i]],
+            fig.add_trace(go.Scatter3d(
+                x=[x[i], x[i]], y=[y[i], y_pred[i]], z=[0, 0],
                 mode='lines',
-                line=dict(color='rgba(255,0,0,0.3)', width=1),
+                line=dict(color='rgba(255,0,0,0.3)', width=2),
                 showlegend=False
             ))
         
         fig.update_layout(
-            title="OLS Regression",
-            xaxis_title=self.data.get('x_label', 'X'),
-            yaxis_title=self.data.get('y_label', 'Y'),
+            title="OLS Regression (3D)",
+            scene=dict(
+                xaxis_title=self.data.get('x_label', 'X'),
+                yaxis_title=self.data.get('y_label', 'Y'),
+                zaxis_title="Z"
+            ),
             template="plotly_white",
+            height=500
         )
         st.plotly_chart(fig, use_container_width=True, key="ols_reg")
     
     def _render_decomposition(self) -> None:
-        """Render decomposition of observation."""
+        """Render decomposition of observation in 3D."""
         x = self.data.get('x', np.array([]))
         y = self.data.get('y', np.array([]))
         
@@ -375,45 +404,52 @@ class StreamlitContentRenderer:
         
         fig = go.Figure()
         
-        fig.add_trace(go.Scatter(
-            x=[x[idx]], y=[y[idx]], mode='markers',
-            marker=dict(size=15, color='blue'), name=f'yᵢ = {y[idx]:.2f}'
+        fig.add_trace(go.Scatter3d(
+            x=[x[idx]], y=[y[idx]], z=[0], mode='markers',
+            marker=dict(size=8, color='blue'), name=f'yᵢ = {y[idx]:.2f}'
         ))
         
-        fig.add_hline(y=y_mean, line_dash="dash", line_color="gray",
-                      annotation_text=f"ȳ = {y_mean:.2f}")
+        # Mean line
+        fig.add_trace(go.Scatter3d(
+            x=[min(x), max(x)], y=[y_mean, y_mean], z=[0, 0],
+            mode='lines', line=dict(color='gray', dash='dash'),
+            name=f"ȳ = {y_mean:.2f}"
+        ))
         
-        fig.add_trace(go.Scatter(
-            x=[x[idx]], y=[y_pred[idx]], mode='markers',
-            marker=dict(size=15, color='green', symbol='diamond'),
+        fig.add_trace(go.Scatter3d(
+            x=[x[idx]], y=[y_pred[idx]], z=[0], mode='markers',
+            marker=dict(size=8, color='green', symbol='diamond'),
             name=f'ŷᵢ = {y_pred[idx]:.2f}'
         ))
         
         x_line = np.linspace(min(x), max(x), 100)
         y_line = intercept + slope * x_line
-        fig.add_trace(go.Scatter(
-            x=x_line, y=y_line, mode='lines',
-            line=dict(color='red'), name='Regressionsgerade'
+        fig.add_trace(go.Scatter3d(
+            x=x_line, y=y_line, z=np.zeros(len(x_line)), mode='lines',
+            line=dict(color='red', width=4), name='Regressionsgerade'
         ))
         
-        fig.add_trace(go.Scatter(
-            x=[x[idx], x[idx]], y=[y_mean, y_pred[idx]],
-            mode='lines', line=dict(color='green', width=3),
+        fig.add_trace(go.Scatter3d(
+            x=[x[idx], x[idx]], y=[y_mean, y_pred[idx]], z=[0, 0],
+            mode='lines', line=dict(color='green', width=5),
             name=f'Erklärt: {y_pred[idx] - y_mean:.2f}'
         ))
         
-        fig.add_trace(go.Scatter(
-            x=[x[idx], x[idx]], y=[y_pred[idx], y[idx]],
-            mode='lines', line=dict(color='red', width=3),
+        fig.add_trace(go.Scatter3d(
+            x=[x[idx], x[idx]], y=[y_pred[idx], y[idx]], z=[0, 0],
+            mode='lines', line=dict(color='red', width=5),
             name=f'Residuum: {y[idx] - y_pred[idx]:.2f}'
         ))
         
         fig.update_layout(
-            title="Zerlegung einer Beobachtung",
-            xaxis_title=self.data.get('x_label', 'X'),
-            yaxis_title=self.data.get('y_label', 'Y'),
+            title="Zerlegung einer Beobachtung (3D)",
+            scene=dict(
+                xaxis_title=self.data.get('x_label', 'X'),
+                yaxis_title=self.data.get('y_label', 'Y'),
+                zaxis_title='Z'
+            ),
             template="plotly_white",
-            height=400
+            height=500
         )
         st.plotly_chart(fig, use_container_width=True, key="decomp_plot")
     
@@ -479,7 +515,7 @@ class StreamlitContentRenderer:
         st.plotly_chart(fig, use_container_width=True, key="conf_funnel_3d")
     
     def _render_se_visualization(self) -> None:
-        """Render SE confidence band visualization."""
+        """Render SE confidence band visualization in 3D."""
         x = self.data.get('x', np.array([]))
         y = self.data.get('y', np.array([]))
         
@@ -501,54 +537,96 @@ class StreamlitContentRenderer:
         
         fig = go.Figure()
         
-        fig.add_trace(go.Scatter(x=x, y=y, mode='markers',
-                                  marker=dict(size=8, color='blue'), name='Daten'))
+        z_zeros = np.zeros(len(x))
+        fig.add_trace(go.Scatter3d(
+            x=x, y=y, z=z_zeros, mode='markers',
+            marker=dict(size=5, color='blue'), name='Daten'
+        ))
         
-        fig.add_trace(go.Scatter(x=x_line, y=y_pred, mode='lines',
-                                  line=dict(color='red', width=2), name='Regression'))
+        z_line = np.zeros(len(x_line))
+        fig.add_trace(go.Scatter3d(
+            x=x_line, y=y_pred, z=z_line, mode='lines',
+            line=dict(color='red', width=4), name='Regression'
+        ))
         
-        fig.add_trace(go.Scatter(
-            x=np.concatenate([x_line, x_line[::-1]]),
-            y=np.concatenate([y_pred + ci_mult * se_fit, (y_pred - ci_mult * se_fit)[::-1]]),
-            fill='toself', fillcolor='rgba(0,100,200,0.2)',
-            line=dict(color='rgba(0,0,0,0)'),
-            name=f'±{ci_mult:.2f} SE'
+        # Upper and lower bounds as lines in 3D
+        fig.add_trace(go.Scatter3d(
+            x=x_line,
+            y=y_pred + ci_mult * se_fit,
+            z=z_line,
+            mode='lines',
+            line=dict(color='green', width=2),
+            name=f'+{ci_mult:.2f} SE'
+        ))
+        
+        fig.add_trace(go.Scatter3d(
+            x=x_line,
+            y=y_pred - ci_mult * se_fit,
+            z=z_line,
+            mode='lines',
+            line=dict(color='green', width=2),
+            name=f'-{ci_mult:.2f} SE'
         ))
         
         fig.update_layout(
-            title=f"Konfidenzband (±{ci_mult:.2f} × SE)",
-            xaxis_title=self.data.get('x_label', 'X'),
-            yaxis_title=self.data.get('y_label', 'Y'),
+            title=f"Konfidenzband (±{ci_mult:.2f} × SE) - 3D View",
+            scene=dict(
+                xaxis_title=self.data.get('x_label', 'X'),
+                yaxis_title=self.data.get('y_label', 'Y'),
+                zaxis_title="Z",
+                camera=dict(eye=dict(x=1.5, y=-1.5, z=0.5)),
+            ),
             template="plotly_white",
-            height=350
+            height=500
         )
         st.plotly_chart(fig, use_container_width=True, key="se_viz")
     
     def _render_variance_decomposition(self) -> None:
-        """Render variance decomposition bar chart."""
+        """Render variance decomposition bar chart in 3D."""
         sst = self.stats.get('sst', 0)
         ssr = self.stats.get('ssr', 0)
         sse = self.stats.get('sse', 0)
         r2 = self.stats.get('r_squared', 0)
         
         fig = go.Figure()
-        fig.add_trace(go.Bar(
-            x=["SST (Total)", "SSR (Erklärt)", "SSE (Unerklärt)"],
-            y=[sst, ssr, sse],
-            marker_color=["gray", "#2ecc71", "#e74c3c"],
-            text=[f"{sst:.1f}", f"{ssr:.1f}", f"{sse:.1f}"],
-            textposition="auto"
-        ))
+        
+        # Simulate 3D bars using lines
+        names = ["SST (Total)", "SSR (Erklärt)", "SSE (Unerklärt)"]
+        values = [sst, ssr, sse]
+        colors = ["gray", "#2ecc71", "#e74c3c"]
+        
+        for i, (name, val, col) in enumerate(zip(names, values, colors)):
+            fig.add_trace(go.Scatter3d(
+                x=[i, i], y=[0, 0], z=[0, val],
+                mode='lines',
+                line=dict(color=col, width=15),
+                name=name
+            ))
+            # Top marker
+            fig.add_trace(go.Scatter3d(
+                x=[i], y=[0], z=[val],
+                mode='markers+text',
+                marker=dict(size=5, color=col),
+                text=[f"{val:.1f}"],
+                textposition="top center",
+                showlegend=False
+            ))
+            
         fig.update_layout(
-            title=f"Varianzzerlegung: R² = {r2:.4f}",
-            yaxis_title="Quadratsumme",
+            title=f"Varianzzerlegung: R² = {r2:.4f} (3D Bars)",
+            scene=dict(
+                xaxis=dict(title="", ticktext=names, tickvals=[0, 1, 2]),
+                yaxis_title="",
+                zaxis_title="Quadratsumme",
+                camera=dict(eye=dict(x=1.5, y=-1.5, z=0.5)),
+            ),
             template="plotly_white",
-            height=350
+            height=500
         )
         st.plotly_chart(fig, use_container_width=True, key="variance_decomp")
     
     def _render_assumptions_4panel(self) -> None:
-        """Render 4-panel assumption diagnostics."""
+        """Render 4-panel assumption diagnostics in 3D."""
         x = self.data.get('x', np.array([]))
         y = self.data.get('y', np.array([]))
         
@@ -559,66 +637,64 @@ class StreamlitContentRenderer:
         intercept = self.stats.get('intercept', 0)
         y_pred = intercept + slope * x
         residuals = y - y_pred
+        z_zeros = np.zeros(len(residuals))
         
         fig = make_subplots(
             rows=2, cols=2,
+            specs=[
+                [{'type': 'scene'}, {'type': 'scene'}],
+                [{'type': 'scene'}, {'type': 'scene'}]
+            ],
             subplot_titles=[
-                '1. Linearität: Residuen vs. Fitted',
-                '2. Normalität: Q-Q Plot',
-                '3. Homoskedastizität: Scale-Location',
-                '4. Einfluss: Residuen vs. Leverage'
+                '1. Linearität (3D)',
+                '2. Normalität (3D)',
+                '3. Homoskedastizität (3D)',
+                '4. Einfluss (3D)'
             ]
         )
         
-        # Panel 1
-        fig.add_trace(go.Scatter(
-            x=y_pred, y=residuals,
-            mode='markers', marker=dict(color='blue', size=6),
+        # Panel 1: Resid vs Fitted
+        fig.add_trace(go.Scatter3d(
+            x=y_pred, y=residuals, z=z_zeros,
+            mode='markers', marker=dict(color='blue', size=4),
             showlegend=False
         ), row=1, col=1)
-        fig.add_hline(y=0, line_dash="dash", line_color="red", row=1, col=1)
         
-        # Panel 2
+        # Panel 2: Q-Q
         sorted_res = np.sort(residuals)
         n = len(sorted_res)
         theoretical_q = stats.norm.ppf(np.arange(1, n+1) / (n+1))
         
-        fig.add_trace(go.Scatter(
-            x=theoretical_q, y=sorted_res,
-            mode='markers', marker=dict(color='blue', size=6),
+        fig.add_trace(go.Scatter3d(
+            x=theoretical_q, y=sorted_res, z=z_zeros,
+            mode='markers', marker=dict(color='blue', size=4),
             showlegend=False
         ), row=1, col=2)
         
-        fig.add_trace(go.Scatter(
-            x=[-3, 3], y=[-3 * np.std(residuals), 3 * np.std(residuals)],
-            mode='lines', line=dict(color='red', dash='dash'),
-            showlegend=False
-        ), row=1, col=2)
-        
-        # Panel 3
+        # Panel 3: Scale-Location
         sqrt_std_res = np.sqrt(np.abs(residuals / np.std(residuals)))
-        fig.add_trace(go.Scatter(
-            x=y_pred, y=sqrt_std_res,
-            mode='markers', marker=dict(color='blue', size=6),
+        fig.add_trace(go.Scatter3d(
+            x=y_pred, y=sqrt_std_res, z=z_zeros,
+            mode='markers', marker=dict(color='blue', size=4),
             showlegend=False
         ), row=2, col=1)
         
-        # Panel 4
+        # Panel 4: Leverage
         x_mat = np.column_stack([np.ones(len(x)), x])
         hat_matrix = x_mat @ np.linalg.inv(x_mat.T @ x_mat) @ x_mat.T
         leverage = np.diag(hat_matrix)
         
-        fig.add_trace(go.Scatter(
-            x=leverage, y=residuals / np.std(residuals),
-            mode='markers', marker=dict(color='blue', size=6),
+        fig.add_trace(go.Scatter3d(
+            x=leverage, y=residuals / np.std(residuals), z=z_zeros,
+            mode='markers', marker=dict(color='blue', size=4),
             showlegend=False
         ), row=2, col=2)
         
-        fig.update_layout(height=600, title_text="Diagnose-Plots: Gauss-Markov Annahmen")
+        fig.update_layout(height=800, title_text="Diagnose-Plots (3D View)")
         st.plotly_chart(fig, use_container_width=True, key="assumption_4panel")
     
     def _render_assumption_violation_demo(self) -> None:
-        """Interactive demo of assumption violations."""
+        """Interactive demo of assumption violations in 3D."""
         violation_type = st.selectbox(
             "Wähle eine Verletzung:",
             ["Keine (Normal)", "Heteroskedastizität", "Nicht-Linearität", "Ausreisser"],
@@ -646,67 +722,72 @@ class StreamlitContentRenderer:
         residuals_demo = y_demo - y_pred_demo
         
         col1, col2 = st.columns(2)
+        z_zeros = np.zeros(n)
         
         with col1:
             fig1 = go.Figure()
-            fig1.add_trace(go.Scatter(x=x_demo, y=y_demo, mode='markers'))
+            fig1.add_trace(go.Scatter3d(x=x_demo, y=y_demo, z=z_zeros, mode='markers', marker=dict(size=4)))
             x_line = np.linspace(0, 10, 100)
-            fig1.add_trace(go.Scatter(x=x_line, y=b0_demo + b1_demo * x_line, 
-                                       mode='lines', line=dict(color='red')))
-            fig1.update_layout(title="Daten + Regression", height=300)
+            z_line = np.zeros(100)
+            fig1.add_trace(go.Scatter3d(x=x_line, y=b0_demo + b1_demo * x_line, z=z_line,
+                                       mode='lines', line=dict(color='red', width=4)))
+            fig1.update_layout(title="Daten + Regression (3D)", scene=dict(zaxis_title='Z'), height=400)
             st.plotly_chart(fig1, use_container_width=True, key=f"viol_scatter_{violation_type}")
         
         with col2:
             fig2 = go.Figure()
-            fig2.add_trace(go.Scatter(x=y_pred_demo, y=residuals_demo, mode='markers'))
-            fig2.add_hline(y=0, line_dash="dash", line_color="red")
-            fig2.update_layout(title="Residuen vs. Fitted", height=300)
+            fig2.add_trace(go.Scatter3d(x=y_pred_demo, y=residuals_demo, z=z_zeros, mode='markers', marker=dict(size=4)))
+            
+            # Zero line
+            x_range = np.linspace(min(y_pred_demo), max(y_pred_demo), 100)
+            fig2.add_trace(go.Scatter3d(x=x_range, y=np.zeros(100), z=np.zeros(100), mode='lines', line=dict(color='red', dash='dash')))
+            
+            fig2.update_layout(title="Residuen vs. Fitted (3D)", scene=dict(zaxis_title='Z'), height=400)
             st.plotly_chart(fig2, use_container_width=True, key=f"viol_resid_{violation_type}")
     
     def _render_t_test_plot(self) -> None:
-        """Render t-test visualization."""
+        """Render t-test visualization in 3D."""
         t_slope = self.stats.get('t_slope', 0)
         p_slope = self.stats.get('p_slope', 0)
         df = self.stats.get('df', 10)
         
         x_t = np.linspace(-5, max(5, abs(t_slope) + 1), 200)
         y_t = stats.t.pdf(x_t, df=df)
-        t_crit = stats.t.ppf(0.975, df=df)
         
         fig = go.Figure()
-        fig.add_trace(go.Scatter(x=x_t, y=y_t, mode='lines', name='t-Verteilung',
-                                 line=dict(color='black', width=2)))
         
-        x_left = x_t[x_t < -t_crit]
-        x_right = x_t[x_t > t_crit]
-        
-        fig.add_trace(go.Scatter(
-            x=x_left, y=stats.t.pdf(x_left, df=df),
-            fill='tozeroy', fillcolor='rgba(255,0,0,0.3)',
-            line=dict(color='rgba(0,0,0,0)'),
-            name='Ablehnungsbereich'
-        ))
-        fig.add_trace(go.Scatter(
-            x=x_right, y=stats.t.pdf(x_right, df=df),
-            fill='tozeroy', fillcolor='rgba(255,0,0,0.3)',
-            line=dict(color='rgba(0,0,0,0)'),
-            showlegend=False
+        # t-distribution curve in 3D (Z=0)
+        fig.add_trace(go.Scatter3d(
+            x=x_t, y=y_t, z=np.zeros(len(x_t)),
+            mode='lines', name='t-Verteilung',
+            line=dict(color='black', width=4)
         ))
         
-        fig.add_vline(x=t_slope, line_color='blue', line_width=3,
-                      annotation_text=f"t = {t_slope:.2f}")
+        # Vertical line for t-statistic
+        fig.add_trace(go.Scatter3d(
+            x=[t_slope, t_slope],
+            y=[0, stats.t.pdf(t_slope, df=df)],
+            z=[0, 0],
+            mode='lines',
+            line=dict(color='blue', width=6),
+            name=f"t = {t_slope:.2f}"
+        ))
         
         fig.update_layout(
-            title=f"t-Test (df={df}): p = {p_slope:.4f}",
-            xaxis_title="t-Wert",
-            yaxis_title="Dichte",
+            title=f"t-Test (df={df}): p = {p_slope:.4f} (3D View)",
+            scene=dict(
+                xaxis_title="t-Wert",
+                yaxis_title="Dichte",
+                zaxis_title="Z",
+                camera=dict(eye=dict(x=1.5, y=-1.5, z=0.5)),
+            ),
             template="plotly_white",
-            height=350
+            height=500
         )
         st.plotly_chart(fig, use_container_width=True, key="t_test_plot")
     
     def _render_anova_interactive(self) -> None:
-        """Render interactive ANOVA example."""
+        """Render interactive ANOVA example in 3D (Scatter instead of Boxplot)."""
         col1, col2 = st.columns(2)
         
         with col1:
@@ -732,11 +813,36 @@ class StreamlitContentRenderer:
                 st.info("ℹ️ Keine signifikanten Unterschiede")
         
         fig = go.Figure()
-        fig.add_trace(go.Box(y=group_a, name='Gruppe A', marker_color='blue'))
-        fig.add_trace(go.Box(y=group_b, name='Gruppe B', marker_color='green'))
-        fig.add_trace(go.Box(y=group_c, name='Gruppe C', marker_color='red'))
         
-        fig.update_layout(title="Boxplots der drei Gruppen", template="plotly_white", height=350)
+        # Plot points in 3D
+        # X = Group (0, 1, 2), Y = Value, Z = Jitter
+        jitter_a = np.random.uniform(-0.2, 0.2, n_per_group)
+        jitter_b = np.random.uniform(-0.2, 0.2, n_per_group)
+        jitter_c = np.random.uniform(-0.2, 0.2, n_per_group)
+        
+        fig.add_trace(go.Scatter3d(
+            x=[0] * n_per_group, y=group_a, z=jitter_a,
+            mode='markers', name='Gruppe A', marker=dict(color='blue', size=4)
+        ))
+        fig.add_trace(go.Scatter3d(
+            x=[1] * n_per_group, y=group_b, z=jitter_b,
+            mode='markers', name='Gruppe B', marker=dict(color='green', size=4)
+        ))
+        fig.add_trace(go.Scatter3d(
+            x=[2] * n_per_group, y=group_c, z=jitter_c,
+            mode='markers', name='Gruppe C', marker=dict(color='red', size=4)
+        ))
+        
+        fig.update_layout(
+            title="Gruppen-Vergleich (3D Scatter)",
+            scene=dict(
+                xaxis=dict(title="Gruppe", ticktext=["A", "B", "C"], tickvals=[0, 1, 2]),
+                yaxis_title="Wert",
+                zaxis_title="Jitter (zur besseren Sicht)",
+            ),
+            template="plotly_white",
+            height=500
+        )
         st.plotly_chart(fig, use_container_width=True, key="anova_box")
     
     def _render_anova_3d_landscape(self) -> None:
@@ -768,7 +874,7 @@ class StreamlitContentRenderer:
         st.plotly_chart(fig, use_container_width=True, key="anova_3d")
     
     def _render_heteroskedasticity_demo(self) -> None:
-        """Render heteroskedasticity demo."""
+        """Render heteroskedasticity demo in 3D."""
         np.random.seed(42)
         n = 100
         x_demo = np.random.uniform(1, 10, n)
@@ -783,21 +889,26 @@ class StreamlitContentRenderer:
         residuals = y_demo - y_pred
         
         col1, col2 = st.columns(2)
+        z_zeros = np.zeros(n)
         
         with col1:
             fig1 = go.Figure()
-            fig1.add_trace(go.Scatter(x=x_demo, y=y_demo, mode='markers', name='Daten'))
+            fig1.add_trace(go.Scatter3d(x=x_demo, y=y_demo, z=z_zeros, mode='markers', name='Daten', marker=dict(size=4)))
             x_line = np.linspace(1, 10, 100)
-            fig1.add_trace(go.Scatter(x=x_line, y=b0 + b1 * x_line,
-                                       mode='lines', line=dict(color='red'), name='Regression'))
-            fig1.update_layout(title="Daten mit Heteroskedastizität", height=300)
+            z_line = np.zeros(100)
+            fig1.add_trace(go.Scatter3d(x=x_line, y=b0 + b1 * x_line, z=z_line,
+                                       mode='lines', line=dict(color='red', width=4), name='Regression'))
+            fig1.update_layout(title="Daten mit Heteroskedastizität (3D)", scene=dict(zaxis_title='Z'), height=400)
             st.plotly_chart(fig1, use_container_width=True, key="het_scatter")
         
         with col2:
             fig2 = go.Figure()
-            fig2.add_trace(go.Scatter(x=y_pred, y=residuals, mode='markers'))
-            fig2.add_hline(y=0, line_dash="dash", line_color="red")
-            fig2.update_layout(title="Residuen: Trichter-Effekt", height=300)
+            fig2.add_trace(go.Scatter3d(x=y_pred, y=residuals, z=z_zeros, mode='markers', marker=dict(size=4)))
+            
+            x_range = np.linspace(min(y_pred), max(y_pred), 100)
+            fig2.add_trace(go.Scatter3d(x=x_range, y=np.zeros(100), z=np.zeros(100), mode='lines', line=dict(color='red', dash='dash')))
+            
+            fig2.update_layout(title="Residuen: Trichter-Effekt (3D)", scene=dict(zaxis_title='Z'), height=400)
             st.plotly_chart(fig2, use_container_width=True, key="het_resid")
         
         if het_strength > 0.5:

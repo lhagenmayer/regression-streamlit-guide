@@ -255,9 +255,10 @@ class HTMLContentRenderer:
         return None
     
     def _generate_scatter_plot(self, plot_id: str, x: list, y: list, height: int) -> str:
-        """Generate scatter plot HTML."""
+        """Generate scatter plot HTML (3D)."""
         x_list = list(x) if hasattr(x, 'tolist') else x
         y_list = list(y) if hasattr(y, 'tolist') else y
+        z_zeros = [0] * len(x_list)
         x_mean = float(np.mean(x))
         y_mean = float(np.mean(y))
         
@@ -266,31 +267,30 @@ class HTMLContentRenderer:
                 {
                     "x": x_list,
                     "y": y_list,
+                    "z": z_zeros,
                     "mode": "markers",
-                    "type": "scatter",
-                    "marker": {"size": 10, "color": "#3498db", "opacity": 0.7},
+                    "type": "scatter3d",
+                    "marker": {"size": 5, "color": "#3498db", "opacity": 0.7},
                     "name": "Datenpunkte"
                 },
                 {
                     "x": [x_mean],
                     "y": [y_mean],
+                    "z": [0],
                     "mode": "markers",
-                    "type": "scatter",
-                    "marker": {"size": 15, "color": "red", "symbol": "x"},
+                    "type": "scatter3d",
+                    "marker": {"size": 8, "color": "red", "symbol": "cross"},
                     "name": f"Schwerpunkt ({x_mean:.2f}, {y_mean:.2f})"
                 }
             ],
             "layout": {
-                "title": "Schritt 1: Visualisierung der Rohdaten",
-                "xaxis": {"title": self.data.get('x_label', 'X')},
-                "yaxis": {"title": self.data.get('y_label', 'Y')},
+                "title": "Schritt 1: Visualisierung der Rohdaten (3D)",
+                "scene": {
+                    "xaxis": {"title": self.data.get('x_label', 'X')},
+                    "yaxis": {"title": self.data.get('y_label', 'Y')},
+                    "zaxis": {"title": "Z"}
+                },
                 "template": "plotly_white",
-                "shapes": [
-                    {"type": "line", "x0": min(x_list), "x1": max(x_list), "y0": y_mean, "y1": y_mean,
-                     "line": {"color": "orange", "dash": "dash"}},
-                    {"type": "line", "x0": x_mean, "x1": x_mean, "y0": min(y_list), "y1": max(y_list),
-                     "line": {"color": "green", "dash": "dash"}}
-                ]
             }
         }
         
@@ -304,7 +304,7 @@ class HTMLContentRenderer:
         '''
     
     def _generate_regression_plot(self, plot_id: str, x: list, y: list, height: int) -> str:
-        """Generate regression plot HTML."""
+        """Generate regression plot HTML (3D)."""
         x_arr = np.array(x)
         y_arr = np.array(y)
         
@@ -313,30 +313,36 @@ class HTMLContentRenderer:
         
         x_line = np.linspace(min(x_arr), max(x_arr), 100).tolist()
         y_line = [intercept + slope * xi for xi in x_line]
+        z_line = [0] * len(x_line)
         
         trace_data = {
             "data": [
                 {
                     "x": x_arr.tolist(),
                     "y": y_arr.tolist(),
+                    "z": [0] * len(x_arr),
                     "mode": "markers",
-                    "type": "scatter",
-                    "marker": {"size": 10, "color": "#3498db"},
+                    "type": "scatter3d",
+                    "marker": {"size": 5, "color": "#3498db"},
                     "name": "Datenpunkte"
                 },
                 {
                     "x": x_line,
                     "y": y_line,
+                    "z": z_line,
                     "mode": "lines",
-                    "type": "scatter",
-                    "line": {"color": "red", "width": 2},
+                    "type": "scatter3d",
+                    "line": {"color": "red", "width": 5},
                     "name": "Regressionsgerade"
                 }
             ],
             "layout": {
-                "title": "OLS Regression",
-                "xaxis": {"title": self.data.get('x_label', 'X')},
-                "yaxis": {"title": self.data.get('y_label', 'Y')},
+                "title": "OLS Regression (3D)",
+                "scene": {
+                    "xaxis": {"title": self.data.get('x_label', 'X')},
+                    "yaxis": {"title": self.data.get('y_label', 'Y')},
+                    "zaxis": {"title": "Z"}
+                },
                 "template": "plotly_white"
             }
         }
@@ -351,24 +357,50 @@ class HTMLContentRenderer:
         '''
     
     def _generate_variance_decomposition_plot(self, plot_id: str, height: int) -> str:
-        """Generate variance decomposition bar chart."""
+        """Generate variance decomposition bar chart (3D)."""
         sst = self.stats_data.get('sst', 100)
         ssr = self.stats_data.get('ssr', 60)
         sse = self.stats_data.get('sse', 40)
         r2 = self.stats_data.get('r_squared', 0.6)
         
+        # Simulate bars with lines in 3D
+        names = ["SST (Total)", "SSR (Erklärt)", "SSE (Unerklärt)"]
+        values = [sst, ssr, sse]
+        colors = ["gray", "#2ecc71", "#e74c3c"]
+        
+        traces = []
+        for i, (name, val, col) in enumerate(zip(names, values, colors)):
+            traces.append({
+                "x": [i, i],
+                "y": [0, 0],
+                "z": [0, val],
+                "mode": "lines",
+                "type": "scatter3d",
+                "line": {"color": col, "width": 15},
+                "name": name
+            })
+            # Top marker
+            traces.append({
+                "x": [i],
+                "y": [0],
+                "z": [val],
+                "mode": "markers+text",
+                "type": "scatter3d",
+                "marker": {"size": 5, "color": col},
+                "text": [f"{val:.1f}"],
+                "textposition": "top center",
+                "showlegend": False
+            })
+        
         trace_data = {
-            "data": [{
-                "x": ["SST (Total)", "SSR (Erklärt)", "SSE (Unerklärt)"],
-                "y": [sst, ssr, sse],
-                "type": "bar",
-                "marker": {"color": ["gray", "#2ecc71", "#e74c3c"]},
-                "text": [f"{sst:.1f}", f"{ssr:.1f}", f"{sse:.1f}"],
-                "textposition": "auto"
-            }],
+            "data": traces,
             "layout": {
-                "title": f"Varianzzerlegung: R² = {r2:.4f}",
-                "yaxis": {"title": "Quadratsumme"},
+                "title": f"Varianzzerlegung: R² = {r2:.4f} (3D)",
+                "scene": {
+                    "xaxis": {"title": "", "ticktext": names, "tickvals": [0, 1, 2]},
+                    "yaxis": {"title": ""},
+                    "zaxis": {"title": "Quadratsumme"}
+                },
                 "template": "plotly_white"
             }
         }
@@ -383,50 +415,68 @@ class HTMLContentRenderer:
         '''
     
     def _generate_correlation_examples_plot(self, plot_id: str, height: int) -> str:
-        """Generate correlation examples subplot."""
+        """Generate correlation examples subplot (3D)."""
         np.random.seed(42)
         n = 50
         correlations = [-0.95, -0.50, 0.0, 0.50, 0.95]
         
         traces = []
+        # Plotly subplots in JSON are complex. 
+        # For simplicity, we'll just create independent 3D plots if we want, or try to use subplots.
+        # But `grid` layout for 3D scenes is supported in Plotly.js.
+        # However, it's easier to just assume they are 3D scatter plots in a grid.
+        
+        # NOTE: Plotly.js 3D subplots need 'scene', 'scene2', etc.
+        
         for i, rho in enumerate(correlations):
-            row = i // 3 + 1
-            col = i % 3 + 1
+            row = i // 3
+            col = i % 3
             
             mean = [0, 0]
             cov = [[1, rho], [rho, 1]]
             data_gen = np.random.multivariate_normal(mean, cov, n)
             
+            scene_id = f"scene{i+1}" if i > 0 else "scene"
+            
             traces.append({
                 "x": data_gen[:, 0].tolist(),
                 "y": data_gen[:, 1].tolist(),
+                "z": [0] * n,
                 "mode": "markers",
-                "type": "scatter",
-                "marker": {"size": 5},
+                "type": "scatter3d",
+                "marker": {"size": 3},
                 "name": f"r = {rho}",
-                "xaxis": f"x{i+1}" if i > 0 else "x",
-                "yaxis": f"y{i+1}" if i > 0 else "y"
+                "scene": scene_id
             })
-        
-        # Nonlinear example
+
+        # Nonlinear
         x_nl = np.linspace(-2, 2, n)
         y_nl = x_nl**2 + np.random.normal(0, 0.3, n)
         traces.append({
             "x": x_nl.tolist(),
             "y": y_nl.tolist(),
+            "z": [0] * n,
             "mode": "markers",
-            "type": "scatter",
-            "marker": {"size": 5},
+            "type": "scatter3d",
+            "marker": {"size": 3},
             "name": "r = 0 (nonlinear)",
-            "xaxis": "x6",
-            "yaxis": "y6"
+            "scene": "scene6"
         })
         
         layout = {
-            "title": "Korrelations-Beispiele",
-            "grid": {"rows": 2, "columns": 3, "pattern": "independent"},
+            "title": "Korrelations-Beispiele (3D View)",
             "height": height,
-            "showlegend": False
+            "showlegend": False,
+            # We need to define scenes and their positions
+            # This is tricky without 'make_subplots' logic in Python, but we can approximation
+            # or just rely on 'grid' if Plotly JS supports it for scenes easily.
+            # Actually, let's define the domains for each scene.
+            "scene":  {"domain": {"x": [0, 0.33], "y": [0.5, 1]}, "annotations": [{"text": "r=-0.95"}]},
+            "scene2": {"domain": {"x": [0.33, 0.66], "y": [0.5, 1]}, "annotations": [{"text": "r=-0.50"}]},
+            "scene3": {"domain": {"x": [0.66, 1], "y": [0.5, 1]}, "annotations": [{"text": "r=0.00"}]},
+            "scene4": {"domain": {"x": [0, 0.33], "y": [0, 0.5]}, "annotations": [{"text": "r=0.50"}]},
+            "scene5": {"domain": {"x": [0.33, 0.66], "y": [0, 0.5]}, "annotations": [{"text": "r=0.95"}]},
+            "scene6": {"domain": {"x": [0.66, 1], "y": [0, 0.5]}, "annotations": [{"text": "nonlinear"}]},
         }
         
         return f'''
