@@ -94,13 +94,17 @@ class StreamlitContentRenderer:
             st.metric(element.label, element.value, help=element.help_text or None)
         
         elif isinstance(element, MetricRow):
-            # On mobile/narrow screens, stacking might be better than columns
-            # but Streamlit's columns are responsive. 
-            # We keep it simple.
-            cols = st.columns(len(element.metrics))
-            for col, metric in zip(cols, element.metrics):
-                with col:
-                    st.metric(metric.label, metric.value, help=metric.help_text or None)
+            # Limit columns per row to avoid squeezing on smaller screens
+            MAX_COLS = 3
+            metrics = element.metrics
+            
+            # Process in chunks
+            for i in range(0, len(metrics), MAX_COLS):
+                chunk = metrics[i:i + MAX_COLS]
+                cols = st.columns(len(chunk))
+                for col, metric in zip(cols, chunk):
+                    with col:
+                        st.metric(metric.label, metric.value, help=metric.help_text or None)
         
         elif isinstance(element, Formula):
             if element.inline:
