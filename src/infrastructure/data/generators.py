@@ -61,6 +61,41 @@ class MultipleRegressionDataResult:
         return len(self.y)
 
 
+@dataclass
+class ClassificationDataResult:
+    """Result from classification data fetching.
+    
+    Used for KNN, Logistic Regression, and other classifiers.
+    Supports multi-dimensional features and multi-class targets.
+    """
+    X: np.ndarray  # Feature matrix (n_samples, n_features)
+    y: np.ndarray  # Target array (n_samples,)
+    feature_names: List[str]
+    target_names: List[str]
+    context_title: str = ""
+    context_description: str = ""
+    extra: Dict[str, Any] = None
+    
+    def __post_init__(self):
+        if self.extra is None:
+            self.extra = {}
+    
+    @property
+    def n(self) -> int:
+        """Number of samples."""
+        return len(self.y)
+    
+    @property
+    def n_features(self) -> int:
+        """Number of features."""
+        return self.X.shape[1] if len(self.X.shape) > 1 else 1
+    
+    @property
+    def n_classes(self) -> int:
+        """Number of classes."""
+        return len(self.target_names)
+
+
 class DataFetcher:
     """
     Step 1: GET DATA
@@ -584,3 +619,163 @@ class DataFetcher:
             y_label="Preis ($1000)",
             extra={"true_b0": 50, "true_b1": 8, "true_b2": 30}
         )
+    
+    # =========================================================
+    # CLASSIFICATION DATASETS (Case Studies from Professor)
+    # =========================================================
+    
+    def get_classification(
+        self,
+        dataset: str,
+        n: int = 59,
+        seed: int = 42,
+    ) -> ClassificationDataResult:
+        """
+        Get data for classification (KNN, Logistic Regression).
+        
+        Args:
+            dataset: "fruits", "digits", "binary_electronics", "binary_housing"
+            n: Number of samples
+            seed: Random seed
+            
+        Returns:
+            ClassificationDataResult with X matrix, y array, metadata
+        """
+        logger.info(f"Fetching classification data: {dataset}, n={n}")
+        np.random.seed(seed)
+        
+        if dataset == "fruits":
+            return self._generate_fruits(n)
+        elif dataset == "digits":
+            return self._generate_digits(n)
+        elif dataset == "binary_electronics":
+            return self._generate_binary_from_simple("electronics", n, seed)
+        elif dataset == "binary_housing":
+            return self._generate_binary_from_simple("houses", n, seed)
+        else:
+            return self._generate_fruits(n)
+    
+    def _generate_fruits(self, n: int) -> ClassificationDataResult:
+        """
+        Fruits dataset (Professor's KNN Case Study).
+        
+        Features: height, width, mass, color_score
+        Classes: apple, mandarin, orange, lemon
+        """
+        n_per_class = n // 4
+        
+        classes, heights, widths, masses, colors = [], [], [], [], []
+        
+        # Apple: round, medium, red
+        for _ in range(n_per_class):
+            classes.append(0)
+            heights.append(np.random.normal(7.5, 0.8))
+            widths.append(np.random.normal(7.3, 0.7))
+            masses.append(np.random.normal(175, 25))
+            colors.append(np.random.normal(0.75, 0.1))
+        
+        # Mandarin: small, round, orange
+        for _ in range(n_per_class):
+            classes.append(1)
+            heights.append(np.random.normal(4.5, 0.5))
+            widths.append(np.random.normal(5.8, 0.4))
+            masses.append(np.random.normal(85, 15))
+            colors.append(np.random.normal(0.82, 0.08))
+        
+        # Orange: round, larger
+        for _ in range(n_per_class):
+            classes.append(2)
+            heights.append(np.random.normal(7.0, 0.6))
+            widths.append(np.random.normal(7.2, 0.5))
+            masses.append(np.random.normal(155, 20))
+            colors.append(np.random.normal(0.78, 0.07))
+        
+        # Lemon: elongated, yellow
+        for _ in range(n - 3 * n_per_class):
+            classes.append(3)
+            heights.append(np.random.normal(8.5, 0.9))
+            widths.append(np.random.normal(5.5, 0.6))
+            masses.append(np.random.normal(120, 20))
+            colors.append(np.random.normal(0.70, 0.1))
+        
+        X = np.column_stack([heights, widths, masses, colors])
+        y = np.array(classes)
+        
+        # Shuffle
+        idx = np.random.permutation(len(y))
+        
+        return ClassificationDataResult(
+            X=X[idx], y=y[idx],
+            feature_names=["height", "width", "mass", "color_score"],
+            target_names=["apple", "mandarin", "orange", "lemon"],
+            context_title="🍎 Fruit Classification",
+            context_description="KNN Case Study: Classify fruits by physical properties",
+            extra={"source": "Professor's Lecture"}
+        )
+    
+    def _generate_digits(self, n: int) -> ClassificationDataResult:
+        """
+        Digits dataset (8x8 handwritten digits, Professor's Case Study).
+        """
+        n_per_class = max(1, n // 10)
+        X_list, y_list = [], []
+        
+        for digit in range(10):
+            for _ in range(n_per_class if digit < 9 else n - 9 * n_per_class):
+                img = np.zeros((8, 8))
+                
+                # Simplified digit patterns
+                if digit == 0:
+                    img[1:7, 2:6] = np.random.uniform(8, 16, (6, 4))
+                    img[2:6, 3:5] = 0
+                elif digit == 1:
+                    img[1:7, 3:5] = np.random.uniform(10, 16, (6, 2))
+                elif digit == 2:
+                    img[1:3, 2:6] = np.random.uniform(8, 14, (2, 4))
+                    img[5:7, 2:6] = np.random.uniform(8, 14, (2, 4))
+                elif digit == 3:
+                    img[1:2, 2:6] = np.random.uniform(8, 14, (1, 4))
+                    img[3:4, 2:6] = np.random.uniform(8, 14, (1, 4))
+                    img[6:7, 2:6] = np.random.uniform(8, 14, (1, 4))
+                else:
+                    # Generic pattern for 4-9
+                    img[digit % 3:(digit % 3) + 4, 2:6] = np.random.uniform(8, 16, (4, 4))
+                
+                img += np.random.uniform(0, 2, (8, 8))
+                X_list.append(img.flatten())
+                y_list.append(digit)
+        
+        X, y = np.array(X_list), np.array(y_list)
+        idx = np.random.permutation(len(y))
+        
+        return ClassificationDataResult(
+            X=X[idx], y=y[idx],
+            feature_names=[f"pixel_{i}" for i in range(64)],
+            target_names=[str(d) for d in range(10)],
+            context_title="🔢 Handwritten Digits",
+            context_description="Digits Case Study: Classify 8x8 images of digits 0-9",
+            extra={"image_shape": (8, 8)}
+        )
+    
+    def _generate_binary_from_simple(self, base: str, n: int, seed: int) -> ClassificationDataResult:
+        """Create binary classification from regression data."""
+        if base == "electronics":
+            data = self.get_simple("electronics", n=n, seed=seed)
+            y_binary = (data.y > np.median(data.y)).astype(int)
+            return ClassificationDataResult(
+                X=data.x.reshape(-1, 1), y=y_binary,
+                feature_names=[data.x_label],
+                target_names=["low_sales", "high_sales"],
+                context_title="🏪 Electronics Binary",
+                context_description="Predict high/low sales from store size"
+            )
+        else:
+            data = self.get_multiple("houses", n=n, seed=seed)
+            y_binary = (data.y > np.median(data.y)).astype(int)
+            return ClassificationDataResult(
+                X=np.column_stack([data.x1, data.x2]), y=y_binary,
+                feature_names=[data.x1_label, data.x2_label],
+                target_names=["standard", "premium"],
+                context_title="🏠 Housing Binary",
+                context_description="Predict premium/standard housing"
+            )
